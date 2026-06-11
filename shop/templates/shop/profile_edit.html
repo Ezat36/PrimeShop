@@ -1,0 +1,48 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block page_title %}
+✏ Edit Profile
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width:700px;">
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" name="username" class="form-control"
+                   value="{{ request.user.username }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control"
+                   value="{{ request.user.email }}">
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">First Name</label>
+                <input type="text" name="first_name" class="form-control"
+                       value="{{ request.user.first_name }}">
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Last Name</label>
+                <input type="text" name="last_name" class="form-control"
+                       value="{{ request.user.last_name }}">
+            </div>
+        </div>
+
+        <button class="btn btn-success">Save Changes</button>
+        <a href="/profile/" class="btn btn-secondary">Cancel</a>
+    </form>
+
+</div>
+
+{% endblock %}

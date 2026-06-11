@@ -1,0 +1,211 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block page_title %}
+🏠 Business Dashboard
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+    <a href="/?filter=today" class="btn btn-primary">Today</a>
+    <a href="/?filter=month" class="btn btn-success">This Month</a>
+    <a href="/?filter=year" class="btn btn-info">This Year</a>
+    <a href="/?filter=all" class="btn btn-dark">All Time</a>
+</div>
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-4">
+        <div class="card card-box p-4">
+            <p class="text-muted mb-1">Total Items Sold</p>
+            <h2>{{ total_items_sold }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-box p-4">
+            <p class="text-muted mb-1">Sales Value</p>
+            <h2>{{ total_sales_value|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-box p-4">
+            <p class="text-muted mb-1">Profit</p>
+            <h2 class="text-success">{{ total_profit|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-box p-4">
+            <p class="text-muted mb-1">Current Stock Value</p>
+            <h2>{{ current_stock_value|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-box p-4">
+            <p class="text-muted mb-1">Customer Balance</p>
+            <h2 class="text-danger">{{ outstanding_balance|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-box p-4">
+            <p class="text-muted mb-1">Low Stock Items</p>
+            <h2 class="text-warning">{{ low_stock_count }}</h2>
+        </div>
+    </div>
+
+</div>
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-6">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">📊 Sold Quantity by Product</h5>
+            <canvas id="salesChart" height="300"></canvas>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">💵 Sales Value by Product</h5>
+            <canvas id="salesValueChart" height="300px; width: 300px; margin:auto;"></canvas>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">📈 Profit by Product</h5>
+            <canvas id="profitChart" height="180"></canvas>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Low Stock Alert</h5>
+
+            {% for variant in low_stock_items %}
+                <div class="border-bottom py-2">
+                    <strong>{{ variant.product.name }}</strong><br>
+                    <small>
+                        Size: {{ variant.size }} |
+                        Color: {{ variant.color }}<br>
+                        Remaining: {{ variant.current_stock }}
+                    </small>
+                </div>
+            {% empty %}
+                <p class="text-muted">No low stock items.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<div class="row g-4">
+
+    <div class="col-md-12">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Sold Items</h5>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <tr class="table-dark">
+                        <th>Date</th>
+                        <th>Product</th>
+                        <th>Size</th>
+                        <th>Color</th>
+                        <th>Qty</th>
+                        <th>Total</th>
+                    </tr>
+
+                    {% for item in sold_items %}
+                    <tr>
+                        <td>{{ item.date }}</td>
+                        <td>{{ item.product }}</td>
+                        <td>{{ item.size }}</td>
+                        <td>{{ item.color }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.total }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">
+                            No sales found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{{ chart_labels|json_script:"chart-labels" }}
+{{ chart_values|json_script:"chart-values" }}
+{{ sales_value_chart|json_script:"sales-value-chart" }}
+{{ profit_chart|json_script:"profit-chart" }}
+
+<script>
+    const labels = JSON.parse(document.getElementById('chart-labels').textContent);
+    const soldQty = JSON.parse(document.getElementById('chart-values').textContent);
+    const salesValue = JSON.parse(document.getElementById('sales-value-chart').textContent);
+    const profitValue = JSON.parse(document.getElementById('profit-chart').textContent);
+
+    new Chart(document.getElementById('salesChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Sold Quantity',
+                data: soldQty,
+                borderWidth: 1,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    new Chart(document.getElementById('salesValueChart'), {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Sales Value',
+                data: salesValue
+            }]
+        },
+        options: {
+            responsive: false,
+   
+        }
+    });
+
+    
+
+    new Chart(document.getElementById('profitChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Profit',
+                data: profitValue,
+                borderWidth: 3,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+</script>
+
+{% endblock %}

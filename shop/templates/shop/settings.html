@@ -1,0 +1,56 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Settings{% endblock %}
+
+{% block page_title %}
+⚙ Store Settings
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width:800px;">
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label">Store Name</label>
+            <input type="text" name="store_name" class="form-control"
+                   value="{{ setting.store_name }}">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Phone</label>
+            <input type="text" name="phone" class="form-control"
+                   value="{{ setting.phone }}">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control"
+                   value="{{ setting.email }}">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Currency</label>
+            <input type="text" name="currency" class="form-control"
+                   value="{{ setting.currency }}">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Address</label>
+            <textarea name="address" class="form-control" rows="3">{{ setting.address }}</textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Invoice Footer</label>
+            <textarea name="invoice_footer" class="form-control" rows="3">{{ setting.invoice_footer }}</textarea>
+        </div>
+
+        <button class="btn btn-success">Save Settings</button>
+
+    </form>
+
+</div>
+
+{% endblock %}

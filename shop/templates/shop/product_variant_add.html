@@ -1,0 +1,56 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Add Variant{% endblock %}
+
+{% block page_title %}
++ Add Variant for {{ product.name }}
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width: 800px;">
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="row">
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Size</label>
+                <input type="text" name="size" class="form-control" placeholder="Small, Medium, Large">
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Color</label>
+                <input type="text" name="color" class="form-control" placeholder="Blue, Red, White">
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Model</label>
+                <input type="text" name="model" class="form-control" placeholder="Model number">
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">SKU</label>
+                <input type="text" name="sku" class="form-control" placeholder="Product code">
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Selling Price</label>
+                <input type="number" step="0.01" name="selling_price" class="form-control" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Low Stock Alert</label>
+                <input type="number" name="low_stock_alert" class="form-control" value="5">
+            </div>
+
+        </div>
+
+        <button class="btn btn-success">Save Variant</button>
+        <a href="{% url 'product_manage' product.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+
+</div>
+
+{% endblock %}

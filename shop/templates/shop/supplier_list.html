@@ -1,0 +1,64 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Suppliers{% endblock %}
+
+{% block page_title %}
+🚚 Suppliers
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <form method="get" class="d-flex" style="width: 400px;">
+        <input
+            type="text"
+            name="search"
+            class="form-control me-2"
+            placeholder="Search supplier..."
+            value="{{ search }}"
+        >
+        <button class="btn btn-primary">Search</button>
+    </form>
+
+    <a href="/suppliers/add/" class="btn btn-success">
+        + Add Supplier
+    </a>
+</div>
+
+<div class="card card-box p-4">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Supplier Name</th>
+                    <th>Phone</th>
+                    <th>Address</th>
+                    <th>Purchases</th>
+                    <th>Total Purchased Value</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for row in supplier_data %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ row.supplier.name }}</td>
+                    <td>{{ row.supplier.phone }}</td>
+                    <td>{{ row.supplier.address }}</td>
+                    <td>{{ row.purchase_count }}</td>
+                    <td>{{ row.total_purchases|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        No suppliers found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

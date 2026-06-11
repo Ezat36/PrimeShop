@@ -1,0 +1,54 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Purchases{% endblock %}
+
+{% block page_title %}
+🛒 Purchases
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between mb-4">
+    <h5>Purchase History</h5>
+    <a href="/purchases/add/" class="btn btn-success">+ New Purchase</a>
+</div>
+
+<div class="card card-box p-4">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Supplier</th>
+                    <th>Items</th>
+                    <th>Total Cost</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for purchase in purchases %}
+                <tr>
+                    <td>{{ purchase.id }}</td>
+                    <td>{{ purchase.date }}</td>
+                    <td>{{ purchase.supplier }}</td>
+                    <td>{{ purchase.items.count }}</td>
+                    <td>
+                        {% for item in purchase.items.all %}
+                            {{ item.total_price|floatformat:2 }}<br>
+                        {% endfor %}
+                    </td>
+                    <td>{{ purchase.note }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">No purchases found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

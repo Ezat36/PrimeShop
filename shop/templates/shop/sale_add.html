@@ -1,0 +1,99 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}New Sale{% endblock %}
+
+{% block page_title %}
++ New Sale
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4">
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Customer</label>
+                <select name="customer" class="form-control">
+                    <option value="">Walk-in Customer</option>
+                    {% for customer in customers %}
+                        <option value="{{ customer.id }}">{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Discount</label>
+                <input type="number" step="0.01" name="discount" class="form-control" value="0">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Paid Amount</label>
+                <input type="number" step="0.01" name="paid_amount" class="form-control" value="0">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Note</label>
+            <input type="text" name="note" class="form-control">
+        </div>
+
+        <h5 class="mt-4">Sale Items</h5>
+
+        <table class="table table-bordered" id="items-table">
+            <thead class="table-dark">
+                <tr>
+                    <th>Variant</th>
+                    <th>Quantity</th>
+                    <th>Selling Price</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>
+                        <select name="variant" class="form-control" required>
+                            <option value="">Select variant</option>
+                            {% for variant in variants %}
+                                <option value="{{ variant.id }}">
+                                    {{ variant.product.name }} - {{ variant.size }} - {{ variant.color }} - Stock: {{ variant.current_stock }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+
+                    <td>
+                        <input type="number" name="quantity" class="form-control" required>
+                    </td>
+
+                    <td>
+                        <input type="number" step="0.01" name="selling_price" class="form-control" required>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <button type="button" class="btn btn-info" onclick="addRow()">+ Add Item</button>
+        <button type="submit" class="btn btn-success">Save Sale</button>
+        <a href="/sales/" class="btn btn-secondary">Cancel</a>
+
+    </form>
+
+</div>
+
+<script>
+function addRow() {
+    let table = document.getElementById("items-table").getElementsByTagName('tbody')[0];
+    let firstRow = table.rows[0];
+    let newRow = firstRow.cloneNode(true);
+
+    newRow.querySelectorAll("input").forEach(input => input.value = "");
+    newRow.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
+
+    table.appendChild(newRow);
+}
+</script>
+
+{% endblock %}

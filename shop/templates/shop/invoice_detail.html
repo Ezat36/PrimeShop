@@ -1,0 +1,239 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}Invoice Detail{% endblock %}
+
+{% block page_title %}
+🧾 Invoice {{ invoice.invoice_number }}
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-3 no-print">
+    <a href="/invoices/" class="btn btn-secondary">⬅ Back</a>
+    <button onclick="window.print()" class="btn btn-primary">🖨 Print Invoice</button>
+</div>
+
+<div class="card card-box p-4" id="invoice-area">
+
+    <div class="d-flex justify-content-between align-items-start mb-3">
+
+        <div>
+            <img src="{% static 'images/logo.png' %}"
+                 alt="Prime Shop Logo"
+                 style="height:90px; margin-bottom:8px;">
+
+            <h2 class="fw-bold mb-1">{{ setting.store_name }}</h2>
+
+            <p class="text-muted mb-0 small">
+                Address: {{ setting.address }}<br>
+                Phone: {{ setting.phone }}<br>
+                Email: {{ setting.email }}
+            </p>
+        </div>
+
+        <div class="text-end">
+            <h2 class="fw-bold text-primary mb-2">INVOICE</h2>
+
+            <p class="mb-1">
+                <strong>No:</strong> {{ invoice.invoice_number }}
+            </p>
+
+            <p class="mb-0">
+                <strong>Date:</strong> {{ invoice.created_at|date:"Y-m-d H:i" }}
+            </p>
+        </div>
+
+    </div>
+
+    <hr class="my-3">
+
+    <div class="row mb-3">
+
+        <div class="col-md-6">
+            <h5 class="fw-bold mb-2">Customer</h5>
+
+            <p class="mb-0">
+                <strong>Name:</strong> {{ sale.customer }}<br>
+                <strong>Phone:</strong> {{ sale.customer.phone }}<br>
+                <strong>Address:</strong> {{ sale.customer.address }}
+            </p>
+        </div>
+
+    </div>
+
+    <table class="table table-bordered align-middle invoice-table">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Item</th>
+                <th>Size</th>
+                <th>Color</th>
+                <th class="text-center">Qty</th>
+                <th class="text-end">Unit Price</th>
+                <th class="text-end">Total</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in sale_items %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.variant.product.name }}</td>
+                <td>{{ item.variant.size }}</td>
+                <td>{{ item.variant.color }}</td>
+                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-end">
+                    {{ item.selling_price|floatformat:2 }} {{ setting.currency }}
+                </td>
+                <td class="text-end">
+                    {{ item.total_price|floatformat:2 }} {{ setting.currency }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="d-flex justify-content-end mt-3">
+
+        <div class="summary-box">
+
+            <div class="summary-row">
+                <span>Total</span>
+                <strong>
+                    {{ sale.total_amount|floatformat:2 }} {{ setting.currency }}
+                </strong>
+            </div>
+
+            <div class="summary-row">
+                <span>Discount</span>
+                <strong>
+                    {{ sale.discount|floatformat:2 }} {{ setting.currency }}
+                </strong>
+            </div>
+
+            <div class="summary-row">
+                <span>Grand Total</span>
+                <strong>
+                    {{ sale.final_amount|floatformat:2 }} {{ setting.currency }}
+                </strong>
+            </div>
+
+            <div class="summary-row">
+                <span>Paid</span>
+                <strong class="text-success">
+                    {{ sale.paid_amount|floatformat:2 }} {{ setting.currency }}
+                </strong>
+            </div>
+
+            <div class="summary-row balance-row">
+                <span>Balance Due</span>
+                <strong class="text-danger">
+                    {{ sale.remaining_balance|floatformat:2 }} {{ setting.currency }}
+                </strong>
+            </div>
+
+        </div>
+
+    </div>
+
+    <hr class="my-3">
+
+    <div class="terms">
+        <strong>Terms & Conditions</strong><br>
+        Final Sale, No Returns or Refunds.<br>
+        Customer must inspect and verify goods before payment.<br>
+        No claims or complaints accepted after payment.
+
+        <div class="text-center text-muted mt-2">
+            {{ setting.invoice_footer }}
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .invoice-table th,
+    .invoice-table td {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .summary-box {
+        width: 350px;
+        background: #f8f9fa;
+        padding: 14px;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+        page-break-inside: avoid;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        font-size: 14px;
+    }
+
+    .balance-row {
+        border-top: 2px solid #dee2e6;
+        margin-top: 6px;
+        padding-top: 10px;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .terms {
+        font-size: 13px;
+        color: #333;
+        line-height: 1.4;
+        page-break-inside: avoid;
+    }
+
+    #invoice-area {
+        page-break-inside: avoid;
+    }
+
+    @media print {
+        .sidebar,
+        .topbar,
+        .no-print {
+            display: none !important;
+        }
+
+        .content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+        }
+
+        body {
+            background: white !important;
+        }
+
+        .card {
+            box-shadow: none !important;
+            border: none !important;
+        }
+
+        #invoice-area {
+            padding: 15px !important;
+        }
+
+        .invoice-table th,
+        .invoice-table td {
+            padding: 6px !important;
+            font-size: 12px !important;
+        }
+
+        .summary-box {
+            padding: 12px !important;
+        }
+
+        .terms {
+            font-size: 12px !important;
+            line-height: 1.3 !important;
+        }
+    }
+</style>
+
+{% endblock %}

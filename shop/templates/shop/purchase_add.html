@@ -1,0 +1,91 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}New Purchase{% endblock %}
+
+{% block page_title %}
++ New Purchase
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4">
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Supplier</label>
+                <select name="supplier" class="form-control">
+                    <option value="">Select supplier</option>
+                    {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Note</label>
+                <input type="text" name="note" class="form-control">
+            </div>
+        </div>
+
+        <h5 class="mt-4">Purchase Items</h5>
+
+        <table class="table table-bordered" id="items-table">
+            <thead class="table-dark">
+                <tr>
+                    <th>Variant</th>
+                    <th>Quantity</th>
+                    <th>Buying Price</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>
+                        <select name="variant" class="form-control" required>
+                            <option value="">Select variant</option>
+                            {% for variant in variants %}
+                                <option value="{{ variant.id }}">
+                                    {{ variant.product.name }} - {{ variant.size }} - {{ variant.color }} - {{ variant.model }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+
+                    <td>
+                        <input type="number" name="quantity" class="form-control" required>
+                    </td>
+
+                    <td>
+                        <input type="number" step="0.01" name="buying_price" class="form-control" required>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <button type="button" class="btn btn-info" onclick="addRow()">+ Add Item</button>
+
+        <button type="submit" class="btn btn-success">Save Purchase</button>
+
+        <a href="/purchases/" class="btn btn-secondary">Cancel</a>
+
+    </form>
+
+</div>
+
+<script>
+function addRow() {
+    let table = document.getElementById("items-table").getElementsByTagName('tbody')[0];
+    let firstRow = table.rows[0];
+    let newRow = firstRow.cloneNode(true);
+
+    newRow.querySelectorAll("input").forEach(input => input.value = "");
+    newRow.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
+
+    table.appendChild(newRow);
+}
+</script>
+
+{% endblock %}

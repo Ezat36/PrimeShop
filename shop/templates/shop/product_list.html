@@ -1,0 +1,76 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Products{% endblock %}
+
+{% block page_title %}
+📦 Products
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <form method="get" class="d-flex" style="width: 400px;">
+        <input
+            type="text"
+            name="search"
+            class="form-control me-2"
+            placeholder="Search product..."
+            value="{{ search }}"
+        >
+        <button class="btn btn-primary">Search</button>
+    </form>
+
+    <a href="/products/add/" class="btn btn-success">
+            + Add Product
+    </a>
+</div>
+
+<div class="card card-box p-4">
+
+    <div class="table-responsive">
+
+        <table class="table table-bordered table-hover align-middle">
+
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Variants</th>
+                    <th>Total Stock</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for row in product_data %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ row.product.name }}</td>
+                    <td>{{ row.product.category }}</td>
+                    <td>{{ row.variant_count }}</td>
+                    <td>{{ row.total_stock }}</td>
+                    <td>
+                        <a href="/products/{{ row.product.id }}/manage/" class="btn btn-sm btn-primary">
+                        Manage
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        No products found.
+                    </td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

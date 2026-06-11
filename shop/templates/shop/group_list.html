@@ -1,0 +1,50 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Roles{% endblock %}
+
+{% block page_title %}
+🔐 Roles & Permissions
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between mb-4">
+    <h5>System Roles</h5>
+    <a href="/groups/add/" class="btn btn-success">+ Add Role</a>
+</div>
+
+<div class="card card-box p-4">
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Role Name</th>
+                <th>Permissions Count</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for group in groups %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ group.name }}</td>
+                <td>{{ group.permissions.count }}</td>
+                <td>
+                    <a href="/groups/{{ group.id }}/permissions/" class="btn btn-sm btn-primary">
+                        Manage Permissions
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center text-muted">
+                    No roles found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

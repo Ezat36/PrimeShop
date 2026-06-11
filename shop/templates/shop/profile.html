@@ -1,0 +1,115 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Profile{% endblock %}
+
+{% block page_title %}
+👤 My Profile
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+
+    <div class="col-md-8">
+
+        <div class="card card-box p-4 text-center">
+
+            <div class="mb-3">
+                <div style="
+                    width:110px;
+                    height:110px;
+                    border-radius:50%;
+                    background:linear-gradient(135deg,#2563eb,#8b5cf6);
+                    color:white;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    font-size:45px;
+                    font-weight:bold;
+                    margin:auto;
+                ">
+                    {{ request.user.username|first|upper }}
+                </div>
+            </div>
+
+            <h3>{{ request.user.first_name }} {{ request.user.last_name }}</h3>
+            <p class="text-muted">@{{ request.user.username }}</p>
+
+            {% if request.user.is_superuser %}
+                <span class="badge bg-dark mb-3">Super Admin</span>
+            {% elif request.user.is_staff %}
+                <span class="badge bg-primary mb-3">Staff User</span>
+            {% else %}
+                <span class="badge bg-secondary mb-3">Normal User</span>
+            {% endif %}
+
+            <hr>
+
+            <div class="row text-start">
+
+                <div class="col-md-6 mb-3">
+                    <strong>Username</strong>
+                    <p class="text-muted">{{ request.user.username }}</p>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Email</strong>
+                    <p class="text-muted">{{ request.user.email }}</p>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>First Name</strong>
+                    <p class="text-muted">{{ request.user.first_name }}</p>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Last Name</strong>
+                    <p class="text-muted">{{ request.user.last_name }}</p>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Status</strong><br>
+                    {% if request.user.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-danger">Disabled</span>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Roles</strong><br>
+                    {% for group in request.user.groups.all %}
+                        <span class="badge bg-info text-dark">{{ group.name }}</span>
+                    {% empty %}
+                        <span class="text-muted">No role assigned</span>
+                    {% endfor %}
+                </div>
+
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-center gap-2">
+                <a href="/" class="btn btn-primary">
+                     Dashboard
+                </a>
+
+                <a href="/logout/" class="btn btn-primary">
+                   Logout
+                </a>
+                <a href="/profile/edit/" class="btn btn-warning">
+                   ✏ Edit Profile
+                </a>
+
+                <a href="/profile/change-password/" class="btn btn-dark">
+                    🔐 Change Password
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

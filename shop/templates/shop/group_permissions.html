@@ -1,0 +1,33 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Add Role{% endblock %}
+
+{% block page_title %}
++ Add Role
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width: 600px;">
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label">Role Name</label>
+            <input
+                type="text"
+                name="name"
+                class="form-control"
+                required
+                placeholder="Example: Cashier"
+            >
+        </div>
+
+        <button class="btn btn-success">Save Role</button>
+        <a href="/groups/" class="btn btn-secondary">Cancel</a>
+    </form>
+
+</div>
+
+{% endblock %}

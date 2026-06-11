@@ -1,0 +1,84 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Manage Product{% endblock %}
+
+{% block page_title %}
+📦 Manage Product: {{ product.name }}
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-3">
+    <a href="/products/" class="btn btn-secondary">⬅ Back</a>
+    <a href="{% url 'product_detail_add' product.id %}" class="btn btn-info">+ Add Detail</a>
+    <a href="{% url 'product_variant_add' product.id %}" class="btn btn-success">+ Add Variant</a>
+</div>
+
+<div class="row g-4">
+
+    <div class="col-md-4">
+        <div class="card card-box p-4">
+            <h5>Product Information</h5>
+            <p><strong>Name:</strong> {{ product.name }}</p>
+            <p><strong>Category:</strong> {{ product.category }}</p>
+            <p><strong>Description:</strong> {{ product.description }}</p>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card card-box p-4 mb-4">
+            <h5>Product Details</h5>
+
+            <table class="table table-bordered">
+                <tr class="table-dark">
+                    <th>Name</th>
+                    <th>Value</th>
+                </tr>
+
+                {% for detail in details %}
+                <tr>
+                    <td>{{ detail.name }}</td>
+                    <td>{{ detail.value }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2" class="text-center text-muted">No details added.</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="card card-box p-4">
+            <h5>Product Variants</h5>
+
+            <table class="table table-bordered table-hover">
+                <tr class="table-dark">
+                    <th>Size</th>
+                    <th>Color</th>
+                    <th>Model</th>
+                    <th>SKU</th>
+                    <th>Selling Price</th>
+                    <th>Stock</th>
+                </tr>
+
+                {% for variant in variants %}
+                <tr>
+                    <td>{{ variant.size }}</td>
+                    <td>{{ variant.color }}</td>
+                    <td>{{ variant.model }}</td>
+                    <td>{{ variant.sku }}</td>
+                    <td>{{ variant.selling_price }}</td>
+                    <td>{{ variant.current_stock }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">No variants added.</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Add Detail{% endblock %}
+
+{% block page_title %}
++ Add Detail for {{ product.name }}
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width: 650px;">
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label">Detail Name</label>
+            <input type="text" name="name" class="form-control" placeholder="Example: Material" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Detail Value</label>
+            <input type="text" name="value" class="form-control" placeholder="Example: Waterproof Fabric" required>
+        </div>
+
+        <button class="btn btn-success">Save Detail</button>
+        <a href="{% url 'product_manage' product.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+
+</div>
+
+{% endblock %}

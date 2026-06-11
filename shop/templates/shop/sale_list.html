@@ -1,0 +1,62 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Sales{% endblock %}
+
+{% block page_title %}
+💰 Sales
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between mb-4">
+    <h5>Sales History</h5>
+    <a href="/sales/add/" class="btn btn-success">+ New Sale</a>
+</div>
+
+<div class="card card-box p-4">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Discount</th>
+                    <th>Final</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    <td>{{ sale.id }}</td>
+                    <td>{{ sale.date }}</td>
+                    <td>{{ sale.customer }}</td>
+                    <td>{{ sale.items.count }}</td>
+                    <td>{{ sale.total_amount|floatformat:2 }}</td>
+                    <td>{{ sale.discount|floatformat:2 }}</td>
+                    <td>{{ sale.final_amount|floatformat:2 }}</td>
+                    <td>{{ sale.paid_amount|floatformat:2 }}</td>
+                    <td>
+                        {% if sale.remaining_balance > 0 %}
+                            <span class="badge bg-danger">{{ sale.remaining_balance|floatformat:2 }}</span>
+                        {% else %}
+                            <span class="badge bg-success">0.00</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted">No sales found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
