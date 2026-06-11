@@ -19,6 +19,20 @@
 
     <div class="col-md-4">
         <div class="card card-box p-4">
+            <p class="text-muted mb-1">Total Expenses</p>
+            <h2 class="text-danger">{{ total_expenses|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-box p-4">
+            <p class="text-muted mb-1">Net Profit</p>
+            <h2 class="text-success">{{ net_profit|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-box p-4">
             <p class="text-muted mb-1">Total Items Sold</p>
             <h2>{{ total_items_sold }}</h2>
         </div>

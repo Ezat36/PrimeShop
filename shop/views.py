@@ -6,7 +6,7 @@ from django.contrib.auth.models import User, Group, Permission
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
-from .models import StoreSetting
+from .models import StoreSetting, Expense
 
 @login_required
 def dashboard(request):
@@ -30,7 +30,7 @@ def dashboard(request):
     total_items_sold = 0
     total_sales_value = 0
     total_profit = 0
-
+    
     sold_items = []
 
     product_sales_qty = {}
@@ -74,6 +74,25 @@ def dashboard(request):
             'date': item.sale.date,
         })
 
+    expenses = Expense.objects.all()
+
+    if filter_type == 'today':
+        expenses = expenses.filter(date=today)
+
+    elif filter_type == 'month':
+        expenses = expenses.filter(
+        date__year=today.year,
+        date__month=today.month
+    )
+
+    elif filter_type == 'year':
+        expenses = expenses.filter(
+        date__year=today.year
+    )
+
+    total_expenses = sum(expense.amount for expense in expenses)
+    net_profit = total_profit - total_expenses
+
     variants = ProductVariant.objects.all()
 
     current_stock_value = 0
@@ -105,6 +124,9 @@ def dashboard(request):
         'low_stock_count': len(low_stock_items),
         'low_stock_items': low_stock_items,
         'sold_items': sold_items,
+
+        'total_expenses': total_expenses,
+        'net_profit': net_profit,
 
         'chart_labels': list(product_sales_qty.keys()),
         'chart_values': list(product_sales_qty.values()),
@@ -228,6 +250,11 @@ def profit_loss_report(request):
 
     net_profit = total_gross_profit - total_discount
 
+    expenses = Expense.objects.all()
+    total_expenses = sum(expense.amount for expense in expenses)
+
+    net_profit_after_expenses = net_profit - total_expenses
+
     context = {
         'total_sales_revenue': total_sales_revenue,
         'total_cogs': total_cogs,
@@ -241,6 +268,8 @@ def profit_loss_report(request):
         'total_remaining_qty': total_remaining_qty,
         'product_summary': product_summary.values(),
         'variant_rows': variant_rows,
+        'total_expenses': total_expenses,
+        'net_profit_after_expenses': net_profit_after_expenses,
     }
 
     return render(request, 'shop/profit_loss_report.html', context)
@@ -790,3 +819,30 @@ def settings_page(request):
     return render(request, 'shop/settings.html', {
         'setting': setting
     })
+
+
+@login_required
+def expense_list(request):
+    expenses = Expense.objects.all().order_by('-date', '-id')
+    total_expenses = sum(expense.amount for expense in expenses)
+
+    return render(request, 'shop/expense_list.html', {
+        'expenses': expenses,
+        'total_expenses': total_expenses,
+    })
+
+
+@login_required
+def expense_add(request):
+    if request.method == 'POST':
+        Expense.objects.create(
+            title=request.POST.get('title'),
+            category=request.POST.get('category'),
+            amount=request.POST.get('amount'),
+            date=request.POST.get('date'),
+            note=request.POST.get('note')
+        )
+
+        return redirect('expense_list')
+
+    return render(request, 'shop/expense_add.html')

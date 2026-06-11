@@ -1,0 +1,48 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Expenses{% endblock %}
+
+{% block page_title %}
+💸 Expenses
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between mb-4">
+    <h5>Total Expenses: {{ total_expenses|floatformat:2 }}</h5>
+    <a href="/expenses/add/" class="btn btn-success">+ Add Expense</a>
+</div>
+
+<div class="card card-box p-4">
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Note</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ expense.date }}</td>
+                <td>{{ expense.title }}</td>
+                <td>{{ expense.category }}</td>
+                <td>{{ expense.amount|floatformat:2 }}</td>
+                <td>{{ expense.note }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted">No expenses found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

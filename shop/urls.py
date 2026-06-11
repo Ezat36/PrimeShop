@@ -39,4 +39,7 @@ urlpatterns = [
     path('profile/change-password/', views.change_password, name='change_password'),
 
     path('settings/', views.settings_page, name='settings_page'),
+
+    path('expenses/', views.expense_list, name='expense_list'),
+    path('expenses/add/', views.expense_add, name='expense_add'),
 ]
