@@ -6,7 +6,7 @@ from django.contrib.auth.models import User, Group, Permission
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
-from .models import StoreSetting, Expense
+from .models import StoreSetting, Expense, SaleItemAllocation, BatchExpense
 
 @login_required
 def dashboard(request):
@@ -142,21 +142,14 @@ def stock_report(request):
     variants = ProductVariant.objects.all()
 
     total_products = variants.count()
+    total_purchased = 0
+    total_sold = 0
+    total_remaining = 0
 
-    total_purchased = sum(
-        variant.total_purchased()
-        for variant in variants
-    )
-
-    total_sold = sum(
-        variant.total_sold()
-        for variant in variants
-    )
-
-    total_remaining = sum(
-        variant.current_stock()
-        for variant in variants
-    )
+    for variant in variants:
+        total_purchased += variant.total_purchased()
+        total_sold += variant.total_sold()
+        total_remaining += variant.current_stock()
 
     context = {
         'variants': variants,
@@ -185,24 +178,25 @@ def profit_loss_report(request):
     total_remaining_qty = 0
 
     for variant in variants:
-        purchased_qty = variant.total_purchased()
-        sold_qty = variant.total_sold()
-        remaining_qty = variant.current_stock()
-
         purchase_items = PurchaseItem.objects.filter(variant=variant)
         sale_items = SaleItem.objects.filter(variant=variant)
+        allocations = SaleItemAllocation.objects.filter(
+            purchase_item__variant=variant
+        )
 
-        purchase_value = sum(item.total_price() for item in purchase_items)
+        purchased_qty = sum(batch.quantity for batch in purchase_items)
+        sold_qty = sum(allocation.quantity for allocation in allocations)
+        remaining_qty = sum(batch.remaining_qty for batch in purchase_items)
+
         sales_value = sum(item.total_price() for item in sale_items)
+        cogs = sum(allocation.total_cost() for allocation in allocations)
 
-        if purchased_qty > 0:
-            avg_buying_price = purchase_value / purchased_qty
-        else:
-            avg_buying_price = 0
-
-        cogs = avg_buying_price * sold_qty
         gross_profit = sales_value - cogs
-        remaining_inventory_value = avg_buying_price * remaining_qty
+
+        remaining_inventory_value = sum(
+            batch.remaining_qty * batch.buying_price
+            for batch in purchase_items
+        )
 
         total_sales_revenue += sales_value
         total_cogs += cogs
@@ -232,6 +226,11 @@ def profit_loss_report(request):
         product_summary[product_name]['inventory_value'] += remaining_inventory_value
 
         if purchased_qty > 0 or sold_qty > 0:
+            avg_buying_price = (
+                sum(batch.total_price() for batch in purchase_items) / purchased_qty
+                if purchased_qty > 0 else 0
+            )
+
             variant_rows.append({
                 'variant': variant,
                 'purchased_qty': purchased_qty,
@@ -273,7 +272,7 @@ def profit_loss_report(request):
     }
 
     return render(request, 'shop/profit_loss_report.html', context)
-
+    
 @login_required
 def product_list(request):
     search = request.GET.get('search', '')
@@ -463,12 +462,58 @@ def sale_add(request):
 
         for variant_id, quantity, selling_price in zip(variant_ids, quantities, selling_prices):
             if variant_id and quantity and selling_price:
-                SaleItem.objects.create(
-                    sale=sale,
-                    variant_id=variant_id,
-                    quantity=int(quantity),
-                    selling_price=float(selling_price)
+                quantity = int(quantity)
+                selling_price = float(selling_price)
+
+                variant = ProductVariant.objects.get(id=variant_id)
+
+                available_stock = sum(
+                    batch.remaining_qty
+                    for batch in PurchaseItem.objects.filter(
+                        variant=variant,
+                        remaining_qty__gt=0
+                    )
                 )
+
+                if quantity > available_stock:
+                    sale.delete()
+                    return render(request, 'shop/sale_add.html', {
+                        'customers': customers,
+                        'variants': variants,
+                        'error': f"Not enough stock for {variant}. Available: {available_stock}"
+                    })
+
+                sale_item = SaleItem.objects.create(
+                    sale=sale,
+                    variant=variant,
+                    quantity=quantity,
+                    selling_price=selling_price
+                )
+
+                qty_to_allocate = quantity
+
+                batches = PurchaseItem.objects.filter(
+                    variant=variant,
+                    remaining_qty__gt=0
+                ).order_by('purchase__date', 'id')
+
+                for batch in batches:
+                    if qty_to_allocate <= 0:
+                        break
+
+                    take_qty = min(qty_to_allocate, batch.remaining_qty)
+
+                    SaleItemAllocation.objects.create(
+                        sale_item=sale_item,
+                        purchase_item=batch,
+                        quantity=take_qty,
+                        unit_cost=batch.buying_price
+                    )
+
+                    batch.remaining_qty -= take_qty
+                    batch.save()
+
+                    qty_to_allocate -= take_qty
 
         return redirect('sale_list')
 
@@ -846,3 +891,170 @@ def expense_add(request):
         return redirect('expense_list')
 
     return render(request, 'shop/expense_add.html')
+
+#Batch Sock Report 
+@login_required
+def batch_stock_report(request):
+    batches = PurchaseItem.objects.all().order_by(
+        'variant__product__name',
+        'purchase__date',
+        'id'
+    )
+
+    batch_rows = []
+
+    total_purchased = 0
+    total_sold = 0
+    total_remaining = 0
+    total_stock_value = 0
+
+    for batch in batches:
+        purchased_qty = batch.quantity
+        sold_qty = batch.quantity - batch.remaining_qty
+        remaining_qty = batch.remaining_qty
+        stock_value = remaining_qty * batch.buying_price
+
+        total_purchased += purchased_qty
+        total_sold += sold_qty
+        total_remaining += remaining_qty
+        total_stock_value += stock_value
+
+        batch_rows.append({
+            'batch': batch,
+            'product': batch.variant.product.name,
+            'size': batch.variant.size,
+            'color': batch.variant.color,
+            'model': batch.variant.model,
+            'sku': batch.variant.sku,
+            'purchase_date': batch.purchase.date,
+            'supplier': batch.purchase.supplier,
+            'purchased_qty': purchased_qty,
+            'sold_qty': sold_qty,
+            'remaining_qty': remaining_qty,
+            'buying_price': batch.buying_price,
+            'stock_value': stock_value,
+        })
+
+    context = {
+        'batch_rows': batch_rows,
+        'total_purchased': total_purchased,
+        'total_sold': total_sold,
+        'total_remaining': total_remaining,
+        'total_stock_value': total_stock_value,
+    }
+
+    return render(request, 'shop/batch_stock_report.html', context)
+
+#Batch profit 
+@login_required
+def batch_profit_report(request):
+    batches = PurchaseItem.objects.all().order_by(
+        'variant__product__name',
+        'purchase__date',
+        'id'
+    )
+
+    batch_rows = []
+
+    total_revenue = 0
+    total_cost = 0
+    total_gross_profit = 0
+    total_batch_expenses = 0
+    total_net_profit = 0
+
+    for batch in batches:
+        allocations = SaleItemAllocation.objects.filter(
+            purchase_item=batch
+        )
+
+        sold_qty = sum(allocation.quantity for allocation in allocations)
+
+        revenue = sum(
+            allocation.quantity * allocation.sale_item.selling_price
+            for allocation in allocations
+        )
+
+        cost = sum(
+            allocation.quantity * allocation.unit_cost
+            for allocation in allocations
+        )
+
+        gross_profit = revenue - cost
+
+        batch_expenses = sum(
+            expense.amount
+            for expense in batch.batch_expenses.all()
+        )
+
+        net_profit = gross_profit - batch_expenses
+
+        total_revenue += revenue
+        total_cost += cost
+        total_gross_profit += gross_profit
+        total_batch_expenses += batch_expenses
+        total_net_profit += net_profit
+
+        batch_rows.append({
+            'batch': batch,
+            'product': batch.variant.product.name,
+            'size': batch.variant.size,
+            'color': batch.variant.color,
+            'model': batch.variant.model,
+            'purchase_date': batch.purchase.date,
+            'supplier': batch.purchase.supplier,
+            'purchased_qty': batch.quantity,
+            'sold_qty': sold_qty,
+            'remaining_qty': batch.remaining_qty,
+            'buying_price': batch.buying_price,
+            'revenue': revenue,
+            'cost': cost,
+            'gross_profit': gross_profit,
+            'batch_expenses': batch_expenses,
+            'net_profit': net_profit,
+        })
+
+    return render(request, 'shop/batch_profit_report.html', {
+        'batch_rows': batch_rows,
+        'total_revenue': total_revenue,
+        'total_cost': total_cost,
+        'total_gross_profit': total_gross_profit,
+        'total_batch_expenses': total_batch_expenses,
+        'total_net_profit': total_net_profit,
+    })
+
+
+@login_required
+def batch_expense_list(request):
+    expenses = BatchExpense.objects.all().order_by('-date', '-id')
+    total_batch_expenses = sum(expense.amount for expense in expenses)
+
+    return render(request, 'shop/batch_expense_list.html', {
+        'expenses': expenses,
+        'total_batch_expenses': total_batch_expenses,
+    })
+
+
+@login_required
+def batch_expense_add(request):
+    batches = PurchaseItem.objects.all().order_by(
+        'variant__product__name',
+        'batch_number'
+    )
+
+    if request.method == 'POST':
+        batch_id = request.POST.get('purchase_item')
+
+        BatchExpense.objects.create(
+            purchase_item_id=batch_id,
+            title=request.POST.get('title'),
+            category=request.POST.get('category'),
+            amount=request.POST.get('amount'),
+            date=request.POST.get('date'),
+            note=request.POST.get('note')
+        )
+
+        return redirect('batch_expense_list')
+
+    return render(request, 'shop/batch_expense_add.html', {
+        'batches': batches
+    })

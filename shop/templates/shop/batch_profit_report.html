@@ -1,0 +1,112 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Batch Profit Report{% endblock %}
+
+{% block page_title %}
+📈 Batch Profit Report
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Total Revenue</p>
+            <h2>{{ total_revenue|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Total Cost</p>
+            <h2>{{ total_cost|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Gross Profit</p>
+            <h2 class="text-success">{{ total_gross_profit|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Net Profit</p>
+            <h2 class="{% if total_net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
+                {{ total_net_profit|floatformat:2 }}
+            </h2>
+        </div>
+    </div>
+
+</div>
+
+<div class="card card-box p-4">
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Batch</th>
+                    <th>Date</th>
+                    <th>Supplier</th>
+                    <th>Product</th>
+                    <th>Size</th>
+                    <th>Color</th>
+                    <th>Purchased</th>
+                    <th>Sold</th>
+                    <th>Remaining</th>
+                    <th>Revenue</th>
+                    <th>COGS</th>
+                    <th>Gross Profit</th>
+                    <th>Batch Expenses</th>
+                    <th>Net Profit</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for row in batch_rows %}
+                <tr>
+                    <td><strong>{{ row.batch.batch_number }}</strong></td>
+                    <td>{{ row.purchase_date }}</td>
+                    <td>{{ row.supplier|default:"-" }}</td>
+                    <td>{{ row.product }}</td>
+                    <td>{{ row.size }}</td>
+                    <td>{{ row.color }}</td>
+                    <td>{{ row.purchased_qty }}</td>
+                    <td>{{ row.sold_qty }}</td>
+                    <td>{{ row.remaining_qty }}</td>
+                    <td>{{ row.revenue|floatformat:2 }}</td>
+                    <td>{{ row.cost|floatformat:2 }}</td>
+                    <td class="text-success">{{ row.gross_profit|floatformat:2 }}</td>
+                    <td class="text-danger">{{ row.batch_expenses|floatformat:2 }}</td>
+                    <td class="{% if row.net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
+                        <strong>{{ row.net_profit|floatformat:2 }}</strong>
+                    </td>
+                    <td>
+                        {% if row.sold_qty == 0 %}
+                            <span class="badge bg-secondary">Not Sold</span>
+                        {% elif row.remaining_qty == 0 %}
+                            <span class="badge bg-danger">Finished</span>
+                        {% else %}
+                            <span class="badge bg-success">Active</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="15" class="text-center text-muted">
+                        No batch profit data found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

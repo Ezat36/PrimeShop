@@ -1,0 +1,72 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Batch Expenses{% endblock %}
+
+{% block page_title %}
+🚚 Batch Expenses
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between mb-4">
+    <h5>Total Batch Expenses: {{ total_batch_expenses|floatformat:2 }}</h5>
+
+    <a href="/batch-expenses/add/" class="btn btn-success">
+        + Add Batch Expense
+    </a>
+</div>
+
+<div class="card card-box p-4">
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Batch</th>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for expense in expenses %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ expense.date }}</td>
+                    <td>
+                        <strong>{{ expense.purchase_item.batch_number }}</strong>
+                    </td>
+                    <td>
+                        {{ expense.purchase_item.variant }}
+                    </td>
+                    <td>
+                        <span class="badge bg-primary">
+                            {{ expense.category }}
+                        </span>
+                    </td>
+                    <td>{{ expense.title }}</td>
+                    <td class="text-danger">
+                        {{ expense.amount|floatformat:2 }}
+                    </td>
+                    <td>{{ expense.note }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted">
+                        No batch expenses found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

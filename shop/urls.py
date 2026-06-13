@@ -42,4 +42,11 @@ urlpatterns = [
 
     path('expenses/', views.expense_list, name='expense_list'),
     path('expenses/add/', views.expense_add, name='expense_add'),
+
+    path('batch-stock-report/', views.batch_stock_report, name='batch_stock_report'),
+
+    path('batch-profit-report/', views.batch_profit_report, name='batch_profit_report'),
+    path('batch-expenses/', views.batch_expense_list, name='batch_expense_list'),
+    path('batch-expenses/add/', views.batch_expense_add, name='batch_expense_add'),
+
 ]

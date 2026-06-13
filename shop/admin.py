@@ -10,6 +10,10 @@ from .models import (
     Sale,
     SaleItem,
     Invoice,
+    SaleItemAllocation,
+    BatchExpense,
+    Expense,
+    StoreSetting,
 )
 
 class ProductDetailInline(admin.TabularInline):
@@ -58,3 +62,9 @@ admin.site.register(Purchase, PurchaseAdmin)
 admin.site.register(Customer)
 admin.site.register(Sale, SaleAdmin)
 admin.site.register(Invoice)
+admin.site.register(PurchaseItem)
+admin.site.register(SaleItem)
+admin.site.register(SaleItemAllocation)
+admin.site.register(BatchExpense)
+admin.site.register(Expense)
+admin.site.register(StoreSetting)

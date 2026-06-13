@@ -1,0 +1,95 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Add Batch Expense{% endblock %}
+
+{% block page_title %}
++ Add Batch Expense
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width:750px;">
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label">Select Batch</label>
+            <select name="purchase_item" class="form-control" required>
+                <option value="">Select batch...</option>
+
+                {% for batch in batches %}
+                    <option value="{{ batch.id }}">
+                        {{ batch.batch_number }}
+                        |
+                        {{ batch.variant }}
+                        |
+                        Purchased: {{ batch.quantity }}
+                        |
+                        Remaining: {{ batch.remaining_qty }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Expense Title</label>
+            <input
+                type="text"
+                name="title"
+                class="form-control"
+                required
+                placeholder="Example: Transport from supplier"
+            >
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-control">
+                <option value="Transport">Transport</option>
+                <option value="Customs">Customs</option>
+                <option value="Loading">Loading</option>
+                <option value="Tax">Tax</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Amount</label>
+            <input
+                type="number"
+                step="0.01"
+                name="amount"
+                class="form-control"
+                required
+            >
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Date</label>
+            <input
+                type="date"
+                name="date"
+                class="form-control"
+                required
+            >
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Note</label>
+            <textarea
+                name="note"
+                class="form-control"
+                rows="3"
+                placeholder="Optional note..."
+            ></textarea>
+        </div>
+
+        <button class="btn btn-success">Save Batch Expense</button>
+        <a href="/batch-expenses/" class="btn btn-secondary">Cancel</a>
+
+    </form>
+
+</div>
+
+{% endblock %}

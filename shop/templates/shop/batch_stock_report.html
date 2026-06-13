@@ -1,0 +1,106 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Batch Stock Report{% endblock %}
+
+{% block page_title %}
+📦 Batch Stock Report
+{% endblock %}
+
+{% block content %}
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Total Purchased</p>
+            <h2>{{ total_purchased }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Total Sold</p>
+            <h2>{{ total_sold }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Total Remaining</p>
+            <h2>{{ total_remaining }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Stock Value</p>
+            <h2>{{ total_stock_value|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+</div>
+
+<div class="card card-box p-4">
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Batch</th>
+                    <th>Date</th>
+                    <th>Supplier</th>
+                    <th>Product</th>
+                    <th>Size</th>
+                    <th>Color</th>
+                    <th>Model</th>
+                    <th>SKU</th>
+                    <th>Purchased</th>
+                    <th>Sold</th>
+                    <th>Remaining</th>
+                    <th>Buying Price</th>
+                    <th>Stock Value</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for row in batch_rows %}
+                <tr>
+                    <td><strong>{{ row.batch.batch_number }}</strong></td>
+                    <td>{{ row.purchase_date }}</td>
+                    <td>{{ row.supplier|default:"-" }}</td>
+                    <td>{{ row.product }}</td>
+                    <td>{{ row.size }}</td>
+                    <td>{{ row.color }}</td>
+                    <td>{{ row.model }}</td>
+                    <td>{{ row.sku }}</td>
+                    <td>{{ row.purchased_qty }}</td>
+                    <td>{{ row.sold_qty }}</td>
+                    <td>{{ row.remaining_qty }}</td>
+                    <td>{{ row.buying_price|floatformat:2 }}</td>
+                    <td>{{ row.stock_value|floatformat:2 }}</td>
+                    <td>
+                        {% if row.remaining_qty == 0 %}
+                            <span class="badge bg-danger">Finished</span>
+                        {% elif row.remaining_qty <= 5 %}
+                            <span class="badge bg-warning text-dark">Low</span>
+                        {% else %}
+                            <span class="badge bg-success">Available</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="14" class="text-center text-muted">
+                        No batch stock found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}
