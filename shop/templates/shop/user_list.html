@@ -8,55 +8,144 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between mb-4">
-    <h5>System Users</h5>
-    <a href="/users/add/" class="btn btn-success">+ Add User</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1">System Users</h4>
+        <p class="text-muted mb-0">
+            Manage user accounts, roles, and access status.
+        </p>
+    </div>
+
+    <a href="/users/add/" class="btn btn-success">
+        + Add User
+    </a>
 </div>
 
 <div class="card card-box p-4">
-    <table class="table table-bordered table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>#</th>
-                <th>Username</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role/Group</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-        </thead>
 
-        <tbody>
-            {% for user in users %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ user.username }}</td>
-                <td>{{ user.first_name }} {{ user.last_name }}</td>
-                <td>{{ user.email }}</td>
-                <td>
-                    {% for group in user.groups.all %}
-                        <span class="badge bg-primary">{{ group.name }}</span>
-                    {% empty %}
-                        <span class="text-muted">No role</span>
-                    {% endfor %}
-                </td>
-                <td>
-                    {% if user.is_active %}
-                        <span class="badge bg-success">Active</span>
-                    {% else %}
-                        <span class="badge bg-danger">Disabled</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="/users/{{ user.id }}/toggle/" class="btn btn-sm btn-warning">
-                        Enable / Disable
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Roles</th>
+                    <th>Status</th>
+                    <th>Staff</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="
+                                width:42px;
+                                height:42px;
+                                border-radius:50%;
+                                background:linear-gradient(135deg,#2563eb,#8b5cf6);
+                                color:white;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                font-weight:bold;
+                            ">
+                                {{ user.username|first|upper }}
+                            </div>
+
+                            <div>
+                                <strong>{{ user.username }}</strong><br>
+                                <small class="text-muted">
+                                    {{ user.first_name }} {{ user.last_name }}
+                                </small>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td>
+                        {% if user.email %}
+                            {{ user.email }}
+                        {% else %}
+                            <span class="text-muted">No email</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% for group in user.groups.all %}
+                            <span class="badge bg-primary">
+                                {{ group.name }}
+                            </span>
+                        {% empty %}
+                            <span class="badge bg-secondary">
+                                No Role
+                            </span>
+                        {% endfor %}
+                    </td>
+
+                    <td>
+                        {% if user.is_active %}
+                            <span class="badge bg-success">
+                                Active
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger">
+                                Disabled
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if user.is_staff %}
+                            <span class="badge bg-dark">
+                                Staff
+                            </span>
+                        {% else %}
+                            <span class="badge bg-light text-dark border">
+                                Normal
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td class="text-end">
+
+                        <a href="/users/{{ user.id }}/edit/"
+                           class="btn btn-sm btn-outline-primary">
+                            ✏ Edit
+                        </a>
+
+                        {% if user.is_active %}
+                            <a href="/users/{{ user.id }}/toggle/"
+                               class="btn btn-sm btn-outline-danger">
+                                Disable
+                            </a>
+                        {% else %}
+                            <a href="/users/{{ user.id }}/toggle/"
+                               class="btn btn-sm btn-outline-success">
+                                Enable
+                            </a>
+                        {% endif %}
+
+                    </td>
+                </tr>
+
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        No users found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
 </div>
 
 {% endblock %}

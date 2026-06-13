@@ -49,4 +49,5 @@ urlpatterns = [
     path('batch-expenses/', views.batch_expense_list, name='batch_expense_list'),
     path('batch-expenses/add/', views.batch_expense_add, name='batch_expense_add'),
 
-]
+path('users/<int:user_id>/edit/', views.user_edit, name='user_edit'),]
+

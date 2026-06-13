@@ -11,27 +11,36 @@
         }
 
         .sidebar {
-            width: 250px;
+            width: 260px;
             min-height: 100vh;
             background: #1f2937;
             position: fixed;
             top: 0;
             left: 0;
-            padding-top: 20px;
+            padding: 20px 0;
+            overflow-y: auto;
         }
 
         .sidebar h3 {
             color: white;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
+        }
+
+        .menu-title {
+            color: #9ca3af;
+            font-size: 12px;
+            text-transform: uppercase;
+            padding: 14px 25px 6px;
+            font-weight: bold;
         }
 
         .sidebar a {
             display: block;
             color: #d1d5db;
-            padding: 14px 25px;
+            padding: 11px 25px;
             text-decoration: none;
-            font-size: 16px;
+            font-size: 15px;
         }
 
         .sidebar a:hover {
@@ -40,7 +49,7 @@
         }
 
         .content {
-            margin-left: 250px;
+            margin-left: 260px;
             padding: 30px;
         }
 
@@ -65,29 +74,85 @@
 <body>
 
 <div class="sidebar">
-    <h3>Prime Shop</h3>
-    <a> This  is the new Menue</a>
-    <a href="/">🏠 Dashboard</a>
-    <a href="/products/">📦 Products</a>
-    <a href="/suppliers/">🚚 Suppliers</a>
-    <a href="/purchases/">🛒 Purchases</a>
-    <a href="/customers/">👥 Customers</a>
-    <a href="/sales/">💰 Sales</a>
-    <a href="/invoices/">🧾 Invoices</a>
-    <a href="/expenses/">💸 Expenses</a>
-    <a href="/stock-report/">📊 Stock Report</a>
-    <a href="/profit-loss-report/">📈 Profit Report</a>
-    <a href="/batch-stock-report/">📦 Batch Stock</a>
-    <a href="/batch-profit-report/">📈 Batch Profit</a>
-    <a href="/batch-expenses/">🚚 Batch Expenses</a>
-    <a href="/users/">👤 Users</a>
-    <a href="/groups/">🔐 Roles & Permissions</a>
 
-    <!-- <a href="/admin/">⚙ Admin Panel</a> -->
-     <a href="/settings/">⚙ Settings</a>
+    <h3>Prime Shop</h3>
+
+    <div class="menu-title">Main</div>
+    <a href="/">🏠 Dashboard</a>
+
+    <div class="menu-title">Inventory</div>
+
+    {% if perms.shop.view_product %}
+        <a href="/products/">📦 Products</a>
+    {% endif %}
+
+    {% if perms.shop.view_purchase %}
+        <a href="/purchases/">🛒 Purchases</a>
+    {% endif %}
+
+    {% if perms.shop.view_supplier %}
+        <a href="/suppliers/">🚚 Suppliers</a>
+    {% endif %}
+
+    {% if perms.shop.view_stock_report %}
+        <a href="/stock-report/">📊 Stock Report</a>
+    {% endif %}
+
+    {% if perms.shop.view_batch_stock_report %}
+        <a href="/batch-stock-report/">📦 Batch Stock</a>
+    {% endif %}
+
+    <div class="menu-title">Sales</div>
+
+    {% if perms.shop.view_sale %}
+        <a href="/sales/">💰 Sales</a>
+    {% endif %}
+
+    {% if perms.shop.view_customer %}
+        <a href="/customers/">👥 Customers</a>
+    {% endif %}
+
+    {% if perms.shop.view_invoice %}
+        <a href="/invoices/">🧾 Invoices</a>
+    {% endif %}
+
+    <div class="menu-title">Finance & Reports</div>
+
+    {% if perms.shop.view_expense %}
+        <a href="/expenses/">💸 Expenses</a>
+    {% endif %}
+
+    {% if perms.shop.view_batch_expense %}
+        <a href="/batch-expenses/">🚚 Batch Expenses</a>
+    {% endif %}
+
+    {% if perms.shop.view_profit_report %}
+        <a href="/profit-loss-report/">📈 Profit & Loss</a>
+    {% endif %}
+
+    {% if perms.shop.view_batch_profit_report %}
+        <a href="/batch-profit-report/">📈 Batch Profit</a>
+    {% endif %}
+
+    <div class="menu-title">Administration</div>
+
+    {% if perms.auth.view_user %}
+        <a href="/users/">👤 Users</a>
+    {% endif %}
+
+    {% if perms.auth.view_group %}
+        <a href="/groups/">🔐 Roles & Permissions</a>
+    {% endif %}
+
+    {% if request.user.is_superuser %}
+        <a href="/settings/">⚙ Settings</a>
+    {% endif %}
+
+    <div class="menu-title">Account</div>
 
     <a href="/profile/">👤 Profile</a>
     <a href="/logout/">🚪 Logout</a>
+
 </div>
 
 <div class="content">

@@ -279,3 +279,15 @@ class BatchExpense(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class StoreSetting(models.Model):
+    ...
+
+    class Meta:
+        permissions = [
+            ("view_profit_report", "Can view profit report"),
+            ("view_batch_profit_report", "Can view batch profit report"),
+            ("view_stock_report", "Can view stock report"),
+            ("view_dashboard_profit", "Can view dashboard profit"),
+        ]
