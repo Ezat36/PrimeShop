@@ -6,4 +6,3 @@ urlpatterns = [
     path('', include('shop.urls')),
 ]
 handler403 = 'shop.views.permission_denied_view'
-
