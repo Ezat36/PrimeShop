@@ -1175,3 +1175,110 @@ def user_edit(request, user_id):
         'edit_user': user,
         'groups': groups,
     })
+
+@login_required
+@permission_required(
+    'shop.view_batch_profit_report',
+    raise_exception=True
+)
+def batch_detail(request, batch_number):
+    batch_items = PurchaseItem.objects.filter(
+        batch_number=batch_number
+    ).order_by('variant__size', 'variant__color', 'id')
+
+    if not batch_items.exists():
+        return redirect('batch_profit_report')
+
+    first_item = batch_items.first()
+
+    allocations = SaleItemAllocation.objects.filter(
+        purchase_item__batch_number=batch_number
+    ).order_by('-sale_item__sale__date', '-sale_item__sale__id')
+
+    expenses = BatchExpense.objects.filter(
+        batch_number=batch_number
+    ).order_by('-date', '-id')
+
+    purchased_qty = sum(item.quantity for item in batch_items)
+    remaining_qty = sum(item.remaining_qty for item in batch_items)
+    sold_qty = purchased_qty - remaining_qty
+
+    stock_value = sum(
+        item.remaining_qty * item.buying_price
+        for item in batch_items
+    )
+
+    revenue = sum(
+        allocation.quantity * allocation.sale_item.selling_price
+        for allocation in allocations
+    )
+
+    cogs = sum(
+        allocation.quantity * allocation.unit_cost
+        for allocation in allocations
+    )
+
+    gross_profit = revenue - cogs
+
+    total_expenses = sum(
+        expense.amount
+        for expense in expenses
+    )
+
+    net_profit = gross_profit - total_expenses
+
+    variant_rows = []
+
+    for item in batch_items:
+        item_allocations = SaleItemAllocation.objects.filter(
+            purchase_item=item
+        )
+
+        item_sold_qty = sum(a.quantity for a in item_allocations)
+
+        item_revenue = sum(
+            a.quantity * a.sale_item.selling_price
+            for a in item_allocations
+        )
+
+        item_cogs = sum(
+            a.quantity * a.unit_cost
+            for a in item_allocations
+        )
+
+        item_gross_profit = item_revenue - item_cogs
+
+        variant_rows.append({
+            'item': item,
+            'variant': item.variant,
+            'purchased_qty': item.quantity,
+            'sold_qty': item_sold_qty,
+            'remaining_qty': item.remaining_qty,
+            'buying_price': item.buying_price,
+            'stock_value': item.remaining_qty * item.buying_price,
+            'revenue': item_revenue,
+            'cogs': item_cogs,
+            'gross_profit': item_gross_profit,
+        })
+
+    context = {
+        'batch_number': batch_number,
+        'first_item': first_item,
+        'batch_items': batch_items,
+        'variant_rows': variant_rows,
+        'allocations': allocations,
+        'expenses': expenses,
+
+        'purchased_qty': purchased_qty,
+        'sold_qty': sold_qty,
+        'remaining_qty': remaining_qty,
+        'stock_value': stock_value,
+
+        'revenue': revenue,
+        'cogs': cogs,
+        'gross_profit': gross_profit,
+        'total_expenses': total_expenses,
+        'net_profit': net_profit,
+    }
+
+    return render(request, 'shop/batch_detail.html', context)

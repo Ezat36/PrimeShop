@@ -48,6 +48,10 @@ urlpatterns = [
     path('batch-profit-report/', views.batch_profit_report, name='batch_profit_report'),
     path('batch-expenses/', views.batch_expense_list, name='batch_expense_list'),
     path('batch-expenses/add/', views.batch_expense_add, name='batch_expense_add'),
+    path('batches/<str:batch_number>/', views.batch_detail, name='batch_detail'),
+    path('users/<int:user_id>/edit/', views.user_edit, name='user_edit'),
+    
 
-path('users/<int:user_id>/edit/', views.user_edit, name='user_edit'),]
+    
+]
 

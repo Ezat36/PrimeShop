@@ -1,0 +1,226 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Batch Detail{% endblock %}
+
+{% block page_title %}
+📦 Batch Detail - {{ batch_number }}
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+    <a href="/batch-profit-report/" class="btn btn-secondary">
+        ⬅ Back to Batch Profit
+    </a>
+</div>
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Purchased</p>
+            <h2>{{ purchased_qty }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Sold</p>
+            <h2>{{ sold_qty }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Remaining</p>
+            <h2>{{ remaining_qty }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Stock Value</p>
+            <h2>{{ stock_value|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+</div>
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Revenue</p>
+            <h2>{{ revenue|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">COGS</p>
+            <h2>{{ cogs|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Gross Profit</p>
+            <h2 class="text-success">{{ gross_profit|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Net Profit</p>
+            <h2 class="{% if net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
+                {{ net_profit|floatformat:2 }}
+            </h2>
+        </div>
+    </div>
+
+</div>
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-6">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Batch Information</h5>
+
+            <p class="mb-1"><strong>Batch:</strong> {{ batch_number }}</p>
+            <p class="mb-1"><strong>Product:</strong> {{ first_item.variant.product.name }}</p>
+            <p class="mb-1"><strong>Supplier:</strong> {{ first_item.purchase.supplier|default:"-" }}</p>
+            <p class="mb-1"><strong>Purchase Date:</strong> {{ first_item.purchase.date }}</p>
+            <p class="mb-0"><strong>Note:</strong> {{ first_item.purchase.note|default:"-" }}</p>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Batch Expenses</h5>
+
+            {% for expense in expenses %}
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <div>
+                        <strong>{{ expense.title }}</strong><br>
+                        <small class="text-muted">
+                            {{ expense.category }} | {{ expense.date }}
+                        </small>
+                    </div>
+                    <strong class="text-danger">
+                        {{ expense.amount|floatformat:2 }}
+                    </strong>
+                </div>
+            {% empty %}
+                <p class="text-muted">No expenses for this batch.</p>
+            {% endfor %}
+
+            <div class="d-flex justify-content-between mt-3">
+                <strong>Total Expenses</strong>
+                <strong class="text-danger">{{ total_expenses|floatformat:2 }}</strong>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="card card-box p-4 mb-4">
+    <h5 class="mb-3">Variants in This Batch</h5>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Variant</th>
+                    <th>Size</th>
+                    <th>Color</th>
+                    <th>Model</th>
+                    <th>SKU</th>
+                    <th>Purchased</th>
+                    <th>Sold</th>
+                    <th>Remaining</th>
+                    <th>Buying Price</th>
+                    <th>Revenue</th>
+                    <th>COGS</th>
+                    <th>Gross Profit</th>
+                    <th>Stock Value</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for row in variant_rows %}
+                <tr>
+                    <td>{{ row.variant.product.name }}</td>
+                    <td>{{ row.variant.size }}</td>
+                    <td>{{ row.variant.color }}</td>
+                    <td>{{ row.variant.model }}</td>
+                    <td>{{ row.variant.sku }}</td>
+                    <td>{{ row.purchased_qty }}</td>
+                    <td>{{ row.sold_qty }}</td>
+                    <td>{{ row.remaining_qty }}</td>
+                    <td>{{ row.buying_price|floatformat:2 }}</td>
+                    <td>{{ row.revenue|floatformat:2 }}</td>
+                    <td>{{ row.cogs|floatformat:2 }}</td>
+                    <td class="text-success">{{ row.gross_profit|floatformat:2 }}</td>
+                    <td>{{ row.stock_value|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card card-box p-4">
+    <h5 class="mb-3">Sales From This Batch</h5>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Date</th>
+                    <th>Invoice/Sale</th>
+                    <th>Customer</th>
+                    <th>Variant</th>
+                    <th>Qty</th>
+                    <th>Selling Price</th>
+                    <th>Revenue</th>
+                    <th>Cost</th>
+                    <th>Profit</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for allocation in allocations %}
+                <tr>
+                    <td>{{ allocation.sale_item.sale.date }}</td>
+                    <td>Sale #{{ allocation.sale_item.sale.id }}</td>
+                    <td>{{ allocation.sale_item.sale.customer|default:"-" }}</td>
+                    <td>{{ allocation.purchase_item.variant }}</td>
+                    <td>{{ allocation.quantity }}</td>
+                    <td>{{ allocation.sale_item.selling_price|floatformat:2 }}</td>
+                    <td>
+                        {{ allocation.quantity|floatformat:0 }}
+                        ×
+                        {{ allocation.sale_item.selling_price|floatformat:2 }}
+                    </td>
+                    <td>{{ allocation.total_cost|floatformat:2 }}</td>
+                    <td class="text-success">
+                        {{ allocation.quantity|floatformat:0 }}
+                        ×
+                        {{ allocation.sale_item.selling_price|floatformat:2 }}
+                        -
+                        {{ allocation.total_cost|floatformat:2 }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted">
+                        No sales from this batch yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

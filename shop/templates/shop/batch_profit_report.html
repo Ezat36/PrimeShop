@@ -69,7 +69,11 @@
             <tbody>
                 {% for row in batch_rows %}
                 <tr>
-                    <td><strong>{{ row.batch.batch_number }}</strong></td>
+                    <td>
+                        <a href="/batches/{{ row.batch.batch_number }}/">
+                            <strong>{{ row.batch.batch_number }}</strong>
+                        </a>
+                    </td>
                     <td>{{ row.purchase_date }}</td>
                     <td>{{ row.supplier|default:"-" }}</td>
                     <td>{{ row.product }}</td>
