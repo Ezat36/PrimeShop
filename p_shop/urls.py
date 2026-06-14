@@ -5,3 +5,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('shop.urls')),
 ]
+handler403 = 'shop.views.permission_denied_view'
+

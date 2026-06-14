@@ -262,4 +262,16 @@ class BatchExpense(models.Model):
     note = models.TextField(blank=True)
 
     def __str__(self):
-        return f"{self.batch_number} - {self.title}"
+        return self.title
+
+
+class StoreSetting(models.Model):
+    ...
+
+    class Meta:
+        permissions = [
+            ("view_profit_report", "Can view profit report"),
+            ("view_batch_profit_report", "Can view batch profit report"),
+            ("view_stock_report", "Can view stock report"),
+            ("view_dashboard_profit", "Can view dashboard profit"),
+        ]

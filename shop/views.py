@@ -7,6 +7,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from .models import StoreSetting, Expense, SaleItemAllocation, BatchExpense
+from django.contrib.auth.decorators import permission_required
+
 
 @login_required
 def dashboard(request):
@@ -163,6 +165,10 @@ def stock_report(request):
 
 
 @login_required
+@permission_required(
+    'shop.view_profit_report',
+    raise_exception=True
+)
 def profit_loss_report(request):
     variants = ProductVariant.objects.all()
     sales = Sale.objects.all()
@@ -966,6 +972,10 @@ def batch_stock_report(request):
 
 #Batch profit 
 @login_required
+@permission_required(
+    'shop.view_batch_profit_report',
+    raise_exception=True
+)
 def batch_profit_report(request):
     batches = PurchaseItem.objects.all().order_by(
         'variant__product__name',
@@ -1088,4 +1098,80 @@ def batch_expense_add(request):
 
     return render(request, 'shop/batch_expense_add.html', {
         'batch_numbers': batch_numbers
+    })
+
+
+def permission_denied_view(request, exception=None):
+    return render(request, 'shop/403.html', status=403)
+
+@login_required
+@permission_required('auth.change_user', raise_exception=True)
+def user_edit(request, user_id):
+    user = User.objects.get(id=user_id)
+    groups = Group.objects.all()
+
+    if request.method == 'POST':
+        user.username = request.POST.get('username')
+        user.email = request.POST.get('email')
+        user.first_name = request.POST.get('first_name')
+        user.last_name = request.POST.get('last_name')
+        user.is_active = True if request.POST.get('is_active') == 'on' else False
+        user.is_staff = True if request.POST.get('is_staff') == 'on' else False
+
+        group_id = request.POST.get('group')
+        user.groups.clear()
+
+        if group_id:
+            group = Group.objects.get(id=group_id)
+            user.groups.add(group)
+
+        password = request.POST.get('password')
+        if password:
+            user.set_password(password)
+
+        user.save()
+
+        return redirect('user_list')
+
+    return render(request, 'shop/user_edit.html', {
+        'edit_user': user,
+        'groups': groups,
+    })
+
+
+def permission_denied_view(request, exception=None):
+    return render(request, 'shop/403.html', status=403)
+
+@login_required
+@permission_required('auth.change_user', raise_exception=True)
+def user_edit(request, user_id):
+    user = User.objects.get(id=user_id)
+    groups = Group.objects.all()
+
+    if request.method == 'POST':
+        user.username = request.POST.get('username')
+        user.email = request.POST.get('email')
+        user.first_name = request.POST.get('first_name')
+        user.last_name = request.POST.get('last_name')
+        user.is_active = True if request.POST.get('is_active') == 'on' else False
+        user.is_staff = True if request.POST.get('is_staff') == 'on' else False
+
+        group_id = request.POST.get('group')
+        user.groups.clear()
+
+        if group_id:
+            group = Group.objects.get(id=group_id)
+            user.groups.add(group)
+
+        password = request.POST.get('password')
+        if password:
+            user.set_password(password)
+
+        user.save()
+
+        return redirect('user_list')
+
+    return render(request, 'shop/user_edit.html', {
+        'edit_user': user,
+        'groups': groups,
     })
