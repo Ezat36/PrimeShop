@@ -410,13 +410,34 @@ def purchase_add(request):
         quantities = request.POST.getlist('quantity')
         buying_prices = request.POST.getlist('buying_price')
 
+        product_batch_numbers = {}
+
         for variant_id, quantity, buying_price in zip(variant_ids, quantities, buying_prices):
             if variant_id and quantity and buying_price:
+                variant = ProductVariant.objects.get(id=variant_id)
+                product = variant.product
+
+                if product.id not in product_batch_numbers:
+                    product_code = product.name[:4].upper()
+
+                    existing_batches_count = (
+                        PurchaseItem.objects
+                        .filter(variant__product=product)
+                        .values('batch_number')
+                        .distinct()
+                        .count()
+                    )
+
+                    batch_number = f"{product_code}-{existing_batches_count + 1:04d}"
+
+                    product_batch_numbers[product.id] = batch_number
+
                 PurchaseItem.objects.create(
                     purchase=purchase,
-                    variant_id=variant_id,
-                    quantity=quantity,
-                    buying_price=buying_price
+                    variant=variant,
+                    batch_number=product_batch_numbers[product.id],
+                    quantity=int(quantity),
+                    buying_price=float(buying_price)
                 )
 
         return redirect('purchase_list')
@@ -425,10 +446,8 @@ def purchase_add(request):
         'suppliers': suppliers,
         'variants': variants
     })
-
-
 @login_required
-def sale_list(request):
+def sale_list(request):  
     sales = Sale.objects.all().order_by('-date', '-id')
 
     return render(request, 'shop/sale_list.html', {
@@ -963,11 +982,15 @@ def batch_profit_report(request):
     total_net_profit = 0
 
     for batch in batches:
+
         allocations = SaleItemAllocation.objects.filter(
             purchase_item=batch
         )
 
-        sold_qty = sum(allocation.quantity for allocation in allocations)
+        sold_qty = sum(
+            allocation.quantity
+            for allocation in allocations
+        )
 
         revenue = sum(
             allocation.quantity * allocation.sale_item.selling_price
@@ -983,7 +1006,9 @@ def batch_profit_report(request):
 
         batch_expenses = sum(
             expense.amount
-            for expense in batch.batch_expenses.all()
+            for expense in BatchExpense.objects.filter(
+                batch_number=batch.batch_number
+            )
         )
 
         net_profit = gross_profit - batch_expenses
@@ -1013,16 +1038,20 @@ def batch_profit_report(request):
             'net_profit': net_profit,
         })
 
-    return render(request, 'shop/batch_profit_report.html', {
+    context = {
         'batch_rows': batch_rows,
         'total_revenue': total_revenue,
         'total_cost': total_cost,
         'total_gross_profit': total_gross_profit,
         'total_batch_expenses': total_batch_expenses,
         'total_net_profit': total_net_profit,
-    })
+    }
 
-
+    return render(
+        request,
+        'shop/batch_profit_report.html',
+        context
+    )
 @login_required
 def batch_expense_list(request):
     expenses = BatchExpense.objects.all().order_by('-date', '-id')
@@ -1035,17 +1064,19 @@ def batch_expense_list(request):
 
 
 @login_required
+@login_required
 def batch_expense_add(request):
-    batches = PurchaseItem.objects.all().order_by(
-        'variant__product__name',
-        'batch_number'
+    batch_numbers = (
+        PurchaseItem.objects
+        .exclude(batch_number='')
+        .values_list('batch_number', flat=True)
+        .distinct()
+        .order_by('batch_number')
     )
 
     if request.method == 'POST':
-        batch_id = request.POST.get('purchase_item')
-
         BatchExpense.objects.create(
-            purchase_item_id=batch_id,
+            batch_number=request.POST.get('batch_number'),
             title=request.POST.get('title'),
             category=request.POST.get('category'),
             amount=request.POST.get('amount'),
@@ -1056,5 +1087,5 @@ def batch_expense_add(request):
         return redirect('batch_expense_list')
 
     return render(request, 'shop/batch_expense_add.html', {
-        'batches': batches
+        'batch_numbers': batch_numbers
     })

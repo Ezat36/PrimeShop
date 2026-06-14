@@ -15,18 +15,12 @@
 
         <div class="mb-3">
             <label class="form-label">Select Batch</label>
-            <select name="purchase_item" class="form-control" required>
+            <select name="batch_number" class="form-control" required>
                 <option value="">Select batch...</option>
 
-                {% for batch in batches %}
-                    <option value="{{ batch.id }}">
-                        {{ batch.batch_number }}
-                        |
-                        {{ batch.variant }}
-                        |
-                        Purchased: {{ batch.quantity }}
-                        |
-                        Remaining: {{ batch.remaining_qty }}
+                {% for batch_number in batch_numbers %}
+                    <option value="{{ batch_number }}">
+                        {{ batch_number }}
                     </option>
                 {% endfor %}
             </select>

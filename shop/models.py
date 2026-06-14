@@ -82,9 +82,8 @@ class PurchaseItem(models.Model):
     variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name="purchase_items")
 
     batch_number = models.CharField(
-        max_length=50,
-        unique=True,
-        blank=True
+    max_length=50,
+    blank=True
     )
 
     quantity = models.PositiveIntegerField()
@@ -100,15 +99,6 @@ class PurchaseItem(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
-
-        if not self.batch_number:
-                product_code = self.variant.product.name[:4].upper()
-
-                last_batch = PurchaseItem.objects.filter(
-                    variant=self.variant
-                ).count() + 1
-
-                self.batch_number = f"{product_code}-{last_batch:04d}"
 
         if is_new:
             self.remaining_qty = self.quantity
@@ -251,11 +241,7 @@ class Expense(models.Model):
 
 
 class BatchExpense(models.Model):
-    purchase_item = models.ForeignKey(
-        PurchaseItem,
-        on_delete=models.CASCADE,
-        related_name='batch_expenses'
-    )
+    batch_number = models.CharField(max_length=50, default="Temp")
 
     title = models.CharField(max_length=150)
 
@@ -272,10 +258,8 @@ class BatchExpense(models.Model):
     )
 
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-
     date = models.DateField(default=timezone.now)
-
     note = models.TextField(blank=True)
 
     def __str__(self):
-        return self.title
+        return f"{self.batch_number} - {self.title}"
