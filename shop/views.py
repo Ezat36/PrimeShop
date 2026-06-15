@@ -6,7 +6,7 @@ from django.contrib.auth.models import User, Group, Permission
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
-from .models import StoreSetting, Expense, SaleItemAllocation, BatchExpense
+from .models import StoreSetting, Expense, SaleItemAllocation, BatchExpense, VariantDetail
 from django.contrib.auth.decorators import permission_required
 
 
@@ -365,26 +365,42 @@ def product_variant_add(request, product_id):
     product = Product.objects.get(id=product_id)
 
     if request.method == 'POST':
-        size = request.POST.get('size')
-        color = request.POST.get('color')
-        model = request.POST.get('model')
-        sku = request.POST.get('sku')
-        selling_price = request.POST.get('selling_price')
-        low_stock_alert = request.POST.get('low_stock_alert')
 
-        ProductVariant.objects.create(
+        variant = ProductVariant.objects.create(
             product=product,
-            size=size,
-            color=color,
-            model=model,
-            sku=sku,
-            selling_price=selling_price,
-            low_stock_alert=low_stock_alert
+            size=request.POST.get('size'),
+            color=request.POST.get('color'),
+            model=request.POST.get('model'),
+            sku=request.POST.get('sku'),
+            selling_price=request.POST.get('selling_price'),
+            low_stock_alert=request.POST.get('low_stock_alert') or 5
         )
 
-        return redirect('product_manage', product_id=product.id)
+        detail_names = request.POST.getlist('detail_name')
+        detail_values = request.POST.getlist('detail_value')
 
-    return render(request, 'shop/product_variant_add.html', {'product': product})
+        for name, value in zip(detail_names, detail_values):
+
+            if name.strip() and value.strip():
+
+                VariantDetail.objects.create(
+                    variant=variant,
+                    name=name.strip(),
+                    value=value.strip()
+                )
+
+        return redirect(
+            'product_manage',
+            product_id=product.id
+        )
+
+    return render(
+        request,
+        'shop/product_variant_add.html',
+        {
+            'product': product
+        }
+    )
 
 
 @login_required
@@ -1282,3 +1298,4 @@ def batch_detail(request, batch_number):
     }
 
     return render(request, 'shop/batch_detail.html', context)
+

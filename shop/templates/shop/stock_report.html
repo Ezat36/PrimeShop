@@ -99,8 +99,13 @@
             font-weight:bold;
         }
 
-        .low-stock{
+        .out-of-stock{
             color:red;
+            font-weight:bold;
+        }
+
+        .low-stock{
+            color:yellow;
             font-weight:bold;
         }
     </style>
@@ -164,9 +169,11 @@
                 <td>{{ variant.total_purchased }}</td>
                 <td>{{ variant.total_sold }}</td>
                 <td>{{ variant.current_stock }}</td>
-
+                
                 <td>
-                    {% if variant.current_stock <= variant.low_stock_alert %}
+                    {% if variant.current_stock == 0 %}
+                        <span class="out-of-stock">❌ Out of Stock</span>
+                    {% elif variant.current_stock <= variant.low_stock_alert %}
                         <span class="low-stock">⚠ Low Stock</span>
                     {% else %}
                         <span class="available">✓ Available</span>

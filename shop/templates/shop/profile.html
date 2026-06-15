@@ -9,107 +9,206 @@
 {% block content %}
 
 <div class="row justify-content-center">
+    <div class="col-lg-10">
 
-    <div class="col-md-8">
+        <div class="card card-box overflow-hidden">
 
-        <div class="card card-box p-4 text-center">
+            <div style="
+                height:150px;
+                background:linear-gradient(135deg,#1f2937,#2563eb,#8b5cf6);
+            "></div>
 
-            <div class="mb-3">
-                <div style="
-                    width:110px;
-                    height:110px;
-                    border-radius:50%;
-                    background:linear-gradient(135deg,#2563eb,#8b5cf6);
-                    color:white;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    font-size:45px;
-                    font-weight:bold;
-                    margin:auto;
-                ">
-                    {{ request.user.username|first|upper }}
+            <div class="p-4">
+
+                <div class="d-flex flex-wrap align-items-end justify-content-between">
+
+                    <div class="d-flex align-items-end gap-3" style="margin-top:-75px;">
+
+                        <div style="
+                            width:130px;
+                            height:130px;
+                            border-radius:50%;
+                            background:white;
+                            padding:6px;
+                            box-shadow:0 8px 25px rgba(0,0,0,0.25);
+                        ">
+                            <div style="
+                                width:100%;
+                                height:100%;
+                                border-radius:50%;
+                                background:linear-gradient(135deg,#2563eb,#8b5cf6);
+                                color:white;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                font-size:52px;
+                                font-weight:bold;
+                            ">
+                                {{ request.user.username|first|upper }}
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <h2 class="mb-1">
+                                {% if request.user.first_name or request.user.last_name %}
+                                    {{ request.user.first_name }} {{ request.user.last_name }}
+                                {% else %}
+                                    {{ request.user.username }}
+                                {% endif %}
+                            </h2>
+
+                            <p class="text-muted mb-2">@{{ request.user.username }}</p>
+
+                            {% if request.user.is_superuser %}
+                                <span class="badge bg-dark">Super Admin</span>
+                            {% elif request.user.is_staff %}
+                                <span class="badge bg-primary">Staff User</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Normal User</span>
+                            {% endif %}
+
+                            {% if request.user.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Disabled</span>
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="/profile/edit/" class="btn btn-warning">
+                            ✏ Edit Profile
+                        </a>
+
+                        <a href="/profile/change-password/" class="btn btn-dark">
+                            🔐 Change Password
+                        </a>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="row g-4 mt-2">
+
+            <div class="col-md-4">
+                <div class="card card-box p-4 h-100">
+                    <h5 class="mb-3">Account Info</h5>
+
+                    <div class="mb-3">
+                        <small class="text-muted">Username</small>
+                        <div class="fw-bold">{{ request.user.username }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted">Email</small>
+                        <div class="fw-bold">
+                            {% if request.user.email %}
+                                {{ request.user.email }}
+                            {% else %}
+                                <span class="text-muted">No email</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted">Date Joined</small>
+                        <div class="fw-bold">
+                            {{ request.user.date_joined|date:"Y-m-d H:i" }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <small class="text-muted">Last Login</small>
+                        <div class="fw-bold">
+                            {% if request.user.last_login %}
+                                {{ request.user.last_login|date:"Y-m-d H:i" }}
+                            {% else %}
+                                <span class="text-muted">Never</span>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <h3>{{ request.user.first_name }} {{ request.user.last_name }}</h3>
-            <p class="text-muted">@{{ request.user.username }}</p>
+            <div class="col-md-4">
+                <div class="card card-box p-4 h-100">
+                    <h5 class="mb-3">Personal Details</h5>
 
-            {% if request.user.is_superuser %}
-                <span class="badge bg-dark mb-3">Super Admin</span>
-            {% elif request.user.is_staff %}
-                <span class="badge bg-primary mb-3">Staff User</span>
-            {% else %}
-                <span class="badge bg-secondary mb-3">Normal User</span>
-            {% endif %}
+                    <div class="mb-3">
+                        <small class="text-muted">First Name</small>
+                        <div class="fw-bold">
+                            {{ request.user.first_name|default:"-" }}
+                        </div>
+                    </div>
 
-            <hr>
+                    <div class="mb-3">
+                        <small class="text-muted">Last Name</small>
+                        <div class="fw-bold">
+                            {{ request.user.last_name|default:"-" }}
+                        </div>
+                    </div>
 
-            <div class="row text-start">
+                    <div class="mb-3">
+                        <small class="text-muted">User Type</small>
+                        <div>
+                            {% if request.user.is_superuser %}
+                                <span class="badge bg-dark">Super Admin</span>
+                            {% elif request.user.is_staff %}
+                                <span class="badge bg-primary">Staff User</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Normal User</span>
+                            {% endif %}
+                        </div>
+                    </div>
 
-                <div class="col-md-6 mb-3">
-                    <strong>Username</strong>
-                    <p class="text-muted">{{ request.user.username }}</p>
+                    <div>
+                        <small class="text-muted">Status</small>
+                        <div>
+                            {% if request.user.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Disabled</span>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <div class="col-md-6 mb-3">
-                    <strong>Email</strong>
-                    <p class="text-muted">{{ request.user.email }}</p>
-                </div>
+            <div class="col-md-4">
+                <div class="card card-box p-4 h-100">
+                    <h5 class="mb-3">Roles</h5>
 
-                <div class="col-md-6 mb-3">
-                    <strong>First Name</strong>
-                    <p class="text-muted">{{ request.user.first_name }}</p>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <strong>Last Name</strong>
-                    <p class="text-muted">{{ request.user.last_name }}</p>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <strong>Status</strong><br>
-                    {% if request.user.is_active %}
-                        <span class="badge bg-success">Active</span>
-                    {% else %}
-                        <span class="badge bg-danger">Disabled</span>
-                    {% endif %}
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <strong>Roles</strong><br>
                     {% for group in request.user.groups.all %}
-                        <span class="badge bg-info text-dark">{{ group.name }}</span>
+                        <span class="badge bg-info text-dark mb-2">
+                            {{ group.name }}
+                        </span>
+                        <br>
                     {% empty %}
-                        <span class="text-muted">No role assigned</span>
+                        <p class="text-muted">No role assigned</p>
                     {% endfor %}
+
+                    <hr>
+
+                    <h6 class="mb-2">Quick Actions</h6>
+
+                    <div class="d-grid gap-2">
+                        <a href="/" class="btn btn-outline-primary">
+                            🏠 Dashboard
+                        </a>
+
+                        <a href="/logout/" class="btn btn-outline-danger">
+                            🚪 Logout
+                        </a>
+                    </div>
                 </div>
-
-            </div>
-
-            <hr>
-
-            <div class="d-flex justify-content-center gap-2">
-                <a href="/" class="btn btn-primary">
-                     Dashboard
-                </a>
-
-                <a href="/logout/" class="btn btn-primary">
-                   Logout
-                </a>
-                <a href="/profile/edit/" class="btn btn-warning">
-                   ✏ Edit Profile
-                </a>
-
-                <a href="/profile/change-password/" class="btn btn-dark">
-                    🔐 Change Password
-                </a>
             </div>
 
         </div>
 
     </div>
-
 </div>
 
 {% endblock %}

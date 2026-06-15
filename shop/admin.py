@@ -14,6 +14,7 @@ from .models import (
     BatchExpense,
     Expense,
     StoreSetting,
+    VariantDetail,
 )
 
 class ProductDetailInline(admin.TabularInline):
@@ -68,3 +69,4 @@ admin.site.register(SaleItemAllocation)
 admin.site.register(BatchExpense)
 admin.site.register(Expense)
 admin.site.register(StoreSetting)
+admin.site.register(VariantDetail)

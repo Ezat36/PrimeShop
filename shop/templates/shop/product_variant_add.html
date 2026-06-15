@@ -8,10 +8,12 @@
 
 {% block content %}
 
-<div class="card card-box p-4" style="max-width: 800px;">
+<div class="card card-box p-4" style="max-width: 900px;">
 
     <form method="post">
         {% csrf_token %}
+
+        <h5 class="mb-3">Basic Variant Information</h5>
 
         <div class="row">
 
@@ -47,10 +49,80 @@
 
         </div>
 
+        <hr>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Extra Variant Details</h5>
+
+            <button type="button" class="btn btn-sm btn-info" onclick="addDetailRow()">
+                + Add Detail
+            </button>
+        </div>
+
+        <table class="table table-bordered" id="details-table">
+            <thead class="table-dark">
+                <tr>
+                    <th>Detail Name</th>
+                    <th>Value</th>
+                    <th style="width:100px;">Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>
+                        <input
+                            type="text"
+                            name="detail_name"
+                            class="form-control"
+                            placeholder="Example: Material"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="text"
+                            name="detail_value"
+                            class="form-control"
+                            placeholder="Example: PVC"
+                        >
+                    </td>
+
+                    <td>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="removeDetailRow(this)">
+                            Remove
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
         <button class="btn btn-success">Save Variant</button>
         <a href="{% url 'product_manage' product.id %}" class="btn btn-secondary">Cancel</a>
     </form>
 
 </div>
+
+<script>
+function addDetailRow() {
+    let table = document.getElementById("details-table").getElementsByTagName("tbody")[0];
+    let firstRow = table.rows[0];
+    let newRow = firstRow.cloneNode(true);
+
+    newRow.querySelectorAll("input").forEach(input => input.value = "");
+
+    table.appendChild(newRow);
+}
+
+function removeDetailRow(button) {
+    let table = document.getElementById("details-table").getElementsByTagName("tbody")[0];
+
+    if (table.rows.length > 1) {
+        button.closest("tr").remove();
+    } else {
+        button.closest("tr").querySelectorAll("input").forEach(input => input.value = "");
+    }
+}
+</script>
 
 {% endblock %}
