@@ -3,26 +3,33 @@
 {% block title %}Customers{% endblock %}
 
 {% block page_title %}
-👥 Customers
+Customers
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <form method="get" class="d-flex" style="width: 400px;">
+<div class="toolbar">
+    <form method="get" class="search-box">
         <input
             type="text"
             name="search"
-            class="form-control me-2"
+            class="form-control"
             placeholder="Search customer..."
             value="{{ search }}"
         >
-        <button class="btn btn-primary">Seearch</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
     </form>
 
     <a href="/customers/add/" class="btn btn-success">
-        + Add Customer
+        <i class="bi bi-plus-lg"></i> Add Customer
     </a>
+</div>
+
+<div class="total-strip">
+    <div class="total-pill">
+        <span>Customers</span>
+        <strong>{{ customer_data|length }}</strong>
+    </div>
 </div>
 
 <div class="card card-box p-4">
@@ -35,9 +42,10 @@
                     <th>Phone</th>
                     <th>Address</th>
                     <th>Sales Count</th>
-                    <th>Total Purchase</th>
-                    <th>Total Paid</th>
-                    <th>Balance</th>
+                    <th class="money">Total Purchase</th>
+                    <th class="money">Total Paid</th>
+                    <th class="money">Ledger Payments</th>
+                    <th class="money">Balance</th>
                 </tr>
             </thead>
 
@@ -48,10 +56,11 @@
                     <td>{{ row.customer.name }}</td>
                     <td>{{ row.customer.phone }}</td>
                     <td>{{ row.customer.address }}</td>
-                    <td>{{ row.sales_count }}</td>
-                    <td>{{ row.total_purchase|floatformat:2 }}</td>
-                    <td>{{ row.total_paid|floatformat:2 }}</td>
-                    <td>
+                    <td class="number">{{ row.sales_count }}</td>
+                    <td class="money">{{ row.total_purchase|floatformat:2 }} {{ store_currency }}</td>
+                    <td class="money">{{ row.total_paid|floatformat:2 }} {{ store_currency }}</td>
+                    <td class="money">{{ row.payments|floatformat:2 }} {{ store_currency }}</td>
+                    <td class="money">
                         {% if row.balance > 0 %}
                             <span class="badge bg-danger">{{ row.balance|floatformat:2 }}</span>
                         {% else %}
@@ -61,8 +70,8 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center text-muted">
-                        No customers found.
+                    <td colspan="9">
+                        <div class="empty-state">No customers found.</div>
                     </td>
                 </tr>
                 {% endfor %}

@@ -3,73 +3,103 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block page_title %}
-🏠 Business Dashboard
+Business Dashboard
 {% endblock %}
 
 {% block content %}
 
-<div class="mb-4">
-    <a href="/?filter=today" class="btn btn-primary">Today</a>
-    <a href="/?filter=month" class="btn btn-success">This Month</a>
-    <a href="/?filter=year" class="btn btn-info">This Year</a>
-    <a href="/?filter=all" class="btn btn-dark">All Time</a>
+<div class="toolbar">
+    <div>
+        <span class="eyebrow">Performance</span>
+        <h5 class="mb-0">Sales, stock and profit overview</h5>
+    </div>
+    <div class="btn-group" role="group" aria-label="Dashboard filter">
+        <a href="/?filter=today" class="btn {% if filter_type == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}">Today</a>
+        <a href="/?filter=month" class="btn {% if filter_type == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %}">Month</a>
+        <a href="/?filter=year" class="btn {% if filter_type == 'year' %}btn-primary{% else %}btn-outline-primary{% endif %}">Year</a>
+        <a href="/?filter=all" class="btn {% if filter_type == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">All</a>
+    </div>
 </div>
 
 <div class="row g-4 mb-4">
 
-    <div class="col-md-4">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Total Expenses</p>
-            <h2 class="text-danger">{{ total_expenses|floatformat:2 }}</h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Net Profit</span>
+                <span class="metric-icon"><i class="bi bi-graph-up-arrow"></i></span>
+            </div>
+            <h2 class="metric-value text-success">{{ net_profit|floatformat:2 }}</h2>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Net Profit</p>
-            <h2 class="text-success">{{ net_profit|floatformat:2 }}</h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Sales Value</span>
+                <span class="metric-icon"><i class="bi bi-currency-dollar"></i></span>
+            </div>
+            <h2 class="metric-value">{{ total_sales_value|floatformat:2 }}</h2>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Total Items Sold</p>
-            <h2>{{ total_items_sold }}</h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Items Sold</span>
+                <span class="metric-icon"><i class="bi bi-bag-check"></i></span>
+            </div>
+            <h2 class="metric-value">{{ total_items_sold }}</h2>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Sales Value</p>
-            <h2>{{ total_sales_value|floatformat:2 }}</h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Low Stock</span>
+                <span class="metric-icon"><i class="bi bi-exclamation-triangle"></i></span>
+            </div>
+            <h2 class="metric-value text-warning">{{ low_stock_count }}</h2>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Profit</p>
-            <h2 class="text-success">{{ total_profit|floatformat:2 }}</h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Gross Profit</span>
+                <span class="metric-icon"><i class="bi bi-arrow-up-right-circle"></i></span>
+            </div>
+            <h2 class="metric-value text-success">{{ total_profit|floatformat:2 }}</h2>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Current Stock Value</p>
-            <h2>{{ current_stock_value|floatformat:2 }}</h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Stock Value</span>
+                <span class="metric-icon"><i class="bi bi-boxes"></i></span>
+            </div>
+            <h2 class="metric-value">{{ current_stock_value|floatformat:2 }}</h2>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Customer Balance</p>
-            <h2 class="text-danger">{{ outstanding_balance|floatformat:2 }}</h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Customer Balance</span>
+                <span class="metric-icon"><i class="bi bi-wallet2"></i></span>
+            </div>
+            <h2 class="metric-value text-danger">{{ outstanding_balance|floatformat:2 }}</h2>
         </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Low Stock Items</p>
-            <h2 class="text-warning">{{ low_stock_count }}</h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Expenses</span>
+                <span class="metric-icon"><i class="bi bi-cash-stack"></i></span>
+            </div>
+            <h2 class="metric-value text-danger">{{ total_expenses|floatformat:2 }}</h2>
         </div>
     </div>
 
@@ -78,23 +108,35 @@
 <div class="row g-4 mb-4">
 
     <div class="col-md-6">
-        <div class="card card-box p-4">
-            <h5 class="mb-3">📊 Sold Quantity by Product</h5>
-            <canvas id="salesChart" height="300"></canvas>
+        <div class="card card-box chart-card p-4">
+            <h5 class="mb-3">Sold Quantity by Product</h5>
+            {% if chart_labels %}
+                <canvas id="salesChart" height="300"></canvas>
+            {% else %}
+                <div class="chart-empty">No sales data for this period.</div>
+            {% endif %}
         </div>
     </div>
 
     <div class="col-md-6">
-        <div class="card card-box p-4">
-            <h5 class="mb-3">💵 Sales Value by Product</h5>
-            <canvas id="salesValueChart" height="300px; width: 300px; margin:auto;"></canvas>
+        <div class="card card-box chart-card p-4">
+            <h5 class="mb-3">Sales Value by Product</h5>
+            {% if chart_labels %}
+                <canvas id="salesValueChart" height="300"></canvas>
+            {% else %}
+                <div class="chart-empty">No sales value to chart yet.</div>
+            {% endif %}
         </div>
     </div>
 
     <div class="col-md-8">
-        <div class="card card-box p-4">
-            <h5 class="mb-3">📈 Profit by Product</h5>
-            <canvas id="profitChart" height="180"></canvas>
+        <div class="card card-box chart-card p-4">
+            <h5 class="mb-3">Profit by Product</h5>
+            {% if chart_labels %}
+                <canvas id="profitChart" height="220"></canvas>
+            {% else %}
+                <div class="chart-empty">No profit data for this period.</div>
+            {% endif %}
         </div>
     </div>
 
@@ -112,7 +154,7 @@
                     </small>
                 </div>
             {% empty %}
-                <p class="text-muted">No low stock items.</p>
+                <div class="empty-state">No low stock items.</div>
             {% endfor %}
         </div>
     </div>
@@ -126,8 +168,9 @@
             <h5 class="mb-3">Sold Items</h5>
 
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <tr class="table-dark">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead>
+                    <tr>
                         <th>Date</th>
                         <th>Product</th>
                         <th>Size</th>
@@ -135,6 +178,8 @@
                         <th>Qty</th>
                         <th>Total</th>
                     </tr>
+                    </thead>
+                    <tbody>
 
                     {% for item in sold_items %}
                     <tr>
@@ -152,6 +197,7 @@
                         </td>
                     </tr>
                     {% endfor %}
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -170,12 +216,15 @@
     const salesValue = JSON.parse(document.getElementById('sales-value-chart').textContent);
     const profitValue = JSON.parse(document.getElementById('profit-chart').textContent);
 
+    if (labels.length > 0) {
     new Chart(document.getElementById('salesChart'), {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [{
                 label: 'Sold Quantity',
+                backgroundColor: '#2563eb',
+                borderColor: '#1d4ed8',
                 data: soldQty,
                 borderWidth: 1,
                 borderRadius: 8
@@ -183,6 +232,10 @@
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
             scales: { y: { beginAtZero: true } }
         }
     });
@@ -193,11 +246,16 @@
             labels: labels,
             datasets: [{
                 label: 'Sales Value',
+                backgroundColor: ['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed', '#0891b2'],
                 data: salesValue
             }]
         },
         options: {
-            responsive: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            },
    
         }
     });
@@ -211,15 +269,23 @@
             datasets: [{
                 label: 'Profit',
                 data: profitValue,
+                borderColor: '#059669',
+                backgroundColor: 'rgba(5, 150, 105, .12)',
+                fill: true,
                 borderWidth: 3,
                 tension: 0.4
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
             scales: { y: { beginAtZero: true } }
         }
     });
+    }
 </script>
 
 {% endblock %}

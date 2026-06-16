@@ -3,26 +3,39 @@
 {% block title %}Purchases{% endblock %}
 
 {% block page_title %}
-🛒 Purchases
+Purchases
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between mb-4">
-    <h5>Purchase History</h5>
-    <a href="/purchases/add/" class="btn btn-success">+ New Purchase</a>
+<div class="toolbar">
+    <form method="get" class="search-box">
+        <input type="text" name="search" class="form-control" placeholder="Search supplier, batch, note..." value="{{ search }}">
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+    </form>
+    <div class="toolbar-actions">
+        <a href="/exports/purchases/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export</a>
+        <a href="/purchases/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> New Purchase</a>
+    </div>
+</div>
+
+<div class="total-strip">
+    <div class="total-pill"><span>Purchases</span><strong>{{ purchases|length }}</strong></div>
+    <div class="total-pill"><span>Total Cost</span><strong>{{ total_cost|floatformat:2 }} {{ store_currency }}</strong></div>
 </div>
 
 <div class="card card-box p-4">
     <div class="table-responsive">
-        <table class="table table-bordered table-hover">
+        <table class="table table-bordered table-hover align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>#</th>
                     <th>Date</th>
                     <th>Supplier</th>
                     <th>Items</th>
-                    <th>Total Cost</th>
+                    <th class="money">Total Cost</th>
                     <th>Note</th>
                 </tr>
             </thead>
@@ -33,17 +46,17 @@
                     <td>{{ purchase.id }}</td>
                     <td>{{ purchase.date }}</td>
                     <td>{{ purchase.supplier }}</td>
-                    <td>{{ purchase.items.count }}</td>
-                    <td>
+                    <td class="number">{{ purchase.items.count }}</td>
+                    <td class="money">
                         {% for item in purchase.items.all %}
-                            {{ item.total_price|floatformat:2 }}<br>
+                            {{ item.total_price|floatformat:2 }} {{ store_currency }}<br>
                         {% endfor %}
                     </td>
                     <td>{{ purchase.note }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted">No purchases found.</td>
+                    <td colspan="6"><div class="empty-state">No purchases found.</div></td>
                 </tr>
                 {% endfor %}
             </tbody>

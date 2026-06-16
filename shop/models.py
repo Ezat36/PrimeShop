@@ -9,13 +9,18 @@ class Product(models.Model):
     name = models.CharField(max_length=150)
     category = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
+    image = models.FileField(upload_to="products/", blank=True)
 
     def __str__(self):
         return self.name
 
 
 class ProductVariant(models.Model):
+
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
+
+    variant_name = models.CharField(max_length=150, blank=True)
+
     size = models.CharField(max_length=50, blank=True)
     color = models.CharField(max_length=50, blank=True)
     model = models.CharField(max_length=100, blank=True)
@@ -76,7 +81,15 @@ class Purchase(models.Model):
     def __str__(self):
         return f"Purchase #{self.id}"
 
+class StockLocation(models.Model):
+    name = models.CharField(max_length=150)
+    code = models.CharField(max_length=50, blank=True)
+    address = models.TextField(blank=True)
+    note = models.TextField(blank=True)
 
+    def __str__(self):
+        return self.name
+    
 class PurchaseItem(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name="items")
     variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name="purchase_items")
@@ -90,6 +103,14 @@ class PurchaseItem(models.Model):
     remaining_qty = models.PositiveIntegerField(default=0)
 
     buying_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    location = models.ForeignKey(
+    StockLocation,
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name="stock_items"
+)
 
     def total_price(self):
         return self.quantity * self.buying_price
@@ -117,6 +138,42 @@ class Customer(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class CustomerPayment(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="payments")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    date = models.DateField(default=timezone.now)
+    method = models.CharField(max_length=50, default="Cash")
+    note = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="customer_payments",
+    )
+
+    def __str__(self):
+        return f"{self.customer} payment {self.amount}"
+
+
+class SupplierPayment(models.Model):
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name="payments")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    date = models.DateField(default=timezone.now)
+    method = models.CharField(max_length=50, default="Cash")
+    note = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="supplier_payments",
+    )
+
+    def __str__(self):
+        return f"{self.supplier} payment {self.amount}"
 
 
 class Sale(models.Model):
@@ -159,6 +216,24 @@ class SaleItem(models.Model):
 
     def total_price(self):
         return self.quantity * self.selling_price
+
+
+class SaleReturn(models.Model):
+    sale_item = models.ForeignKey(SaleItem, on_delete=models.CASCADE, related_name="returns")
+    quantity = models.PositiveIntegerField()
+    refund_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    date = models.DateField(default=timezone.now)
+    reason = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sale_returns",
+    )
+
+    def __str__(self):
+        return f"Return {self.quantity} x {self.sale_item.variant}"
 
 
 class SaleItemAllocation(models.Model):
@@ -280,3 +355,57 @@ class VariantDetail(models.Model):
 
     def __str__(self):
         return f"{self.name}: {self.value}"
+
+
+class StockTransfer(models.Model):
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name="transfers")
+    from_location = models.ForeignKey(
+        StockLocation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="outgoing_transfers",
+    )
+    to_location = models.ForeignKey(
+        StockLocation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="incoming_transfers",
+    )
+    quantity = models.PositiveIntegerField()
+    date = models.DateField(default=timezone.now)
+    note = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_transfers",
+    )
+
+    def __str__(self):
+        return f"{self.variant} transfer {self.quantity}"
+
+
+class ActivityLog(models.Model):
+    user = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activity_logs",
+    )
+    action = models.CharField(max_length=120)
+    model_name = models.CharField(max_length=120, blank=True)
+    object_id = models.CharField(max_length=60, blank=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.action} {self.model_name} {self.object_id}"
+    
+

@@ -3,26 +3,33 @@
 {% block title %}Suppliers{% endblock %}
 
 {% block page_title %}
-🚚 Suppliers
+Suppliers
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <form method="get" class="d-flex" style="width: 400px;">
+<div class="toolbar">
+    <form method="get" class="search-box">
         <input
             type="text"
             name="search"
-            class="form-control me-2"
+            class="form-control"
             placeholder="Search supplier..."
             value="{{ search }}"
         >
-        <button class="btn btn-primary">Search</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
     </form>
 
     <a href="/suppliers/add/" class="btn btn-success">
-        + Add Supplier
+        <i class="bi bi-plus-lg"></i> Add Supplier
     </a>
+</div>
+
+<div class="total-strip">
+    <div class="total-pill">
+        <span>Suppliers</span>
+        <strong>{{ supplier_data|length }}</strong>
+    </div>
 </div>
 
 <div class="card card-box p-4">
@@ -34,8 +41,10 @@
                     <th>Supplier Name</th>
                     <th>Phone</th>
                     <th>Address</th>
-                    <th>Purchases</th>
-                    <th>Total Purchased Value</th>
+                    <th class="number">Purchases</th>
+                    <th class="money">Total Purchased Value</th>
+                    <th class="money">Paid</th>
+                    <th class="money">Balance</th>
                 </tr>
             </thead>
 
@@ -46,13 +55,21 @@
                     <td>{{ row.supplier.name }}</td>
                     <td>{{ row.supplier.phone }}</td>
                     <td>{{ row.supplier.address }}</td>
-                    <td>{{ row.purchase_count }}</td>
-                    <td>{{ row.total_purchases|floatformat:2 }}</td>
+                    <td class="number">{{ row.purchase_count }}</td>
+                    <td class="money">{{ row.total_purchases|floatformat:2 }} {{ store_currency }}</td>
+                    <td class="money">{{ row.payments|floatformat:2 }} {{ store_currency }}</td>
+                    <td class="money">
+                        {% if row.balance > 0 %}
+                            <span class="badge bg-danger">{{ row.balance|floatformat:2 }}</span>
+                        {% else %}
+                            <span class="badge bg-success">0.00</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted">
-                        No suppliers found.
+                    <td colspan="8">
+                        <div class="empty-state">No suppliers found.</div>
                     </td>
                 </tr>
                 {% endfor %}

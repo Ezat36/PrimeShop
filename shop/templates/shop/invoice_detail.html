@@ -4,19 +4,19 @@
 {% block title %}Invoice Detail{% endblock %}
 
 {% block page_title %}
-🧾 Invoice {{ invoice.invoice_number }}
+Invoice {{ invoice.invoice_number }}
 {% endblock %}
 
 {% block content %}
 
 <div class="mb-3 no-print">
-    <a href="/invoices/" class="btn btn-secondary">⬅ Back</a>
-    <button onclick="window.print()" class="btn btn-primary">🖨 Print Invoice</button>
+    <a href="/invoices/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+    <button onclick="window.print()" class="btn btn-primary" data-no-loading="true"><i class="bi bi-printer"></i> Print Invoice</button>
 </div>
 
 <div class="card card-box p-4" id="invoice-area">
 
-    <div class="d-flex justify-content-between align-items-start mb-3">
+    <div class="invoice-header">
 
         <div>
             <img src="{% static 'images/logo.png' %}"
@@ -25,23 +25,17 @@
 
             <h2 class="fw-bold mb-1">{{ setting.store_name }}</h2>
 
-            <p class="text-muted mb-0 small">
-                Address: {{ setting.address }}<br>
-                Phone: {{ setting.phone }}<br>
-                Email: {{ setting.email }}
+            <p class="invoice-muted mb-0">
+                {% if setting.address %}{{ setting.address }}<br>{% endif %}
+                {% if setting.phone %}Phone: {{ setting.phone }}<br>{% endif %}
+                {% if setting.email %}Email: {{ setting.email }}{% endif %}
             </p>
         </div>
 
-        <div class="text-end">
-            <h2 class="fw-bold text-primary mb-2">INVOICE</h2>
-
-            <p class="mb-1">
-                <strong>No:</strong> {{ invoice.invoice_number }}
-            </p>
-
-            <p class="mb-0">
-                <strong>Date:</strong> {{ invoice.created_at|date:"Y-m-d H:i" }}
-            </p>
+        <div class="invoice-meta">
+            <h2>INVOICE</h2>
+            <div><span>No</span><strong>{{ invoice.invoice_number }}</strong></div>
+            <div><span>Date</span><strong>{{ invoice.created_at|date:"Y-m-d H:i" }}</strong></div>
         </div>
 
     </div>
@@ -51,12 +45,12 @@
     <div class="row mb-3">
 
         <div class="col-md-6">
-            <h5 class="fw-bold mb-2">Customer</h5>
+            <h5 class="fw-bold mb-2">Bill To</h5>
 
-            <p class="mb-0">
-                <strong>Name:</strong> {{ sale.customer }}<br>
-                <strong>Phone:</strong> {{ sale.customer.phone }}<br>
-                <strong>Address:</strong> {{ sale.customer.address }}
+            <p class="invoice-muted mb-0">
+                <strong>{{ sale.customer|default:"Walk-in Customer" }}</strong><br>
+                {% if sale.customer.phone %}Phone: {{ sale.customer.phone }}<br>{% endif %}
+                {% if sale.customer.address %}{{ sale.customer.address }}{% endif %}
             </p>
         </div>
 
@@ -153,17 +147,63 @@
 </div>
 
 <style>
+    .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: flex-start;
+        padding-bottom: 8px;
+    }
+
+    .invoice-muted {
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .invoice-meta {
+        text-align: right;
+        min-width: 260px;
+    }
+
+    .invoice-meta h2 {
+        color: #2563eb;
+        font-size: 34px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        margin-bottom: 16px;
+    }
+
+    .invoice-meta div {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 7px 0;
+    }
+
+    .invoice-meta span {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .invoice-table {
+        border: 1px solid #dbe3ef;
+    }
+
     .invoice-table th,
     .invoice-table td {
-        padding: 8px;
+        padding: 10px;
         font-size: 14px;
     }
 
     .summary-box {
         width: 350px;
         background: #f8f9fa;
-        padding: 14px;
-        border-radius: 10px;
+        padding: 16px;
+        border-radius: 8px;
         border: 1px solid #dee2e6;
         page-break-inside: avoid;
     }
@@ -194,6 +234,17 @@
         page-break-inside: avoid;
     }
 
+    @media (max-width: 700px) {
+        .invoice-header {
+            flex-direction: column;
+        }
+
+        .invoice-meta {
+            text-align: left;
+            min-width: 100%;
+        }
+    }
+
     @media print {
         .sidebar,
         .topbar,
@@ -210,13 +261,17 @@
             background: white !important;
         }
 
+        @page {
+            margin: 14mm;
+        }
+
         .card {
             box-shadow: none !important;
             border: none !important;
         }
 
         #invoice-area {
-            padding: 15px !important;
+            padding: 0 !important;
         }
 
         .invoice-table th,

@@ -3,17 +3,24 @@
 {% block title %}New Purchase{% endblock %}
 
 {% block page_title %}
-+ New Purchase
+New Purchase
 {% endblock %}
 
 {% block content %}
 
 <div class="card card-box p-4">
+    <div class="section-title">
+        <div>
+            <h5>Purchase Details</h5>
+            <p>Add supplier, location, quantity and cost for each purchased item.</p>
+        </div>
+    </div>
 
     <form method="post">
         {% csrf_token %}
 
-        <div class="row mb-3">
+        <div class="form-section">
+        <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <label class="form-label">Supplier</label>
                 <select name="supplier" class="form-control">
@@ -30,14 +37,23 @@
             </div>
         </div>
 
-        <h5 class="mt-4">Purchase Items</h5>
+        </div>
 
-        <table class="table table-bordered" id="items-table">
+        <div class="section-title">
+            <div>
+                <h5>Purchase Items</h5>
+                <p>Add one or more lines for this purchase.</p>
+            </div>
+        </div>
+
+        <div class="table-responsive mb-3">
+        <table class="table table-bordered align-middle" id="items-table">
             <thead class="table-dark">
                 <tr>
                     <th>Variant</th>
                     <th>Quantity</th>
                     <th>Buying Price</th>
+                    <th>Location</th>
                 </tr>
             </thead>
 
@@ -61,15 +77,26 @@
                     <td>
                         <input type="number" step="0.01" name="buying_price" class="form-control" required>
                     </td>
+                    <td>
+                        <select name="location" class="form-control">
+                            <option value="">No location</option>
+                            {% for location in locations %}
+                                <option value="{{ location.id }}">{{ location.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
                 </tr>
             </tbody>
         </table>
+        </div>
 
-        <button type="button" class="btn btn-info" onclick="addRow()">+ Add Item</button>
+        <div class="form-actions">
+        <button type="button" class="btn btn-outline-primary" onclick="addRow()" data-no-loading="true"><i class="bi bi-plus-lg"></i> Add Item</button>
 
-        <button type="submit" class="btn btn-success">Save Purchase</button>
+        <button type="submit" class="btn btn-success"><i class="bi bi-check2"></i> Save Purchase</button>
 
-        <a href="/purchases/" class="btn btn-secondary">Cancel</a>
+        <a href="/purchases/" class="btn btn-outline-secondary">Cancel</a>
+        </div>
 
     </form>
 

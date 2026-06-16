@@ -3,30 +3,45 @@
 {% block title %}Sales{% endblock %}
 
 {% block page_title %}
-💰 Sales
+Sales
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between mb-4">
-    <h5>Sales History</h5>
-    <a href="/sales/add/" class="btn btn-success">+ New Sale</a>
+<div class="toolbar">
+    <form method="get" class="search-box">
+        <input type="text" name="search" class="form-control" placeholder="Search customer, note, invoice..." value="{{ search }}">
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+    </form>
+    <div class="toolbar-actions">
+        <a href="/exports/sales/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export</a>
+        <a href="/sales/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> New Sale</a>
+    </div>
+</div>
+
+<div class="total-strip">
+    <div class="total-pill"><span>Sales</span><strong>{{ sales|length }}</strong></div>
+    <div class="total-pill"><span>Final Total</span><strong>{{ total_final|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Paid</span><strong>{{ total_paid|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Balance</span><strong>{{ total_balance|floatformat:2 }} {{ store_currency }}</strong></div>
 </div>
 
 <div class="card card-box p-4">
     <div class="table-responsive">
-        <table class="table table-bordered table-hover">
+        <table class="table table-bordered table-hover align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>#</th>
                     <th>Date</th>
                     <th>Customer</th>
                     <th>Items</th>
-                    <th>Total</th>
-                    <th>Discount</th>
-                    <th>Final</th>
-                    <th>Paid</th>
-                    <th>Balance</th>
+                    <th class="money">Total</th>
+                    <th class="money">Discount</th>
+                    <th class="money">Final</th>
+                    <th class="money">Paid</th>
+                    <th class="money">Balance</th>
                 </tr>
             </thead>
 
@@ -37,11 +52,11 @@
                     <td>{{ sale.date }}</td>
                     <td>{{ sale.customer }}</td>
                     <td>{{ sale.items.count }}</td>
-                    <td>{{ sale.total_amount|floatformat:2 }}</td>
-                    <td>{{ sale.discount|floatformat:2 }}</td>
-                    <td>{{ sale.final_amount|floatformat:2 }}</td>
-                    <td>{{ sale.paid_amount|floatformat:2 }}</td>
-                    <td>
+                    <td class="money">{{ sale.total_amount|floatformat:2 }}</td>
+                    <td class="money">{{ sale.discount|floatformat:2 }}</td>
+                    <td class="money">{{ sale.final_amount|floatformat:2 }}</td>
+                    <td class="money">{{ sale.paid_amount|floatformat:2 }}</td>
+                    <td class="money">
                         {% if sale.remaining_balance > 0 %}
                             <span class="badge bg-danger">{{ sale.remaining_balance|floatformat:2 }}</span>
                         {% else %}
@@ -51,7 +66,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="text-center text-muted">No sales found.</td>
+                    <td colspan="9"><div class="empty-state">No sales found.</div></td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -1,0 +1,157 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Stock Location Report{% endblock %}
+
+{% block page_title %}
+📍 Stock Location Report
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1">Stock by Location</h4>
+        <p class="text-muted mb-0">
+            View current stock, sold quantity, and value by warehouse, store, shelf, or branch.
+        </p>
+    </div>
+
+    <a href="/stock-locations/" class="btn btn-secondary">
+        Manage Locations
+    </a>
+</div>
+
+<div class="card card-box p-4 mb-4">
+
+    <form method="get" class="row g-3 align-items-end">
+
+        <div class="col-md-5">
+            <label class="form-label">Filter by Location</label>
+            <select name="location" class="form-control">
+                <option value="">All Locations</option>
+
+                {% for location in locations %}
+                    <option value="{{ location.id }}"
+                        {% if selected_location_id == location.id|stringformat:"s" %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ location.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <button class="btn btn-primary w-100">
+                Apply Filter
+            </button>
+        </div>
+
+        <div class="col-md-3">
+            <a href="/stock-location-report/" class="btn btn-outline-secondary w-100">
+                Reset
+            </a>
+        </div>
+
+    </form>
+
+</div>
+
+<div class="row g-4 mb-4">
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Purchased</p>
+            <h2>{{ total_purchased }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Sold</p>
+            <h2>{{ total_sold }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Remaining</p>
+            <h2>{{ total_remaining }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Stock Value</p>
+            <h2>{{ total_value|floatformat:2 }}</h2>
+        </div>
+    </div>
+
+</div>
+
+<div class="card card-box p-4">
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Location</th>
+                    <th>Batch</th>
+                    <th>Date</th>
+                    <th>Supplier</th>
+                    <th>Product</th>
+                    <th>Variant</th>
+                    <th>SKU</th>
+                    <th>Purchased</th>
+                    <th>Sold</th>
+                    <th>Remaining</th>
+                    <th>Buying Price</th>
+                    <th>Stock Value</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>
+                        {% if row.location %}
+                            <strong>{{ row.location.name }}</strong>
+                        {% else %}
+                            <span class="text-muted">No Location</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <a href="/batches/{{ row.batch_number }}/">
+                            <strong>{{ row.batch_number }}</strong>
+                        </a>
+                    </td>
+
+                    <td>{{ row.purchase_date }}</td>
+                    <td>{{ row.supplier|default:"-" }}</td>
+                    <td>{{ row.product }}</td>
+                    <td>{{ row.variant.variant_name|default:row.variant }}</td>
+                    <td>{{ row.sku|default:"-" }}</td>
+                    <td>{{ row.purchased_qty }}</td>
+                    <td>{{ row.sold_qty }}</td>
+                    <td>{{ row.remaining_qty }}</td>
+                    <td>{{ row.buying_price|floatformat:2 }}</td>
+                    <td>{{ row.stock_value|floatformat:2 }}</td>
+                </tr>
+
+                {% empty %}
+                <tr>
+                    <td colspan="12" class="text-center text-muted">
+                        No stock found for this location.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

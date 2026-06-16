@@ -3,16 +3,23 @@
 {% block title %}Add Supplier{% endblock %}
 
 {% block page_title %}
-+ Add Supplier
+Add Supplier
 {% endblock %}
 
 {% block content %}
 
-<div class="card card-box p-4" style="max-width: 700px;">
+<div class="card card-box p-4 form-shell">
+    <div class="section-title">
+        <div>
+            <h5>Supplier Information</h5>
+            <p>Supplier records help purchases and reports stay organized.</p>
+        </div>
+    </div>
 
     <form method="post">
         {% csrf_token %}
 
+        <div class="form-section">
         <div class="mb-3">
             <label class="form-label">Supplier Name</label>
             <input
@@ -43,9 +50,12 @@
                 placeholder="Supplier address..."
             ></textarea>
         </div>
+        </div>
 
-        <button class="btn btn-success">Save Supplier</button>
-        <a href="/suppliers/" class="btn btn-secondary">Cancel</a>
+        <div class="form-actions">
+            <button class="btn btn-success"><i class="bi bi-check2"></i> Save Supplier</button>
+            <a href="/suppliers/" class="btn btn-outline-secondary">Cancel</a>
+        </div>
 
     </form>
 

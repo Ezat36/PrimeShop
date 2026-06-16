@@ -1,0 +1,26 @@
+{% extends 'shop/base.html' %}
+{% block title %}Customer Payments{% endblock %}
+{% block page_title %}Customer Payments{% endblock %}
+{% block content %}
+<div class="toolbar">
+    <a href="/customers/payments/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Add Payment</a>
+</div>
+<div class="total-strip">
+    <div class="total-pill"><span>Payments</span><strong>{{ payments|length }}</strong></div>
+    <div class="total-pill"><span>Total Received</span><strong>{{ total_payments|floatformat:2 }} {{ store_currency }}</strong></div>
+</div>
+<div class="card card-box p-4">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark"><tr><th>Date</th><th>Customer</th><th>Method</th><th class="money">Amount</th><th>Note</th><th>User</th></tr></thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr><td>{{ payment.date }}</td><td>{{ payment.customer }}</td><td><span class="badge bg-secondary">{{ payment.method }}</span></td><td class="money">{{ payment.amount|floatformat:2 }} {{ store_currency }}</td><td>{{ payment.note }}</td><td>{{ payment.created_by|default:"-" }}</td></tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state">No customer payments found.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

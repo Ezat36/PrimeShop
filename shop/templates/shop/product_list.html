@@ -3,26 +3,33 @@
 {% block title %}Products{% endblock %}
 
 {% block page_title %}
-📦 Products
+Products
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <form method="get" class="d-flex" style="width: 400px;">
+<div class="toolbar">
+    <form method="get" class="search-box">
         <input
             type="text"
             name="search"
-            class="form-control me-2"
+            class="form-control"
             placeholder="Search product..."
             value="{{ search }}"
         >
-        <button class="btn btn-primary">Search</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
     </form>
 
     <a href="/products/add/" class="btn btn-success">
-            + Add Product
+        <i class="bi bi-plus-lg"></i> Add Product
     </a>
+</div>
+
+<div class="total-strip">
+    <div class="total-pill">
+        <span>Product Rows</span>
+        <strong>{{ product_data|length }}</strong>
+    </div>
 </div>
 
 <div class="card card-box p-4">
@@ -34,11 +41,12 @@
             <thead class="table-dark">
                 <tr>
                     <th>#</th>
+                    <th>Image</th>
                     <th>Product Name</th>
                     <th>Category</th>
                     <th>Variants</th>
                     <th>Total Stock</th>
-                    <th>Action</th>
+                    <th class="actions-cell">Action</th>
                 </tr>
             </thead>
 
@@ -47,20 +55,27 @@
                 {% for row in product_data %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
+                    <td>
+                        {% if row.product.image %}
+                            <img src="{{ row.product.image.url }}" alt="{{ row.product.name }}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;">
+                        {% else %}
+                            <span class="badge bg-secondary">No image</span>
+                        {% endif %}
+                    </td>
                     <td>{{ row.product.name }}</td>
                     <td>{{ row.product.category }}</td>
-                    <td>{{ row.variant_count }}</td>
-                    <td>{{ row.total_stock }}</td>
-                    <td>
+                    <td class="number">{{ row.variant_count }}</td>
+                    <td class="number">{{ row.total_stock }}</td>
+                    <td class="actions-cell">
                         <a href="/products/{{ row.product.id }}/manage/" class="btn btn-sm btn-primary">
-                        Manage
+                            <i class="bi bi-sliders"></i> Manage
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted">
-                        No products found.
+                    <td colspan="7">
+                        <div class="empty-state">No products found.</div>
                     </td>
                 </tr>
                 {% endfor %}

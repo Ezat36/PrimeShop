@@ -15,6 +15,12 @@ from .models import (
     Expense,
     StoreSetting,
     VariantDetail,
+    StockLocation,
+    CustomerPayment,
+    SupplierPayment,
+    StockTransfer,
+    SaleReturn,
+    ActivityLog,
 )
 
 class ProductDetailInline(admin.TabularInline):
@@ -70,3 +76,9 @@ admin.site.register(BatchExpense)
 admin.site.register(Expense)
 admin.site.register(StoreSetting)
 admin.site.register(VariantDetail)
+admin.site.register(StockLocation)
+admin.site.register(CustomerPayment)
+admin.site.register(SupplierPayment)
+admin.site.register(StockTransfer)
+admin.site.register(SaleReturn)
+admin.site.register(ActivityLog)

@@ -1,0 +1,117 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Edit Stock Location{% endblock %}
+
+{% block page_title %}
+✏ Edit Stock Location
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1">📍 Stock Locations</h4>
+        <small class="text-muted">
+            Manage warehouses, stores, shelves and storage locations.
+        </small>
+    </div>
+
+    <a href="{% url 'stock_location_add' %}" class="btn btn-success">
+        + Add Location
+    </a>
+</div>
+
+<div class="row">
+
+    {% for location in locations %}
+
+    <div class="col-md-6 col-lg-4 mb-4">
+
+        <div class="card card-box h-100">
+
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between align-items-start">
+
+                    <div>
+                        <h5 class="mb-1">
+                            {{ location.name }}
+                        </h5>
+
+                        {% if location.code %}
+                        <span class="badge bg-secondary">
+                            {{ location.code }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <span class="badge bg-success">
+                        Active
+                    </span>
+
+                </div>
+
+                <hr>
+
+                <p class="mb-2">
+                    <strong>Address:</strong><br>
+                    {{ location.address|default:"Not specified" }}
+                </p>
+
+                <p class="mb-0">
+                    <strong>Note:</strong><br>
+                    {{ location.note|default:"No notes" }}
+                </p>
+
+            </div>
+
+            <div class="card-footer bg-white border-0">
+
+                <div class="d-flex gap-2">
+
+                    <a href="{% url 'stock_location_edit' location.id %}"
+                       class="btn btn-outline-warning btn-sm w-100">
+                        ✏ Edit
+                    </a>
+
+                    <a href="{% url 'stock_location_delete' location.id %}"
+                       class="btn btn-outline-danger btn-sm w-100">
+                        🗑 Delete
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% empty %}
+
+    <div class="col-12">
+
+        <div class="card card-box p-5 text-center">
+
+            <h4>No Stock Locations Found</h4>
+
+            <p class="text-muted">
+                Create your first warehouse, store or shelf location.
+            </p>
+
+            <div>
+                <a href="{% url 'stock_location_add' %}"
+                   class="btn btn-success">
+                    + Add First Location
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endfor %}
+
+</div>
+
+{% endblock %}

@@ -3,16 +3,23 @@
 {% block title %}Settings{% endblock %}
 
 {% block page_title %}
-⚙ Store Settings
+Store Settings
 {% endblock %}
 
 {% block content %}
 
-<div class="card card-box p-4" style="max-width:800px;">
+<div class="card card-box p-4 form-shell">
+    <div class="section-title">
+        <div>
+            <h5>Store Profile</h5>
+            <p>This information appears in the app header and printed invoices.</p>
+        </div>
+    </div>
 
     <form method="post">
         {% csrf_token %}
 
+        <div class="form-section">
         <div class="mb-3">
             <label class="form-label">Store Name</label>
             <input type="text" name="store_name" class="form-control"
@@ -36,7 +43,9 @@
             <input type="text" name="currency" class="form-control"
                    value="{{ setting.currency }}">
         </div>
+        </div>
 
+        <div class="form-section">
         <div class="mb-3">
             <label class="form-label">Address</label>
             <textarea name="address" class="form-control" rows="3">{{ setting.address }}</textarea>
@@ -46,8 +55,11 @@
             <label class="form-label">Invoice Footer</label>
             <textarea name="invoice_footer" class="form-control" rows="3">{{ setting.invoice_footer }}</textarea>
         </div>
+        </div>
 
-        <button class="btn btn-success">Save Settings</button>
+        <div class="form-actions">
+            <button class="btn btn-success"><i class="bi bi-check2"></i> Save Settings</button>
+        </div>
 
     </form>
 

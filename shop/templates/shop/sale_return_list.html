@@ -1,0 +1,7 @@
+{% extends 'shop/base.html' %}
+{% block title %}Returns{% endblock %}
+{% block page_title %}Returns & Refunds{% endblock %}
+{% block content %}
+<div class="toolbar"><a href="/sales/returns/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Add Return</a></div>
+<div class="card card-box p-4"><div class="table-responsive"><table class="table table-bordered table-hover align-middle"><thead class="table-dark"><tr><th>Date</th><th>Sale</th><th>Product</th><th class="number">Qty</th><th class="money">Refund</th><th>Reason</th><th>User</th></tr></thead><tbody>{% for item in returns %}<tr><td>{{ item.date }}</td><td>#{{ item.sale_item.sale.id }}</td><td>{{ item.sale_item.variant }}</td><td class="number">{{ item.quantity }}</td><td class="money">{{ item.refund_amount|floatformat:2 }} {{ store_currency }}</td><td>{{ item.reason }}</td><td>{{ item.created_by|default:"-" }}</td></tr>{% empty %}<tr><td colspan="7"><div class="empty-state">No returns found.</div></td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

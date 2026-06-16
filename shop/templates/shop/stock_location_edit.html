@@ -1,0 +1,42 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Edit Stock Location{% endblock %}
+
+{% block page_title %}
+✏ Edit Stock Location
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width:700px;">
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label">Location Name</label>
+            <input type="text" name="name" class="form-control" value="{{ location.name }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Code</label>
+            <input type="text" name="code" class="form-control" value="{{ location.code }}">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Address</label>
+            <textarea name="address" class="form-control" rows="3">{{ location.address }}</textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Note</label>
+            <textarea name="note" class="form-control" rows="3">{{ location.note }}</textarea>
+        </div>
+
+        <button class="btn btn-success">Save Changes</button>
+        <a href="{% url 'stock_location_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+
+</div>
+
+{% endblock %}

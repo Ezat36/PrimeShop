@@ -13,38 +13,55 @@
     <form method="post">
         {% csrf_token %}
 
-        <h5 class="mb-3">Basic Variant Information</h5>
+        <div class="mb-4">
+            <h5 class="mb-1">Basic Variant Information</h5>
+            <small class="text-muted">
+                Use fixed fields for common data. Add product-specific information below as flexible attributes.
+            </small>
+        </div>
 
         <div class="row">
 
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Size</label>
-                <input type="text" name="size" class="form-control" placeholder="Small, Medium, Large">
+            <div class="col-md-12 mb-3">
+                <label class="form-label">Variant Name</label>
+                <input
+                    type="text"
+                    name="variant_name"
+                    class="form-control"
+                    placeholder="Example: Small Green Tent, 25kg Milk Powder, Red Apple Grade A"
+                    required
+                >
             </div>
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">Color</label>
-                <input type="text" name="color" class="form-control" placeholder="Blue, Red, White">
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Model</label>
-                <input type="text" name="model" class="form-control" placeholder="Model number">
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <label class="form-label">SKU</label>
-                <input type="text" name="sku" class="form-control" placeholder="Product code">
+                <label class="form-label">SKU / Code</label>
+                <input
+                    type="text"
+                    name="sku"
+                    class="form-control"
+                    placeholder="Example: TENT-SM-GRN"
+                >
             </div>
 
             <div class="col-md-6 mb-3">
                 <label class="form-label">Selling Price</label>
-                <input type="number" step="0.01" name="selling_price" class="form-control" required>
+                <input
+                    type="number"
+                    step="0.01"
+                    name="selling_price"
+                    class="form-control"
+                    required
+                >
             </div>
 
             <div class="col-md-6 mb-3">
                 <label class="form-label">Low Stock Alert</label>
-                <input type="number" name="low_stock_alert" class="form-control" value="5">
+                <input
+                    type="number"
+                    name="low_stock_alert"
+                    class="form-control"
+                    value="5"
+                >
             </div>
 
         </div>
@@ -52,19 +69,24 @@
         <hr>
 
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">Extra Variant Details</h5>
+            <div>
+                <h5 class="mb-1">Flexible Variant Attributes</h5>
+                <small class="text-muted">
+                    Examples: Size, Color, Material, Weight, Brand, Expiry Date, Voltage, Capacity.
+                </small>
+            </div>
 
             <button type="button" class="btn btn-sm btn-info" onclick="addDetailRow()">
-                + Add Detail
+                + Add Attribute
             </button>
         </div>
 
-        <table class="table table-bordered" id="details-table">
+        <table class="table table-bordered align-middle" id="details-table">
             <thead class="table-dark">
                 <tr>
-                    <th>Detail Name</th>
+                    <th>Attribute</th>
                     <th>Value</th>
-                    <th style="width:100px;">Action</th>
+                    <th style="width:110px;">Action</th>
                 </tr>
             </thead>
 
@@ -75,7 +97,7 @@
                             type="text"
                             name="detail_name"
                             class="form-control"
-                            placeholder="Example: Material"
+                            placeholder="Example: Size"
                         >
                     </td>
 
@@ -84,12 +106,12 @@
                             type="text"
                             name="detail_value"
                             class="form-control"
-                            placeholder="Example: PVC"
+                            placeholder="Example: Small"
                         >
                     </td>
 
                     <td>
-                        <button type="button" class="btn btn-sm btn-danger" onclick="removeDetailRow(this)">
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDetailRow(this)">
                             Remove
                         </button>
                     </td>
@@ -97,8 +119,23 @@
             </tbody>
         </table>
 
-        <button class="btn btn-success">Save Variant</button>
-        <a href="{% url 'product_manage' product.id %}" class="btn btn-secondary">Cancel</a>
+        <div class="alert alert-light border mt-3">
+            <strong>Tip:</strong>
+            For a tent, add attributes like Size, Color, Material, Capacity.
+            For milk powder, add Brand, Weight, Expiry Date, Fat.
+            For machines, add Voltage, Power, Warranty.
+        </div>
+
+        <div class="mt-4">
+            <button class="btn btn-success">
+                Save Variant
+            </button>
+
+            <a href="{% url 'product_manage' product.id %}" class="btn btn-secondary">
+                Cancel
+            </a>
+        </div>
+
     </form>
 
 </div>

@@ -1,0 +1,39 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Delete Stock Location{% endblock %}
+
+{% block page_title %}
+Delete Stock Location
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width:650px;">
+
+    <h4 class="text-danger">Are you sure?</h4>
+
+    <p>
+        You are about to delete this stock location:
+    </p>
+
+    <div class="alert alert-warning">
+        <strong>{{ location.name }}</strong><br>
+        Code: {{ location.code|default:"-" }}<br>
+        Address: {{ location.address|default:"-" }}
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <button class="btn btn-danger" data-confirm="Delete this stock location? This action cannot be undone.">
+            Yes, Delete
+        </button>
+
+        <a href="{% url 'stock_location_list' %}" class="btn btn-outline-secondary">
+            Cancel
+        </a>
+    </form>
+
+</div>
+
+{% endblock %}

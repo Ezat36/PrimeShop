@@ -1,0 +1,44 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Add Stock Location{% endblock %}
+
+{% block page_title %}
++ Add Stock Location
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width:700px;">
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label">Location Name</label>
+            <input type="text" name="name" class="form-control" required
+                   placeholder="Example: Main Store, Warehouse 1, Shelf A1">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Code</label>
+            <input type="text" name="code" class="form-control"
+                   placeholder="Example: WH-01, STORE-A">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Address</label>
+            <textarea name="address" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Note</label>
+            <textarea name="note" class="form-control" rows="3"></textarea>
+        </div>
+
+        <button class="btn btn-success">Save Location</button>
+        <a href="/stock-locations/" class="btn btn-secondary">Cancel</a>
+    </form>
+
+</div>
+
+{% endblock %}

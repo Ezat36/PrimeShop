@@ -15,13 +15,20 @@ urlpatterns = [
     path('purchases/', views.purchase_list, name='purchase_list'),
     path('purchases/add/', views.purchase_add, name='purchase_add'),
     path('sales/', views.sale_list, name='sale_list'),
+    path('sales/pos/', views.pos_sale, name='pos_sale'),
     path('sales/add/', views.sale_add, name='sale_add'),
+    path('sales/returns/', views.sale_return_list, name='sale_return_list'),
+    path('sales/returns/add/', views.sale_return_add, name='sale_return_add'),
     path('customers/', views.customer_list, name='customer_list'),
     path('customers/add/', views.customer_add, name='customer_add'),
+    path('customers/payments/', views.customer_payment_list, name='customer_payment_list'),
+    path('customers/payments/add/', views.customer_payment_add, name='customer_payment_add'),
     path('invoices/', views.invoice_list, name='invoice_list'),
     path('invoices/<int:invoice_id>/', views.invoice_detail, name='invoice_detail'),
     path('suppliers/', views.supplier_list, name='supplier_list'),
     path('suppliers/add/', views.supplier_add, name='supplier_add'),
+    path('suppliers/payments/', views.supplier_payment_list, name='supplier_payment_list'),
+    path('suppliers/payments/add/', views.supplier_payment_add, name='supplier_payment_add'),
 
     path('users/', views.user_list, name='user_list'),
     path('users/add/', views.user_add, name='user_add'),
@@ -51,7 +58,16 @@ urlpatterns = [
     path('batches/<str:batch_number>/', views.batch_detail, name='batch_detail'),
     path('users/<int:user_id>/edit/', views.user_edit, name='user_edit'),
     
-
+    path('stock-locations/', views.stock_location_list, name='stock_location_list'),
+    path('stock-locations/add/', views.stock_location_add, name='stock_location_add'),
+    path('stock-locations/<int:location_id>/edit/', views.stock_location_edit, name='stock_location_edit'),
+    path('stock-locations/<int:location_id>/delete/', views.stock_location_delete, name='stock_location_delete'),
+    path('stock-location-report/', views.stock_location_report, name='stock_location_report'),
+    path('low-stock-alerts/', views.low_stock_alerts, name='low_stock_alerts'),
+    path('stock-transfers/', views.stock_transfer_list, name='stock_transfer_list'),
+    path('stock-transfers/add/', views.stock_transfer_add, name='stock_transfer_add'),
+    path('activity-logs/', views.activity_log_list, name='activity_log_list'),
+    path('exports/<str:report_type>/', views.export_data, name='export_data'),
     
 ]
 
