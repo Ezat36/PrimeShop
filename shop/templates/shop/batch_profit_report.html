@@ -3,92 +3,71 @@
 {% block title %}Batch Profit Report{% endblock %}
 
 {% block page_title %}
-📈 Batch Profit Report
+Batch Profit Report
 {% endblock %}
 
 {% block content %}
 
+<div class="toolbar">
+    <div>
+        <span class="eyebrow">Finance</span>
+        <h5 class="mb-0">Profitability by purchase batch</h5>
+    </div>
+    <div class="toolbar-actions">
+        <a href="/batch-stock-report/" class="btn btn-outline-primary"><i class="bi bi-boxes"></i> Batch Stock</a>
+        <button type="button" onclick="window.print()" class="btn btn-primary" data-no-loading="true"><i class="bi bi-printer"></i> Print</button>
+    </div>
+</div>
+
 <div class="row g-4 mb-4">
-
-    <div class="col-md-3">
-        <div class="card card-box p-4 text-center">
-            <p class="text-muted mb-1">Total Revenue</p>
-            <h2>{{ total_revenue|floatformat:2 }}</h2>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4 text-center">
-            <p class="text-muted mb-1">Total Cost</p>
-            <h2>{{ total_cost|floatformat:2 }}</h2>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4 text-center">
-            <p class="text-muted mb-1">Gross Profit</p>
-            <h2 class="text-success">{{ total_gross_profit|floatformat:2 }}</h2>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4 text-center">
-            <p class="text-muted mb-1">Net Profit</p>
-            <h2 class="{% if total_net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                {{ total_net_profit|floatformat:2 }}
-            </h2>
-        </div>
-    </div>
-
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Revenue</span><h2 class="metric-value">{{ total_revenue|floatformat:2 }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">COGS</span><h2 class="metric-value text-warning">{{ total_cost|floatformat:2 }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Gross Profit</span><h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:2 }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Net Profit</span><h2 class="metric-value {% if total_net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_net_profit|floatformat:2 }}</h2></div></div>
 </div>
 
 <div class="card card-box p-4">
+    <div class="section-title">
+        <div>
+            <h5>Batch Profit</h5>
+            <p>Revenue and cost are net of returned quantities.</p>
+        </div>
+    </div>
 
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
-            <thead class="table-dark">
+            <thead>
                 <tr>
                     <th>Batch</th>
                     <th>Date</th>
                     <th>Supplier</th>
                     <th>Product</th>
-                    <th>Size</th>
-                    <th>Color</th>
-                    <th>Purchased</th>
-                    <th>Sold</th>
-                    <th>Remaining</th>
-                    <th>Revenue</th>
-                    <th>COGS</th>
-                    <th>Gross Profit</th>
-                    <th>Batch Expenses</th>
-                    <th>Net Profit</th>
+                    <th class="number">Purchased</th>
+                    <th class="number">Sold</th>
+                    <th class="number">Remaining</th>
+                    <th class="money">Revenue</th>
+                    <th class="money">COGS</th>
+                    <th class="money">Gross Profit</th>
+                    <th class="money">Batch Expenses</th>
+                    <th class="money">Net Profit</th>
                     <th>Status</th>
                 </tr>
             </thead>
-
             <tbody>
                 {% for row in batch_rows %}
                 <tr>
-                    <td>
-                        <a href="/batches/{{ row.batch.batch_number }}/">
-                            <strong>{{ row.batch.batch_number }}</strong>
-                        </a>
-                    </td>
+                    <td><a href="/batches/{{ row.batch.batch_number }}/"><strong>{{ row.batch.batch_number }}</strong></a></td>
                     <td>{{ row.purchase_date }}</td>
                     <td>{{ row.supplier|default:"-" }}</td>
                     <td>{{ row.product }}</td>
-                    <td>{{ row.size }}</td>
-                    <td>{{ row.color }}</td>
-                    <td>{{ row.purchased_qty }}</td>
-                    <td>{{ row.sold_qty }}</td>
-                    <td>{{ row.remaining_qty }}</td>
-                    <td>{{ row.revenue|floatformat:2 }}</td>
-                    <td>{{ row.cost|floatformat:2 }}</td>
-                    <td class="text-success">{{ row.gross_profit|floatformat:2 }}</td>
-                    <td class="text-danger">{{ row.batch_expenses|floatformat:2 }}</td>
-                    <td class="{% if row.net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                        <strong>{{ row.net_profit|floatformat:2 }}</strong>
-                    </td>
+                    <td class="number">{{ row.purchased_qty }}</td>
+                    <td class="number">{{ row.sold_qty }}</td>
+                    <td class="number">{{ row.remaining_qty }}</td>
+                    <td class="money">{{ row.revenue|floatformat:2 }}</td>
+                    <td class="money">{{ row.cost|floatformat:2 }}</td>
+                    <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ row.gross_profit|floatformat:2 }}</td>
+                    <td class="money text-danger">{{ row.batch_expenses|floatformat:2 }}</td>
+                    <td class="money {% if row.net_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.net_profit|floatformat:2 }}</strong></td>
                     <td>
                         {% if row.sold_qty == 0 %}
                             <span class="badge bg-secondary">Not Sold</span>
@@ -100,17 +79,11 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="15" class="text-center text-muted">
-                        No batch profit data found.
-                    </td>
-                </tr>
+                <tr><td colspan="13"><div class="empty-state">No batch profit data found.</div></td></tr>
                 {% endfor %}
             </tbody>
-
         </table>
     </div>
-
 </div>
 
 {% endblock %}

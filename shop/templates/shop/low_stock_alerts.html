@@ -1,31 +1,59 @@
 {% extends 'shop/base.html' %}
+
 {% block title %}Low Stock Alerts{% endblock %}
-{% block page_title %}Low Stock Alerts{% endblock %}
+
+{% block page_title %}
+Low Stock Alerts
+{% endblock %}
+
 {% block content %}
+
 <div class="toolbar">
-    <a href="/purchases/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> New Purchase</a>
-    <a href="/exports/stock/" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export Stock</a>
+    <div>
+        <span class="eyebrow">Inventory</span>
+        <h5 class="mb-0">Variants at or below their alert quantity</h5>
+    </div>
+    <div class="toolbar-actions">
+        <a href="/purchases/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Purchase</a>
+        <a href="/exports/stock/" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export Stock</a>
+    </div>
 </div>
+
 <div class="card card-box p-4">
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
-            <thead class="table-dark">
-                <tr><th>Product</th><th>Variant</th><th>SKU / Barcode</th><th class="number">Current</th><th class="number">Alert At</th></tr>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Variant</th>
+                    <th>SKU</th>
+                    <th class="number">Current</th>
+                    <th class="number">Alert At</th>
+                    <th>Status</th>
+                </tr>
             </thead>
             <tbody>
                 {% for variant in variants %}
                 <tr>
-                    <td>{{ variant.product.name }}</td>
-                    <td>{{ variant }}</td>
-                    <td><span class="badge bg-secondary">{{ variant.sku|default:"No SKU" }}</span></td>
-                    <td class="number"><span class="badge bg-warning text-dark">{{ variant.current_stock }}</span></td>
+                    <td><strong>{{ variant.product.name }}</strong></td>
+                    <td>{{ variant.variant_name|default:variant }}</td>
+                    <td>{{ variant.sku|default:"-" }}</td>
+                    <td class="number">{{ variant.current_stock }}</td>
                     <td class="number">{{ variant.low_stock_alert }}</td>
+                    <td>
+                        {% if variant.current_stock == 0 %}
+                            <span class="badge bg-danger">Out of Stock</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Low Stock</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5"><div class="empty-state">No low stock items right now.</div></td></tr>
+                <tr><td colspan="6"><div class="empty-state">No low stock items right now.</div></td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
 {% endblock %}

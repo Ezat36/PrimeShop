@@ -184,7 +184,7 @@ class Sale(models.Model):
     note = models.TextField(blank=True)
 
     def total_amount(self):
-        return sum(item.total_price() for item in self.items.all())
+        return sum(item.net_total_price() for item in self.items.all())
 
     def final_amount(self):
         return self.total_amount() - self.discount
@@ -216,6 +216,15 @@ class SaleItem(models.Model):
 
     def total_price(self):
         return self.quantity * self.selling_price
+
+    def returned_quantity(self):
+        return sum(item.quantity for item in self.returns.all())
+
+    def net_quantity(self):
+        return max(self.quantity - self.returned_quantity(), 0)
+
+    def net_total_price(self):
+        return self.net_quantity() * self.selling_price
 
 
 class SaleReturn(models.Model):
@@ -258,6 +267,26 @@ class SaleItemAllocation(models.Model):
 
     def total_cost(self):
         return self.quantity * self.unit_cost
+
+    def net_quantity(self):
+        returned_qty = self.sale_item.returned_quantity()
+
+        for allocation in self.sale_item.allocations.order_by('id'):
+            if allocation.id == self.id:
+                return max(allocation.quantity - returned_qty, 0)
+
+            returned_qty = max(returned_qty - allocation.quantity, 0)
+
+        return self.quantity
+
+    def net_total_cost(self):
+        return self.net_quantity() * self.unit_cost
+
+    def net_total_revenue(self):
+        return self.net_quantity() * self.sale_item.selling_price
+
+    def net_profit(self):
+        return self.net_total_revenue() - self.net_total_cost()
 
     def __str__(self):
         return (

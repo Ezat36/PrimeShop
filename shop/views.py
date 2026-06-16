@@ -13,6 +13,7 @@ from django.contrib.auth import update_session_auth_hash
 from .models import StoreSetting, Expense, SaleItemAllocation, BatchExpense, VariantDetail, StockLocation
 from .models import CustomerPayment, SupplierPayment, StockTransfer, SaleReturn, ActivityLog
 from django.contrib.auth.decorators import permission_required
+from django.db import transaction
 from django.db.models import Q
 
 
@@ -70,18 +71,23 @@ def dashboard(request):
 
     for item in sale_items:
         variant = item.variant
+        net_quantity = item.net_quantity()
+
+        if net_quantity <= 0:
+            continue
 
         label = f"{variant.product.name} - {variant.size} - {variant.color}"
+        net_total = item.net_total_price()
 
-        total_items_sold += item.quantity
-        total_sales_value += item.total_price()
+        total_items_sold += net_quantity
+        total_sales_value += net_total
 
         purchased_qty = variant.total_purchased()
         purchase_items = PurchaseItem.objects.filter(variant=variant)
         purchase_value = sum(p.total_price() for p in purchase_items)
 
         avg_buying_price = purchase_value / purchased_qty if purchased_qty > 0 else 0
-        item_profit = item.total_price() - (avg_buying_price * item.quantity)
+        item_profit = net_total - (avg_buying_price * net_quantity)
 
         total_profit += item_profit
 
@@ -90,8 +96,8 @@ def dashboard(request):
             product_sales_value[label] = 0
             product_profit[label] = 0
 
-        product_sales_qty[label] += item.quantity
-        product_sales_value[label] += item.total_price()
+        product_sales_qty[label] += net_quantity
+        product_sales_value[label] += net_total
         product_profit[label] += item_profit
 
         sold_items.append({
@@ -99,9 +105,9 @@ def dashboard(request):
             'size': variant.size,
             'color': variant.color,
             'model': variant.model,
-            'quantity': item.quantity,
+            'quantity': net_quantity,
             'selling_price': item.selling_price,
-            'total': item.total_price(),
+            'total': net_total,
             'date': item.sale.date,
         })
 
@@ -220,11 +226,11 @@ def profit_loss_report(request):
         )
 
         purchased_qty = sum(batch.quantity for batch in purchase_items)
-        sold_qty = sum(allocation.quantity for allocation in allocations)
+        sold_qty = sum(item.net_quantity() for item in sale_items)
         remaining_qty = sum(batch.remaining_qty for batch in purchase_items)
 
-        sales_value = sum(item.total_price() for item in sale_items)
-        cogs = sum(allocation.total_cost() for allocation in allocations)
+        sales_value = sum(item.net_total_price() for item in sale_items)
+        cogs = sum(allocation.net_total_cost() for allocation in allocations)
 
         gross_profit = sales_value - cogs
 
@@ -286,8 +292,9 @@ def profit_loss_report(request):
 
     expenses = Expense.objects.all()
     total_expenses = sum(expense.amount for expense in expenses)
+    total_batch_expenses = sum(expense.amount for expense in BatchExpense.objects.all())
 
-    net_profit_after_expenses = net_profit - total_expenses
+    net_profit_after_expenses = net_profit - total_batch_expenses - total_expenses
 
     context = {
         'total_sales_revenue': total_sales_revenue,
@@ -303,6 +310,7 @@ def profit_loss_report(request):
         'product_summary': product_summary.values(),
         'variant_rows': variant_rows,
         'total_expenses': total_expenses,
+        'total_batch_expenses': total_batch_expenses,
         'net_profit_after_expenses': net_profit_after_expenses,
     }
 
@@ -777,7 +785,11 @@ def invoice_list(request):
 def invoice_detail(request, invoice_id):
     invoice = Invoice.objects.get(id=invoice_id)
     sale = invoice.sale
-    sale_items = sale.items.all()
+    sale_items = [
+        item
+        for item in sale.items.all()
+        if item.net_quantity() > 0
+    ]
 
     setting, created = StoreSetting.objects.get_or_create(id=1)
 
@@ -914,7 +926,11 @@ def group_add(request):
 @login_required
 def group_permissions(request, group_id):
     group = Group.objects.get(id=group_id)
-    permissions = Permission.objects.all().order_by('content_type__app_label', 'codename')
+    permissions = Permission.objects.select_related('content_type').all().order_by(
+        'content_type__app_label',
+        'content_type__model',
+        'codename'
+    )
 
     if request.method == 'POST':
         permission_ids = request.POST.getlist('permissions')
@@ -927,9 +943,20 @@ def group_permissions(request, group_id):
 
         return redirect('group_list')
 
+    permission_groups = {}
+
+    for permission in permissions:
+        label = permission.content_type.model.replace('_', ' ').title()
+
+        if label not in permission_groups:
+            permission_groups[label] = []
+
+        permission_groups[label].append(permission)
+
     return render(request, 'shop/group_permissions.html', {
         'group': group,
-        'permissions': permissions,
+        'permission_groups': permission_groups.items(),
+        'selected_permission_ids': set(group.permissions.values_list('id', flat=True)),
     })
 
 
@@ -1129,10 +1156,12 @@ def batch_stock_report(request):
     raise_exception=True
 )
 def batch_profit_report(request):
-    batches = PurchaseItem.objects.all().order_by(
-        'variant__product__name',
-        'purchase__date',
-        'id'
+    batch_numbers = (
+        PurchaseItem.objects
+        .exclude(batch_number='')
+        .values_list('batch_number', flat=True)
+        .distinct()
+        .order_by('batch_number')
     )
 
     batch_rows = []
@@ -1143,24 +1172,40 @@ def batch_profit_report(request):
     total_batch_expenses = 0
     total_net_profit = 0
 
-    for batch in batches:
+    for batch_number in batch_numbers:
+        batch_items = PurchaseItem.objects.filter(
+            batch_number=batch_number
+        ).select_related(
+            'purchase',
+            'purchase__supplier',
+            'variant',
+            'variant__product',
+        ).order_by('purchase__date', 'id')
+
+        first_item = batch_items.first()
+
+        if not first_item:
+            continue
 
         allocations = SaleItemAllocation.objects.filter(
-            purchase_item=batch
+            purchase_item__in=batch_items
         )
 
+        purchased_qty = sum(item.quantity for item in batch_items)
+        remaining_qty = sum(item.remaining_qty for item in batch_items)
+
         sold_qty = sum(
-            allocation.quantity
+            allocation.net_quantity()
             for allocation in allocations
         )
 
         revenue = sum(
-            allocation.quantity * allocation.sale_item.selling_price
+            allocation.net_quantity() * allocation.sale_item.selling_price
             for allocation in allocations
         )
 
         cost = sum(
-            allocation.quantity * allocation.unit_cost
+            allocation.net_total_cost()
             for allocation in allocations
         )
 
@@ -1169,7 +1214,7 @@ def batch_profit_report(request):
         batch_expenses = sum(
             expense.amount
             for expense in BatchExpense.objects.filter(
-                batch_number=batch.batch_number
+                batch_number=batch_number
             )
         )
 
@@ -1182,17 +1227,14 @@ def batch_profit_report(request):
         total_net_profit += net_profit
 
         batch_rows.append({
-            'batch': batch,
-            'product': batch.variant.product.name,
-            'size': batch.variant.size,
-            'color': batch.variant.color,
-            'model': batch.variant.model,
-            'purchase_date': batch.purchase.date,
-            'supplier': batch.purchase.supplier,
-            'purchased_qty': batch.quantity,
+            'batch': first_item,
+            'batch_number': batch_number,
+            'product': first_item.variant.product.name,
+            'purchase_date': first_item.purchase.date,
+            'supplier': first_item.purchase.supplier,
+            'purchased_qty': purchased_qty,
             'sold_qty': sold_qty,
-            'remaining_qty': batch.remaining_qty,
-            'buying_price': batch.buying_price,
+            'remaining_qty': remaining_qty,
             'revenue': revenue,
             'cost': cost,
             'gross_profit': gross_profit,
@@ -1361,12 +1403,12 @@ def batch_detail(request, batch_number):
     )
 
     revenue = sum(
-        allocation.quantity * allocation.sale_item.selling_price
+        allocation.net_quantity() * allocation.sale_item.selling_price
         for allocation in allocations
     )
 
     cogs = sum(
-        allocation.quantity * allocation.unit_cost
+        allocation.net_total_cost()
         for allocation in allocations
     )
 
@@ -1386,15 +1428,15 @@ def batch_detail(request, batch_number):
             purchase_item=item
         )
 
-        item_sold_qty = sum(a.quantity for a in item_allocations)
+        item_sold_qty = sum(a.net_quantity() for a in item_allocations)
 
         item_revenue = sum(
-            a.quantity * a.sale_item.selling_price
+            a.net_quantity() * a.sale_item.selling_price
             for a in item_allocations
         )
 
         item_cogs = sum(
-            a.quantity * a.unit_cost
+            a.net_total_cost()
             for a in item_allocations
         )
 
@@ -1730,29 +1772,49 @@ def sale_return_list(request):
 def sale_return_add(request):
     sale_items = SaleItem.objects.select_related('sale', 'variant', 'variant__product').order_by('-sale__date', '-id')
 
+    for item in sale_items:
+        item.available_to_return = item.net_quantity()
+
     if request.method == 'POST':
         sale_item = get_object_or_404(SaleItem, id=request.POST.get('sale_item'))
         quantity = int(request.POST.get('quantity') or 0)
-        existing_returns = sum(item.quantity for item in sale_item.returns.all())
+        existing_returns = sale_item.returned_quantity()
         available_to_return = sale_item.quantity - existing_returns
 
         if quantity <= 0 or quantity > available_to_return:
             messages.error(request, f'Invalid return quantity. Available to return: {available_to_return}.')
             return redirect('sale_return_add')
 
-        sale_return = SaleReturn.objects.create(
-            sale_item=sale_item,
-            quantity=quantity,
-            refund_amount=request.POST.get('refund_amount') or 0,
-            date=request.POST.get('date') or timezone.now().date(),
-            reason=request.POST.get('reason'),
-            created_by=request.user,
-        )
+        with transaction.atomic():
+            sale_return = SaleReturn.objects.create(
+                sale_item=sale_item,
+                quantity=quantity,
+                refund_amount=request.POST.get('refund_amount') or 0,
+                date=request.POST.get('date') or timezone.now().date(),
+                reason=request.POST.get('reason'),
+                created_by=request.user,
+            )
 
-        allocation = sale_item.allocations.first()
-        if allocation:
-            allocation.purchase_item.remaining_qty += quantity
-            allocation.purchase_item.save()
+            qty_to_restore = quantity
+            previously_returned = existing_returns
+
+            for allocation in sale_item.allocations.select_related('purchase_item').order_by('id'):
+                already_returned_from_allocation = min(previously_returned, allocation.quantity)
+                previously_returned = max(previously_returned - allocation.quantity, 0)
+
+                returnable_from_allocation = allocation.quantity - already_returned_from_allocation
+                available_room = allocation.purchase_item.quantity - allocation.purchase_item.remaining_qty
+                restore_qty = min(qty_to_restore, returnable_from_allocation, available_room)
+
+                if restore_qty <= 0:
+                    continue
+
+                allocation.purchase_item.remaining_qty += restore_qty
+                allocation.purchase_item.save()
+                qty_to_restore -= restore_qty
+
+                if qty_to_restore <= 0:
+                    break
 
         log_activity(request, 'Recorded sale return', sale_return)
         messages.success(request, 'Sale return saved and stock adjusted.')

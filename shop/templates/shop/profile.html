@@ -3,157 +3,313 @@
 {% block title %}Profile{% endblock %}
 
 {% block page_title %}
-👤 My Profile
+<i class="bi bi-person-circle me-2"></i>My Profile
 {% endblock %}
 
 {% block content %}
 
-<div class="row justify-content-center">
-    <div class="col-lg-10">
+<style>
+    .profile-shell {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
 
-        <div class="card card-box overflow-hidden">
+    .profile-hero {
+        overflow: hidden;
+        background: var(--surface);
+    }
 
-            <div style="
-                height:150px;
-                background:linear-gradient(135deg,#1f2937,#2563eb,#8b5cf6);
-            "></div>
+    .profile-cover {
+        min-height: 172px;
+        background:
+            radial-gradient(circle at 18% 28%, rgba(255, 255, 255, .28), transparent 26%),
+            linear-gradient(135deg, #122033 0%, #2563eb 52%, #0891b2 100%);
+    }
 
-            <div class="p-4">
+    .profile-main {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 22px;
+        padding: 0 28px 28px;
+    }
 
-                <div class="d-flex flex-wrap align-items-end justify-content-between">
+    .profile-identity {
+        display: flex;
+        align-items: flex-end;
+        gap: 18px;
+        min-width: 0;
+        margin-top: -58px;
+    }
 
-                    <div class="d-flex align-items-end gap-3" style="margin-top:-75px;">
+    .profile-avatar {
+        flex: 0 0 auto;
+        width: 124px;
+        height: 124px;
+        border-radius: 50%;
+        padding: 6px;
+        background: #fff;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, .2);
+    }
 
-                        <div style="
-                            width:130px;
-                            height:130px;
-                            border-radius:50%;
-                            background:white;
-                            padding:6px;
-                            box-shadow:0 8px 25px rgba(0,0,0,0.25);
-                        ">
-                            <div style="
-                                width:100%;
-                                height:100%;
-                                border-radius:50%;
-                                background:linear-gradient(135deg,#2563eb,#8b5cf6);
-                                color:white;
-                                display:flex;
-                                align-items:center;
-                                justify-content:center;
-                                font-size:52px;
-                                font-weight:bold;
-                            ">
-                                {{ request.user.username|first|upper }}
-                            </div>
-                        </div>
+    .profile-avatar-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #0891b2);
+        font-size: 48px;
+        font-weight: 850;
+    }
 
-                        <div class="mb-2">
-                            <h2 class="mb-1">
-                                {% if request.user.first_name or request.user.last_name %}
-                                    {{ request.user.first_name }} {{ request.user.last_name }}
-                                {% else %}
-                                    {{ request.user.username }}
-                                {% endif %}
-                            </h2>
+    .profile-name {
+        min-width: 0;
+        padding-bottom: 6px;
+    }
 
-                            <p class="text-muted mb-2">@{{ request.user.username }}</p>
+    .profile-name h2 {
+        margin: 0 0 6px;
+        font-size: clamp(26px, 4vw, 38px);
+        font-weight: 850;
+        line-height: 1.05;
+    }
 
-                            {% if request.user.is_superuser %}
-                                <span class="badge bg-dark">Super Admin</span>
-                            {% elif request.user.is_staff %}
-                                <span class="badge bg-primary">Staff User</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Normal User</span>
-                            {% endif %}
+    .profile-name p {
+        color: var(--muted);
+        margin: 0 0 12px;
+        font-weight: 700;
+    }
 
-                            {% if request.user.is_active %}
-                                <span class="badge bg-success">Active</span>
-                            {% else %}
-                                <span class="badge bg-danger">Disabled</span>
-                            {% endif %}
-                        </div>
+    .profile-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding-bottom: 6px;
+    }
 
+    .profile-card-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .profile-card-title i {
+        width: 36px;
+        height: 36px;
+        display: inline-grid;
+        place-items: center;
+        color: var(--primary);
+        background: #eff6ff;
+        border-radius: 8px;
+        font-size: 18px;
+    }
+
+    .profile-card-title h5 {
+        margin: 0;
+    }
+
+    .profile-detail-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .profile-detail {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .profile-detail:last-child {
+        border-bottom: 0;
+    }
+
+    .profile-detail > span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .profile-detail strong {
+        text-align: right;
+        font-weight: 800;
+        overflow-wrap: anywhere;
+    }
+
+    .role-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .quick-action-grid {
+        display: grid;
+        gap: 10px;
+    }
+
+    @media (max-width: 767px) {
+        .profile-main,
+        .profile-identity {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .profile-main {
+            padding: 0 18px 22px;
+        }
+
+        .profile-avatar {
+            width: 106px;
+            height: 106px;
+        }
+
+        .profile-avatar-inner {
+            font-size: 40px;
+        }
+
+        .profile-actions,
+        .profile-actions .btn {
+            width: 100%;
+        }
+
+        .profile-detail {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .profile-detail strong {
+            text-align: left;
+        }
+    }
+</style>
+
+<div class="profile-shell">
+
+    <div class="card card-box profile-hero mb-4">
+        <div class="profile-cover"></div>
+
+        <div class="profile-main">
+            <div class="profile-identity">
+                <div class="profile-avatar" aria-hidden="true">
+                    <div class="profile-avatar-inner">
+                        {{ request.user.username|first|upper }}
                     </div>
-
-                    <div class="d-flex gap-2 mt-3">
-                        <a href="/profile/edit/" class="btn btn-warning">
-                            ✏ Edit Profile
-                        </a>
-
-                        <a href="/profile/change-password/" class="btn btn-dark">
-                            🔐 Change Password
-                        </a>
-                    </div>
-
                 </div>
 
+                <div class="profile-name">
+                    <h2>
+                        {% if request.user.first_name or request.user.last_name %}
+                            {{ request.user.first_name }} {{ request.user.last_name }}
+                        {% else %}
+                            {{ request.user.username }}
+                        {% endif %}
+                    </h2>
+
+                    <p>@{{ request.user.username }}</p>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if request.user.is_superuser %}
+                            <span class="badge bg-dark"><i class="bi bi-shield-lock me-1"></i>Super Admin</span>
+                        {% elif request.user.is_staff %}
+                            <span class="badge bg-primary"><i class="bi bi-person-gear me-1"></i>Staff User</span>
+                        {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-person me-1"></i>Normal User</span>
+                        {% endif %}
+
+                        {% if request.user.is_active %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                        {% else %}
+                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Disabled</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-actions">
+                <a href="/profile/edit/" class="btn btn-warning">
+                    <i class="bi bi-pencil-square me-1"></i>Edit Profile
+                </a>
+
+                <a href="/profile/change-password/" class="btn btn-dark">
+                    <i class="bi bi-key me-1"></i>Change Password
+                </a>
             </div>
         </div>
+    </div>
 
-        <div class="row g-4 mt-2">
+    <div class="row g-4">
 
-            <div class="col-md-4">
-                <div class="card card-box p-4 h-100">
-                    <h5 class="mb-3">Account Info</h5>
+        <div class="col-lg-4">
+            <div class="card card-box p-4 h-100">
+                <div class="profile-card-title">
+                    <i class="bi bi-info-circle"></i>
+                    <h5>Account Info</h5>
+                </div>
 
-                    <div class="mb-3">
-                        <small class="text-muted">Username</small>
-                        <div class="fw-bold">{{ request.user.username }}</div>
+                <div class="profile-detail-list">
+                    <div class="profile-detail">
+                        <span>Username</span>
+                        <strong>{{ request.user.username }}</strong>
                     </div>
 
-                    <div class="mb-3">
-                        <small class="text-muted">Email</small>
-                        <div class="fw-bold">
+                    <div class="profile-detail">
+                        <span>Email</span>
+                        <strong>
                             {% if request.user.email %}
                                 {{ request.user.email }}
                             {% else %}
                                 <span class="text-muted">No email</span>
                             {% endif %}
-                        </div>
+                        </strong>
                     </div>
 
-                    <div class="mb-3">
-                        <small class="text-muted">Date Joined</small>
-                        <div class="fw-bold">
-                            {{ request.user.date_joined|date:"Y-m-d H:i" }}
-                        </div>
+                    <div class="profile-detail">
+                        <span>Date Joined</span>
+                        <strong>{{ request.user.date_joined|date:"Y-m-d H:i" }}</strong>
                     </div>
 
-                    <div>
-                        <small class="text-muted">Last Login</small>
-                        <div class="fw-bold">
+                    <div class="profile-detail">
+                        <span>Last Login</span>
+                        <strong>
                             {% if request.user.last_login %}
                                 {{ request.user.last_login|date:"Y-m-d H:i" }}
                             {% else %}
                                 <span class="text-muted">Never</span>
                             {% endif %}
-                        </div>
+                        </strong>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="col-md-4">
-                <div class="card card-box p-4 h-100">
-                    <h5 class="mb-3">Personal Details</h5>
+        <div class="col-lg-4">
+            <div class="card card-box p-4 h-100">
+                <div class="profile-card-title">
+                    <i class="bi bi-person-vcard"></i>
+                    <h5>Personal Details</h5>
+                </div>
 
-                    <div class="mb-3">
-                        <small class="text-muted">First Name</small>
-                        <div class="fw-bold">
-                            {{ request.user.first_name|default:"-" }}
-                        </div>
+                <div class="profile-detail-list">
+                    <div class="profile-detail">
+                        <span>First Name</span>
+                        <strong>{{ request.user.first_name|default:"-" }}</strong>
                     </div>
 
-                    <div class="mb-3">
-                        <small class="text-muted">Last Name</small>
-                        <div class="fw-bold">
-                            {{ request.user.last_name|default:"-" }}
-                        </div>
+                    <div class="profile-detail">
+                        <span>Last Name</span>
+                        <strong>{{ request.user.last_name|default:"-" }}</strong>
                     </div>
 
-                    <div class="mb-3">
-                        <small class="text-muted">User Type</small>
-                        <div>
+                    <div class="profile-detail">
+                        <span>User Type</span>
+                        <strong>
                             {% if request.user.is_superuser %}
                                 <span class="badge bg-dark">Super Admin</span>
                             {% elif request.user.is_staff %}
@@ -161,54 +317,57 @@
                             {% else %}
                                 <span class="badge bg-secondary">Normal User</span>
                             {% endif %}
-                        </div>
+                        </strong>
                     </div>
 
-                    <div>
-                        <small class="text-muted">Status</small>
-                        <div>
+                    <div class="profile-detail">
+                        <span>Status</span>
+                        <strong>
                             {% if request.user.is_active %}
                                 <span class="badge bg-success">Active</span>
                             {% else %}
                                 <span class="badge bg-danger">Disabled</span>
                             {% endif %}
-                        </div>
+                        </strong>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="col-md-4">
-                <div class="card card-box p-4 h-100">
-                    <h5 class="mb-3">Roles</h5>
+        <div class="col-lg-4">
+            <div class="card card-box p-4 h-100">
+                <div class="profile-card-title">
+                    <i class="bi bi-shield-check"></i>
+                    <h5>Roles & Actions</h5>
+                </div>
 
-                    {% for group in request.user.groups.all %}
-                        <span class="badge bg-info text-dark mb-2">
-                            {{ group.name }}
-                        </span>
-                        <br>
-                    {% empty %}
-                        <p class="text-muted">No role assigned</p>
-                    {% endfor %}
-
-                    <hr>
-
-                    <h6 class="mb-2">Quick Actions</h6>
-
-                    <div class="d-grid gap-2">
-                        <a href="/" class="btn btn-outline-primary">
-                            🏠 Dashboard
-                        </a>
-
-                        <a href="/logout/" class="btn btn-outline-danger">
-                            🚪 Logout
-                        </a>
+                <div class="mb-4">
+                    <small class="text-muted fw-bold text-uppercase d-block mb-2">Assigned Roles</small>
+                    <div class="role-stack">
+                        {% for group in request.user.groups.all %}
+                            <span class="badge bg-info text-dark">
+                                <i class="bi bi-award me-1"></i>{{ group.name }}
+                            </span>
+                        {% empty %}
+                            <div class="empty-state w-100">No role assigned</div>
+                        {% endfor %}
                     </div>
                 </div>
-            </div>
 
+                <div class="quick-action-grid">
+                    <a href="/" class="btn btn-outline-primary">
+                        <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                    </a>
+
+                    <a href="/logout/" class="btn btn-outline-danger">
+                        <i class="bi bi-box-arrow-right me-1"></i>Logout
+                    </a>
+                </div>
+            </div>
         </div>
 
     </div>
+
 </div>
 
 {% endblock %}

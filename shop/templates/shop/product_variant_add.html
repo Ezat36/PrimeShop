@@ -3,162 +3,253 @@
 {% block title %}Add Variant{% endblock %}
 
 {% block page_title %}
-+ Add Variant for {{ product.name }}
+Add Variant
 {% endblock %}
 
 {% block content %}
 
-<div class="card card-box p-4" style="max-width: 900px;">
+<style>
+    .variant-form-shell {
+        max-width: 1040px;
+    }
 
-    <form method="post">
-        {% csrf_token %}
+    .variant-product-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        background: var(--surface-muted);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
 
-        <div class="mb-4">
-            <h5 class="mb-1">Basic Variant Information</h5>
-            <small class="text-muted">
-                Use fixed fields for common data. Add product-specific information below as flexible attributes.
-            </small>
+    .variant-product-strip strong {
+        display: block;
+        font-size: 16px;
+        font-weight: 850;
+    }
+
+    .variant-product-strip span {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .attribute-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .attribute-row {
+        display: grid;
+        grid-template-columns: minmax(160px, 1fr) minmax(180px, 1.4fr) 42px;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        background: var(--surface-muted);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+    }
+
+    .attribute-remove {
+        width: 42px;
+        height: 42px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+    }
+
+    .quick-examples {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+
+    .quick-examples span {
+        color: #475569;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    @media (max-width: 767px) {
+        .variant-product-strip {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .attribute-row {
+            grid-template-columns: 1fr;
+        }
+
+        .attribute-remove {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="variant-form-shell">
+    <div class="variant-product-strip">
+        <div>
+            <span>Product</span>
+            <strong>{{ product.name }}</strong>
         </div>
+        <a href="{% url 'product_manage' product.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
 
-        <div class="row">
-
-            <div class="col-md-12 mb-3">
-                <label class="form-label">Variant Name</label>
-                <input
-                    type="text"
-                    name="variant_name"
-                    class="form-control"
-                    placeholder="Example: Small Green Tent, 25kg Milk Powder, Red Apple Grade A"
-                    required
-                >
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <label class="form-label">SKU / Code</label>
-                <input
-                    type="text"
-                    name="sku"
-                    class="form-control"
-                    placeholder="Example: TENT-SM-GRN"
-                >
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Selling Price</label>
-                <input
-                    type="number"
-                    step="0.01"
-                    name="selling_price"
-                    class="form-control"
-                    required
-                >
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Low Stock Alert</label>
-                <input
-                    type="number"
-                    name="low_stock_alert"
-                    class="form-control"
-                    value="5"
-                >
-            </div>
-
-        </div>
-
-        <hr>
-
-        <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="card card-box p-4">
+        <div class="section-title">
             <div>
-                <h5 class="mb-1">Flexible Variant Attributes</h5>
-                <small class="text-muted">
-                    Examples: Size, Color, Material, Weight, Brand, Expiry Date, Voltage, Capacity.
-                </small>
+                <h5>Variant Information</h5>
+                <p>Add the selling details and optional attributes for this product variant.</p>
             </div>
-
-            <button type="button" class="btn btn-sm btn-info" onclick="addDetailRow()">
-                + Add Attribute
-            </button>
         </div>
 
-        <table class="table table-bordered align-middle" id="details-table">
-            <thead class="table-dark">
-                <tr>
-                    <th>Attribute</th>
-                    <th>Value</th>
-                    <th style="width:110px;">Action</th>
-                </tr>
-            </thead>
+        <form method="post">
+            {% csrf_token %}
 
-            <tbody>
-                <tr>
-                    <td>
+            <div class="form-section">
+                <div class="row g-3">
+                    <div class="col-lg-12">
+                        <label class="form-label">Variant Name</label>
+                        <input
+                            type="text"
+                            name="variant_name"
+                            class="form-control"
+                            placeholder="Example: Small Green Tent"
+                            required
+                        >
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">SKU / Code</label>
+                        <input
+                            type="text"
+                            name="sku"
+                            class="form-control"
+                            placeholder="Example: TENT-SM-GRN"
+                        >
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Selling Price</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            name="selling_price"
+                            class="form-control"
+                            placeholder="0.00"
+                            required
+                        >
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Low Stock Alert</label>
+                        <input
+                            type="number"
+                            name="low_stock_alert"
+                            class="form-control"
+                            value="5"
+                            min="0"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-title">
+                    <div>
+                        <h5>Attributes</h5>
+                        <p>Use these for size, color, brand, weight, expiry date, capacity, or other product-specific details.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="addDetailRow()">
+                        <i class="bi bi-plus-lg"></i> Add
+                    </button>
+                </div>
+
+                <div class="attribute-list" id="details-list">
+                    <div class="attribute-row">
                         <input
                             type="text"
                             name="detail_name"
                             class="form-control"
-                            placeholder="Example: Size"
+                            placeholder="Attribute, e.g. Size"
                         >
-                    </td>
-
-                    <td>
                         <input
                             type="text"
                             name="detail_value"
                             class="form-control"
-                            placeholder="Example: Small"
+                            placeholder="Value, e.g. Small"
                         >
-                    </td>
-
-                    <td>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDetailRow(this)">
-                            Remove
+                        <button
+                            type="button"
+                            class="btn btn-outline-danger attribute-remove"
+                            onclick="removeDetailRow(this)"
+                            aria-label="Remove attribute"
+                            title="Remove attribute"
+                        >
+                            <i class="bi bi-trash"></i>
                         </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                    </div>
+                </div>
 
-        <div class="alert alert-light border mt-3">
-            <strong>Tip:</strong>
-            For a tent, add attributes like Size, Color, Material, Capacity.
-            For milk powder, add Brand, Weight, Expiry Date, Fat.
-            For machines, add Voltage, Power, Warranty.
-        </div>
+                <div class="quick-examples" aria-label="Attribute examples">
+                    <span>Size</span>
+                    <span>Color</span>
+                    <span>Brand</span>
+                    <span>Weight</span>
+                    <span>Expiry Date</span>
+                    <span>Warranty</span>
+                </div>
+            </div>
 
-        <div class="mt-4">
-            <button class="btn btn-success">
-                Save Variant
-            </button>
-
-            <a href="{% url 'product_manage' product.id %}" class="btn btn-secondary">
-                Cancel
-            </a>
-        </div>
-
-    </form>
-
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check2"></i> Save Variant
+                </button>
+                <a href="{% url 'product_manage' product.id %}" class="btn btn-outline-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
 function addDetailRow() {
-    let table = document.getElementById("details-table").getElementsByTagName("tbody")[0];
-    let firstRow = table.rows[0];
-    let newRow = firstRow.cloneNode(true);
+    const list = document.getElementById("details-list");
+    const firstRow = list.querySelector(".attribute-row");
+    const newRow = firstRow.cloneNode(true);
 
-    newRow.querySelectorAll("input").forEach(input => input.value = "");
+    newRow.querySelectorAll("input").forEach(function (input) {
+        input.value = "";
+    });
 
-    table.appendChild(newRow);
+    list.appendChild(newRow);
+    newRow.querySelector("input").focus();
 }
 
 function removeDetailRow(button) {
-    let table = document.getElementById("details-table").getElementsByTagName("tbody")[0];
+    const list = document.getElementById("details-list");
+    const rows = list.querySelectorAll(".attribute-row");
+    const row = button.closest(".attribute-row");
 
-    if (table.rows.length > 1) {
-        button.closest("tr").remove();
-    } else {
-        button.closest("tr").querySelectorAll("input").forEach(input => input.value = "");
+    if (rows.length > 1) {
+        row.remove();
+        return;
     }
+
+    row.querySelectorAll("input").forEach(function (input) {
+        input.value = "";
+    });
 }
 </script>
 

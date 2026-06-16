@@ -76,12 +76,12 @@ Invoice {{ invoice.invoice_number }}
                 <td>{{ item.variant.product.name }}</td>
                 <td>{{ item.variant.size }}</td>
                 <td>{{ item.variant.color }}</td>
-                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-center">{{ item.net_quantity }}</td>
                 <td class="text-end">
                     {{ item.selling_price|floatformat:2 }} {{ setting.currency }}
                 </td>
                 <td class="text-end">
-                    {{ item.total_price|floatformat:2 }} {{ setting.currency }}
+                    {{ item.net_total_price|floatformat:2 }} {{ setting.currency }}
                 </td>
             </tr>
             {% endfor %}

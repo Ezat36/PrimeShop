@@ -1,9 +1,9 @@
 {% extends 'shop/base.html' %}
 
-{% block title %}Expenses{% endblock %}
+{% block title %}General Expenses{% endblock %}
 
 {% block page_title %}
-Expenses
+General Expenses
 {% endblock %}
 
 {% block content %}
@@ -15,12 +15,12 @@ Expenses
         <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
         <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
     </form>
-    <a href="/expenses/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Add Expense</a>
+    <a href="/expenses/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Add General Expense</a>
 </div>
 
 <div class="total-strip">
-    <div class="total-pill"><span>Expenses</span><strong>{{ expenses|length }}</strong></div>
-    <div class="total-pill"><span>Total Expenses</span><strong>{{ total_expenses|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>General Expenses</span><strong>{{ expenses|length }}</strong></div>
+    <div class="total-pill"><span>Total General Expenses</span><strong>{{ total_expenses|floatformat:2 }} {{ store_currency }}</strong></div>
 </div>
 
 <div class="card card-box p-4">

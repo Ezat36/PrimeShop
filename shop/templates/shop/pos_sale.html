@@ -16,7 +16,7 @@
                 <thead class="table-dark"><tr><th>Variant</th><th class="number">Stock</th><th>Qty</th><th class="money">Price</th><th class="money">Line Total</th></tr></thead>
                 <tbody>
                     <tr>
-                        <td><select name="variant" class="form-control pos-variant" required><option value="">Select variant</option>{% for variant in variants %}<option value="{{ variant.id }}" data-price="{{ variant.selling_price }}" data-stock="{{ variant.current_stock }}" data-label="{{ variant }} {{ variant.sku }}">{{ variant }} - SKU: {{ variant.sku|default:"-" }}</option>{% endfor %}</select></td>
+                        <td><select name="variant" class="form-control pos-variant" required><option value="">Select variant</option>{% for variant in variants %}<option value="{{ variant.id }}" data-price="{{ variant.selling_price }}" data-stock="{{ variant.current_stock }}" data-label="{{ variant.variant_name|default:variant }} {{ variant.sku }}">{{ variant.variant_name|default:variant }} - Stock: {{ variant.current_stock }}</option>{% endfor %}</select></td>
                         <td class="number stock-cell">0</td>
                         <td><input type="number" name="quantity" class="form-control pos-qty" value="1" min="1" required></td>
                         <td><input type="number" step="0.01" name="selling_price" class="form-control pos-price" required></td>

@@ -117,6 +117,75 @@ body {
     color: #fff;
 }
 
+.menu-group {
+    margin: 4px 0;
+}
+
+.menu-group summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: #d7dee9;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    list-style: none;
+    transition: background .18s ease, color .18s ease;
+}
+
+.menu-group summary::-webkit-details-marker {
+    display: none;
+}
+
+.menu-group summary span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.menu-group summary i:not(.menu-chevron) {
+    width: 22px;
+    color: #8bb6ff;
+    font-size: 16px;
+}
+
+.menu-group summary:hover,
+.menu-group[open] summary,
+.menu-group.has-active summary {
+    color: #fff;
+    background: var(--nav-soft);
+}
+
+.menu-group[open] summary i:not(.menu-chevron),
+.menu-group.has-active summary i:not(.menu-chevron) {
+    color: #fff;
+}
+
+.menu-chevron {
+    color: #93a4ba;
+    font-size: 12px;
+    transition: transform .18s ease;
+}
+
+.menu-group[open] .menu-chevron {
+    transform: rotate(180deg);
+}
+
+.menu-group-links {
+    padding: 4px 0 8px 12px;
+    border-left: 1px solid rgba(255, 255, 255, .1);
+    margin-left: 22px;
+}
+
+.menu-group-links a {
+    padding: 9px 10px;
+    font-size: 13px;
+}
+
 .mobile-menu-toggle,
 .sidebar-backdrop {
     display: none;

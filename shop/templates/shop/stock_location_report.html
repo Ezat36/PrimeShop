@@ -3,98 +3,62 @@
 {% block title %}Stock Location Report{% endblock %}
 
 {% block page_title %}
-📍 Stock Location Report
+Stock by Location
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="toolbar">
     <div>
-        <h4 class="mb-1">Stock by Location</h4>
-        <p class="text-muted mb-0">
-            View current stock, sold quantity, and value by warehouse, store, shelf, or branch.
-        </p>
+        <span class="eyebrow">Inventory</span>
+        <h5 class="mb-0">Stock, sold quantity, and value by location</h5>
     </div>
-
-    <a href="/stock-locations/" class="btn btn-secondary">
-        Manage Locations
-    </a>
+    <div class="toolbar-actions">
+        <a href="/stock-locations/" class="btn btn-outline-secondary"><i class="bi bi-geo-alt"></i> Locations</a>
+        <button type="button" onclick="window.print()" class="btn btn-primary" data-no-loading="true"><i class="bi bi-printer"></i> Print</button>
+    </div>
 </div>
 
 <div class="card card-box p-4 mb-4">
-
     <form method="get" class="row g-3 align-items-end">
-
-        <div class="col-md-5">
-            <label class="form-label">Filter by Location</label>
-            <select name="location" class="form-control">
+        <div class="col-md-6">
+            <label class="form-label">Location</label>
+            <select name="location" class="form-select">
                 <option value="">All Locations</option>
-
                 {% for location in locations %}
-                    <option value="{{ location.id }}"
-                        {% if selected_location_id == location.id|stringformat:"s" %}
-                            selected
-                        {% endif %}
-                    >
+                    <option value="{{ location.id }}" {% if selected_location_id == location.id|stringformat:"s" %}selected{% endif %}>
                         {{ location.name }}
                     </option>
                 {% endfor %}
             </select>
         </div>
-
         <div class="col-md-3">
-            <button class="btn btn-primary w-100">
-                Apply Filter
-            </button>
+            <button class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Apply</button>
         </div>
-
         <div class="col-md-3">
-            <a href="/stock-location-report/" class="btn btn-outline-secondary w-100">
-                Reset
-            </a>
+            <a href="/stock-location-report/" class="btn btn-outline-secondary w-100">Reset</a>
         </div>
-
     </form>
-
 </div>
 
 <div class="row g-4 mb-4">
-
-    <div class="col-md-3">
-        <div class="card card-box p-4 text-center">
-            <p class="text-muted mb-1">Purchased</p>
-            <h2>{{ total_purchased }}</h2>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4 text-center">
-            <p class="text-muted mb-1">Sold</p>
-            <h2>{{ total_sold }}</h2>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4 text-center">
-            <p class="text-muted mb-1">Remaining</p>
-            <h2>{{ total_remaining }}</h2>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4 text-center">
-            <p class="text-muted mb-1">Stock Value</p>
-            <h2>{{ total_value|floatformat:2 }}</h2>
-        </div>
-    </div>
-
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Purchased</span><h2 class="metric-value">{{ total_purchased }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Sold</span><h2 class="metric-value">{{ total_sold }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Remaining</span><h2 class="metric-value">{{ total_remaining }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Stock Value</span><h2 class="metric-value">{{ total_value|floatformat:2 }}</h2></div></div>
 </div>
 
 <div class="card card-box p-4">
+    <div class="section-title">
+        <div>
+            <h5>Location Stock</h5>
+            <p>Purchased, sold, and remaining quantity after returns.</p>
+        </div>
+    </div>
 
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
-            <thead class="table-dark">
+            <thead>
                 <tr>
                     <th>Location</th>
                     <th>Batch</th>
@@ -103,14 +67,13 @@
                     <th>Product</th>
                     <th>Variant</th>
                     <th>SKU</th>
-                    <th>Purchased</th>
-                    <th>Sold</th>
-                    <th>Remaining</th>
-                    <th>Buying Price</th>
-                    <th>Stock Value</th>
+                    <th class="number">Purchased</th>
+                    <th class="number">Sold</th>
+                    <th class="number">Remaining</th>
+                    <th class="money">Buying Price</th>
+                    <th class="money">Stock Value</th>
                 </tr>
             </thead>
-
             <tbody>
                 {% for row in rows %}
                 <tr>
@@ -121,37 +84,24 @@
                             <span class="text-muted">No Location</span>
                         {% endif %}
                     </td>
-
-                    <td>
-                        <a href="/batches/{{ row.batch_number }}/">
-                            <strong>{{ row.batch_number }}</strong>
-                        </a>
-                    </td>
-
+                    <td><a href="/batches/{{ row.batch_number }}/"><strong>{{ row.batch_number }}</strong></a></td>
                     <td>{{ row.purchase_date }}</td>
                     <td>{{ row.supplier|default:"-" }}</td>
                     <td>{{ row.product }}</td>
                     <td>{{ row.variant.variant_name|default:row.variant }}</td>
                     <td>{{ row.sku|default:"-" }}</td>
-                    <td>{{ row.purchased_qty }}</td>
-                    <td>{{ row.sold_qty }}</td>
-                    <td>{{ row.remaining_qty }}</td>
-                    <td>{{ row.buying_price|floatformat:2 }}</td>
-                    <td>{{ row.stock_value|floatformat:2 }}</td>
+                    <td class="number">{{ row.purchased_qty }}</td>
+                    <td class="number">{{ row.sold_qty }}</td>
+                    <td class="number">{{ row.remaining_qty }}</td>
+                    <td class="money">{{ row.buying_price|floatformat:2 }}</td>
+                    <td class="money">{{ row.stock_value|floatformat:2 }}</td>
                 </tr>
-
                 {% empty %}
-                <tr>
-                    <td colspan="12" class="text-center text-muted">
-                        No stock found for this location.
-                    </td>
-                </tr>
+                <tr><td colspan="12"><div class="empty-state">No stock found for this location.</div></td></tr>
                 {% endfor %}
             </tbody>
-
         </table>
     </div>
-
 </div>
 
 {% endblock %}

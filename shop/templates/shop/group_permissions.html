@@ -3,79 +3,207 @@
 {% block title %}Role Permissions{% endblock %}
 
 {% block page_title %}
-🔐 Permissions for {{ group.name }}
+Role Permissions
 {% endblock %}
 
 {% block content %}
 
-<div class="card card-box p-4">
+<style>
+    .permission-shell {
+        max-width: 1280px;
+    }
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 class="mb-0">Manage Permissions</h5>
+    .permission-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
 
-        <a href="/groups/" class="btn btn-secondary">
-            ⬅ Back to Roles
-        </a>
-    </div>
+    .permission-toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
 
-    <form method="post">
-        {% csrf_token %}
+    .permission-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 16px;
+    }
 
-        <div class="mb-3">
-            <button type="submit" class="btn btn-success">
-                💾 Save Permissions
-            </button>
+    .permission-panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .permission-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        background: var(--surface-muted);
+        border-bottom: 1px solid var(--line);
+    }
+
+    .permission-panel-head h6 {
+        margin: 0;
+        font-weight: 850;
+    }
+
+    .permission-panel-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .permission-list {
+        display: grid;
+        gap: 0;
+        padding: 8px 14px;
+    }
+
+    .permission-item {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .permission-item:last-child {
+        border-bottom: 0;
+    }
+
+    .permission-item .form-check {
+        margin: 0;
+    }
+
+    .permission-item small {
+        display: block;
+        color: var(--muted);
+        margin-top: 2px;
+        overflow-wrap: anywhere;
+    }
+</style>
+
+<div class="permission-shell">
+    <div class="permission-toolbar">
+        <div>
+            <span class="eyebrow">Role</span>
+            <h5 class="mb-0">{{ group.name }}</h5>
         </div>
 
-        <div class="row">
-
-            {% for permission in permissions %}
-            <div class="col-md-4 mb-2">
-
-                <div class="border rounded p-2 h-100">
-
-                    <div class="form-check">
-                        <input
-                            class="form-check-input"
-                            type="checkbox"
-                            name="permissions"
-                            value="{{ permission.id }}"
-                            id="perm{{ permission.id }}"
-                            {% if permission in group.permissions.all %}
-                                checked
-                            {% endif %}
-                        >
-
-                        <label class="form-check-label" for="perm{{ permission.id }}">
-                            <strong>{{ permission.name }}</strong>
-                            <br>
-                            <small class="text-muted">
-                                {{ permission.content_type.app_label }}
-                                |
-                                {{ permission.codename }}
-                            </small>
-                        </label>
-                    </div>
-
-                </div>
-
-            </div>
-            {% endfor %}
-
-        </div>
-
-        <div class="mt-4">
-            <button type="submit" class="btn btn-success">
-                💾 Save Permissions
+        <div class="permission-toolbar-actions">
+            <button type="button" class="btn btn-outline-primary" data-permission-action="select-all">
+                <i class="bi bi-check2-square"></i> Select All
             </button>
-
-            <a href="/groups/" class="btn btn-secondary">
-                Cancel
+            <button type="button" class="btn btn-outline-secondary" data-permission-action="clear-all">
+                <i class="bi bi-square"></i> Clear All
+            </button>
+            <a href="/groups/" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back
             </a>
         </div>
+    </div>
 
+    <form method="post" class="card card-box p-4">
+        {% csrf_token %}
+
+        <div class="section-title">
+            <div>
+                <h5>Permissions</h5>
+                <p>Select permissions manually, or use the group buttons to select many at once.</p>
+            </div>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check2"></i> Save
+            </button>
+        </div>
+
+        <div class="permission-grid">
+            {% for label, permissions in permission_groups %}
+                <div class="permission-panel" data-permission-group>
+                    <div class="permission-panel-head">
+                        <h6>{{ label }}</h6>
+                        <div class="permission-panel-actions">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-permission-action="select-group">
+                                All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-permission-action="clear-group">
+                                None
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="permission-list">
+                        {% for permission in permissions %}
+                            <div class="permission-item">
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input permission-check"
+                                        type="checkbox"
+                                        name="permissions"
+                                        value="{{ permission.id }}"
+                                        id="perm{{ permission.id }}"
+                                        {% if permission.id in selected_permission_ids %}
+                                            checked
+                                        {% endif %}
+                                    >
+                                    <label class="form-check-label" for="perm{{ permission.id }}">
+                                        <strong>{{ permission.name }}</strong>
+                                        <small>{{ permission.content_type.app_label }} | {{ permission.codename }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions mt-4">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check2"></i> Save Permissions
+            </button>
+            <a href="/groups/" class="btn btn-outline-secondary">Cancel</a>
+        </div>
     </form>
-
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const setChecks = function (container, checked) {
+        container.querySelectorAll('.permission-check').forEach(function (checkbox) {
+            checkbox.checked = checked;
+        });
+    };
+
+    document.querySelectorAll('[data-permission-action]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const action = button.dataset.permissionAction;
+
+            if (action === 'select-all') {
+                setChecks(document, true);
+            }
+
+            if (action === 'clear-all') {
+                setChecks(document, false);
+            }
+
+            if (action === 'select-group') {
+                setChecks(button.closest('[data-permission-group]'), true);
+            }
+
+            if (action === 'clear-group') {
+                setChecks(button.closest('[data-permission-group]'), false);
+            }
+        });
+    });
+});
+</script>
 
 {% endblock %}

@@ -3,135 +3,310 @@
 {% block title %}Manage Product{% endblock %}
 
 {% block page_title %}
-📦 Manage Product: {{ product.name }}
+Manage Product
 {% endblock %}
 
 {% block content %}
 
-<div class="mb-3">
-    <a href="/products/" class="btn btn-secondary">⬅ Back</a>
-    <a href="{% url 'product_detail_add' product.id %}" class="btn btn-info">+ Add Product Detail</a>
-    <a href="{% url 'product_variant_add' product.id %}" class="btn btn-success">+ Add Variant</a>
-</div>
+<style>
+    .product-manage-shell {
+        max-width: 1280px;
+        margin: 0 auto;
+    }
 
-<div class="row g-4">
+    .product-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-start;
+        margin-bottom: 22px;
+    }
 
-    <div class="col-md-2">
-        <div class="card card-box p-4">
-            <h5>Product Information</h5>
-            <p><strong>Name:</strong> {{ product.name }}</p>
-            <p><strong>Category:</strong> {{ product.category|default:"-" }}</p>
-            <p><strong>Description:</strong> {{ product.description|default:"-" }}</p>
+    .product-title-block {
+        min-width: 0;
+    }
+
+    .product-title-block h2 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 4vw, 40px);
+        line-height: 1.05;
+        font-weight: 850;
+    }
+
+    .product-title-block p {
+        color: var(--muted);
+        margin: 0;
+        max-width: 720px;
+    }
+
+    .product-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .product-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+    }
+
+    .product-summary-item {
+        padding: 16px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
+    }
+
+    .product-summary-item span {
+        color: var(--muted);
+        display: block;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .product-summary-item strong {
+        display: block;
+        font-size: 22px;
+        font-weight: 850;
+    }
+
+    .detail-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .detail-item:last-child {
+        border-bottom: 0;
+    }
+
+    .detail-item span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .detail-item strong {
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    .variant-title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 220px;
+    }
+
+    .variant-title strong {
+        font-weight: 850;
+    }
+
+    .variant-meta {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .attribute-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-width: 220px;
+    }
+
+    .attribute-chip {
+        color: #0f172a;
+        background: #e0f2fe;
+        border: 1px solid #bae6fd;
+        border-radius: 999px;
+        padding: 5px 8px;
+        font-size: 12px;
+        font-weight: 750;
+    }
+
+    @media (max-width: 767px) {
+        .product-header {
+            flex-direction: column;
+        }
+
+        .product-actions,
+        .product-actions .btn {
+            width: 100%;
+        }
+
+        .product-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detail-item {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detail-item strong {
+            text-align: left;
+        }
+    }
+</style>
+
+<div class="product-manage-shell">
+    <div class="product-header">
+        <div class="product-title-block">
+            <span class="eyebrow">Product Manager</span>
+            <h2>{{ product.name }}</h2>
+            <p>{{ product.description|default:"No description added for this product yet." }}</p>
         </div>
 
-        <div class="card card-box p-4 mt-4">
-            <h5>Product Details</h5>
+        <div class="product-actions">
+            <a href="/products/" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+            <a href="{% url 'product_detail_add' product.id %}" class="btn btn-primary">
+                <i class="bi bi-list-plus"></i> Detail
+            </a>
+            <a href="{% url 'product_variant_add' product.id %}" class="btn btn-success">
+                <i class="bi bi-plus-lg"></i> Variant
+            </a>
+        </div>
+    </div>
 
-            <table class="table table-bordered">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Name</th>
-                        <th>Value</th>
-                    </tr>
-                </thead>
+    <div class="product-summary-grid">
+        <div class="product-summary-item">
+            <span>Category</span>
+            <strong>{{ product.category|default:"-" }}</strong>
+        </div>
+        <div class="product-summary-item">
+            <span>Variants</span>
+            <strong>{{ variants|length }}</strong>
+        </div>
+        <div class="product-summary-item">
+            <span>Details</span>
+            <strong>{{ details|length }}</strong>
+        </div>
+    </div>
 
-                <tbody>
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card card-box p-4 h-100">
+                <div class="section-title">
+                    <div>
+                        <h5>Product Details</h5>
+                        <p>General attributes shared by this product.</p>
+                    </div>
+                </div>
+
+                <div class="detail-list">
+                    <div class="detail-item">
+                        <span>Name</span>
+                        <strong>{{ product.name }}</strong>
+                    </div>
+                    <div class="detail-item">
+                        <span>Category</span>
+                        <strong>{{ product.category|default:"-" }}</strong>
+                    </div>
+
                     {% for detail in details %}
-                    <tr>
-                        <td>{{ detail.name }}</td>
-                        <td>{{ detail.value }}</td>
-                    </tr>
+                        <div class="detail-item">
+                            <span>{{ detail.name }}</span>
+                            <strong>{{ detail.value }}</strong>
+                        </div>
                     {% empty %}
-                    <tr>
-                        <td colspan="2" class="text-center text-muted">
-                            No product details added.
-                        </td>
-                    </tr>
+                        <div class="empty-state">No extra product details added.</div>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="col-md-10">
-        <div class="card card-box p-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">Product Variants</h5>
-                <a href="{% url 'product_variant_add' product.id %}" class="btn btn-sm btn-success">
-                    + Add Variant
-                </a>
+                </div>
             </div>
+        </div>
 
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Variant</th>
-                            <th>Selling Price</th>
-                            <th>Color</th>
-                            <th>Size</th>
-                            <th>Model</th>
-                            <th>SKU</th>
-                            <th>Stock</th>
-                            <th>Extra Details</th>
-                            
-                        </tr>
-                    </thead>
+        <div class="col-lg-8">
+            <div class="card card-box p-4">
+                <div class="section-title">
+                    <div>
+                        <h5>Variants</h5>
+                        <p>Prices, stock alerts, SKU codes, and variant-specific attributes.</p>
+                    </div>
+                    <a href="{% url 'product_variant_add' product.id %}" class="btn btn-success">
+                        <i class="bi bi-plus-lg"></i> Add
+                    </a>
+                </div>
 
-                    <tbody>
-                        {% for variant in variants %}
-                        <tr>
-                            <td>
-                                <strong>{{ product.name }}</strong><br>
-                                <small class="text-muted">
-                                    Size: {{ variant.size|default:"-" }} |
-                                    Color: {{ variant.color|default:"-" }} |
-                                    Model: {{ variant.model|default:"-" }} |
-                                    SKU: {{ variant.sku|default:"-" }}
-                                </small>
-                            </td>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Variant</th>
+                                <th class="money">Price</th>
+                                <th>SKU</th>
+                                <th class="number">Stock</th>
+                                <th>Attributes</th>
+                            </tr>
+                        </thead>
 
-                            <td>{{ variant.selling_price|floatformat:2 }}</td>
-                            <td>{{ variant.color }}</td>
-                            <td>{{ variant.size }}</td>
-                            <td>{{ variant.model }}</td>
-                            <td>{{ variant.sku }}</td>
+                        <tbody>
+                            {% for variant in variants %}
+                            <tr>
+                                <td>
+                                    <div class="variant-title">
+                                        <strong>{{ variant.variant_name|default:product.name }}</strong>
+                                        <span class="variant-meta">
+                                            Alert at {{ variant.low_stock_alert }} items
+                                        </span>
+                                    </div>
+                                </td>
 
-                            <td>
-                                {% if variant.current_stock <= variant.low_stock_alert %}
-                                    <span class="badge bg-warning text-dark">
-                                        {{ variant.current_stock }} Low
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-success">
-                                        {{ variant.current_stock }}
-                                    </span>
-                                {% endif %}
-                            </td>
+                                <td class="money">{{ variant.selling_price|floatformat:2 }}</td>
+                                <td>{{ variant.sku|default:"-" }}</td>
 
-                            <td>
-                                {% for detail in variant.details.all %}
-                                    <span class="badge bg-info me-1 mb-1">
-                                        {{ detail.name }}: {{ detail.value }}
-                                    </span>
-                                {% empty %}
-                                    <span class="text-muted">No extra details</span>
-                                {% endfor %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center text-muted">
-                                No variants added.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                <td class="number">
+                                    {% if variant.current_stock <= variant.low_stock_alert %}
+                                        <span class="badge bg-warning text-dark">
+                                            {{ variant.current_stock }} Low
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success">
+                                            {{ variant.current_stock }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <div class="attribute-stack">
+                                        {% for detail in variant.details.all %}
+                                            <span class="attribute-chip">{{ detail.name }}: {{ detail.value }}</span>
+                                        {% empty %}
+                                            <span class="text-muted">No attributes</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-state">No variants added for this product yet.</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-
 </div>
 
 {% endblock %}

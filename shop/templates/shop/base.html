@@ -7,7 +7,7 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="{% static 'shop/css/app.css' %}?v=20260616-ui-refresh" rel="stylesheet">
+    <link href="{% static 'shop/css/app.css' %}?v=20260616-menu-groups" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -32,90 +32,106 @@
     <div class="menu-title">Main</div>
     <a href="/" data-nav-match="exact"><i class="bi bi-speedometer2"></i> Dashboard</a>
 
-    <div class="menu-title">Inventory</div>
+    <details class="menu-group">
+        <summary><span><i class="bi bi-box-seam"></i> Inventory</span><i class="bi bi-chevron-down menu-chevron"></i></summary>
+        <div class="menu-group-links">
+            {% if perms.shop.view_product %}
+                <a href="/products/" data-nav-prefix="/products/"><i class="bi bi-box-seam"></i> Products</a>
+            {% endif %}
 
-    {% if perms.shop.view_product %}
-        <a href="/products/" data-nav-prefix="/products/"><i class="bi bi-box-seam"></i> Products</a>
-    {% endif %}
+            {% if perms.shop.view_purchase %}
+                <a href="/purchases/" data-nav-prefix="/purchases/"><i class="bi bi-bag-plus"></i> Purchases</a>
+            {% endif %}
 
-    {% if perms.shop.view_purchase %}
-        <a href="/purchases/" data-nav-prefix="/purchases/"><i class="bi bi-bag-plus"></i> Purchases</a>
-    {% endif %}
+            {% if perms.shop.view_supplier %}
+                <a href="/suppliers/" data-nav-prefix="/suppliers/"><i class="bi bi-truck"></i> Suppliers</a>
+            {% endif %}
 
-    {% if perms.shop.view_supplier %}
-        <a href="/suppliers/" data-nav-prefix="/suppliers/"><i class="bi bi-truck"></i> Suppliers</a>
-    {% endif %}
+            <a href="/low-stock-alerts/" data-nav-prefix="/low-stock-alerts/"><i class="bi bi-exclamation-triangle"></i> Low Stock Alerts</a>
+            <a href="/stock-transfers/" data-nav-prefix="/stock-transfers/"><i class="bi bi-arrow-left-right"></i> Stock Transfers</a>
+        </div>
+    </details>
 
-    {% if perms.shop.view_stock_report %}
-        <a href="/stock-report/" data-nav-prefix="/stock-report/"><i class="bi bi-bar-chart"></i> Stock Report</a>
-    {% endif %}
+    <details class="menu-group">
+        <summary><span><i class="bi bi-receipt"></i> Sales</span><i class="bi bi-chevron-down menu-chevron"></i></summary>
+        <div class="menu-group-links">
+            {% if perms.shop.view_sale %}
+                <a href="/sales/" data-nav-prefix="/sales/"><i class="bi bi-receipt"></i> Sales</a>
+                <a href="/sales/pos/" data-nav-prefix="/sales/pos/"><i class="bi bi-upc-scan"></i> POS Sale</a>
+                <a href="/sales/returns/" data-nav-prefix="/sales/returns/"><i class="bi bi-arrow-counterclockwise"></i> Returns</a>
+            {% endif %}
 
-    <a href="/low-stock-alerts/" data-nav-prefix="/low-stock-alerts/"><i class="bi bi-exclamation-triangle"></i> Low Stock Alerts</a>
-    <a href="/stock-transfers/" data-nav-prefix="/stock-transfers/"><i class="bi bi-arrow-left-right"></i> Stock Transfers</a>
+            {% if perms.shop.view_customer %}
+                <a href="/customers/" data-nav-prefix="/customers/"><i class="bi bi-people"></i> Customers</a>
+                <a href="/customers/payments/" data-nav-prefix="/customers/payments/"><i class="bi bi-wallet2"></i> Customer Payments</a>
+            {% endif %}
 
-    {% if perms.shop.view_batch_stock_report %}
-        <a href="/batch-stock-report/" data-nav-prefix="/batch-stock-report/"><i class="bi bi-boxes"></i> Batch Stock</a>
-    {% endif %}
+            {% if perms.shop.view_invoice %}
+                <a href="/invoices/" data-nav-prefix="/invoices/"><i class="bi bi-file-earmark-text"></i> Invoices</a>
+            {% endif %}
+        </div>
+    </details>
 
-    <div class="menu-title">Sales</div>
+    <details class="menu-group">
+        <summary><span><i class="bi bi-graph-up-arrow"></i> Finance & Reports</span><i class="bi bi-chevron-down menu-chevron"></i></summary>
+        <div class="menu-group-links">
+            {% if perms.shop.view_expense %}
+                <a href="/expenses/" data-nav-prefix="/expenses/"><i class="bi bi-cash-stack"></i> General Expenses</a>
+            {% endif %}
 
-    {% if perms.shop.view_sale %}
-        <a href="/sales/" data-nav-prefix="/sales/"><i class="bi bi-receipt"></i> Sales</a>
-        <a href="/sales/pos/" data-nav-prefix="/sales/pos/"><i class="bi bi-upc-scan"></i> POS Sale</a>
-        <a href="/sales/returns/" data-nav-prefix="/sales/returns/"><i class="bi bi-arrow-counterclockwise"></i> Returns</a>
-    {% endif %}
+            <a href="/suppliers/payments/" data-nav-prefix="/suppliers/payments/"><i class="bi bi-credit-card"></i> Supplier Payments</a>
 
-    {% if perms.shop.view_customer %}
-        <a href="/customers/" data-nav-prefix="/customers/"><i class="bi bi-people"></i> Customers</a>
-        <a href="/customers/payments/" data-nav-prefix="/customers/payments/"><i class="bi bi-wallet2"></i> Customer Payments</a>
-    {% endif %}
+            {% if perms.shop.view_batch_expense %}
+                <a href="/batch-expenses/" data-nav-prefix="/batch-expenses/"><i class="bi bi-clipboard-data"></i> Batch Expenses</a>
+            {% endif %}
 
-    {% if perms.shop.view_invoice %}
-        <a href="/invoices/" data-nav-prefix="/invoices/"><i class="bi bi-file-earmark-text"></i> Invoices</a>
-    {% endif %}
+            {% if perms.shop.view_profit_report %}
+                <a href="/profit-loss-report/" data-nav-prefix="/profit-loss-report/"><i class="bi bi-graph-up-arrow"></i> Profit & Loss</a>
+            {% endif %}
 
-    <div class="menu-title">Finance & Reports</div>
+            {% if perms.shop.view_batch_profit_report %}
+                <a href="/batch-profit-report/" data-nav-prefix="/batch-profit-report/"><i class="bi bi-activity"></i> Batch Profit</a>
+            {% endif %}
 
-    {% if perms.shop.view_expense %}
-        <a href="/expenses/" data-nav-prefix="/expenses/"><i class="bi bi-cash-stack"></i> Expenses</a>
-    {% endif %}
+            {% if perms.shop.view_stock_report %}
+            <a href="/stock-report/" data-nav-prefix="/stock-report/"><i class="bi bi-bar-chart"></i> Stock Report</a>
+            {% endif %}
 
-    <a href="/suppliers/payments/" data-nav-prefix="/suppliers/payments/"><i class="bi bi-credit-card"></i> Supplier Payments</a>
+            {% if perms.shop.view_batch_stock_report %}
+            <a href="/batch-stock-report/" data-nav-prefix="/batch-stock-report/"><i class="bi bi-boxes"></i> Batch Stock</a>
+            {% endif %}
+        </div>
+    </details>
 
-    {% if perms.shop.view_batch_expense %}
-        <a href="/batch-expenses/" data-nav-prefix="/batch-expenses/"><i class="bi bi-clipboard-data"></i> Batch Expenses</a>
-    {% endif %}
+    <details class="menu-group">
+        <summary><span><i class="bi bi-shield-lock"></i> Administration</span><i class="bi bi-chevron-down menu-chevron"></i></summary>
+        <div class="menu-group-links">
+            {% if perms.auth.view_user %}
+                <a href="/users/" data-nav-prefix="/users/"><i class="bi bi-person-gear"></i> Users</a>
+            {% endif %}
 
-    {% if perms.shop.view_profit_report %}
-        <a href="/profit-loss-report/" data-nav-prefix="/profit-loss-report/"><i class="bi bi-graph-up-arrow"></i> Profit & Loss</a>
-    {% endif %}
+            {% if perms.auth.view_group %}
+                <a href="/groups/" data-nav-prefix="/groups/"><i class="bi bi-shield-lock"></i> Roles & Permissions</a>
+            {% endif %}
 
-    {% if perms.shop.view_batch_profit_report %}
-        <a href="/batch-profit-report/" data-nav-prefix="/batch-profit-report/"><i class="bi bi-activity"></i> Batch Profit</a>
-    {% endif %}
+            {% if request.user.is_superuser %}
+                <a href="/settings/" data-nav-prefix="/settings/"><i class="bi bi-gear"></i> Settings</a>
+                <a href="/activity-logs/" data-nav-prefix="/activity-logs/"><i class="bi bi-clock-history"></i> Activity Logs</a>
+                {% if request.user.is_superuser %}
+                    <a href="/stock-locations/" data-nav-prefix="/stock-locations/"><i class="bi bi-geo-alt"></i> Stock Locations</a>
+                {% endif %}
+            {% endif %}
+            <a href="/stock-location-report/" data-nav-prefix="/stock-location-report/"><i class="bi bi-pin-map"></i> Stock by Location</a>
+        </div>
+    </details>
 
-    <div class="menu-title">Administration</div>
-
-    {% if perms.auth.view_user %}
-        <a href="/users/" data-nav-prefix="/users/"><i class="bi bi-person-gear"></i> Users</a>
-    {% endif %}
-
-    {% if perms.auth.view_group %}
-        <a href="/groups/" data-nav-prefix="/groups/"><i class="bi bi-shield-lock"></i> Roles & Permissions</a>
-    {% endif %}
-
-    {% if request.user.is_superuser %}
-        <a href="/settings/" data-nav-prefix="/settings/"><i class="bi bi-gear"></i> Settings</a>
-        <a href="/activity-logs/" data-nav-prefix="/activity-logs/"><i class="bi bi-clock-history"></i> Activity Logs</a>
-        {% if request.user.is_superuser %}
-            <a href="/stock-locations/" data-nav-prefix="/stock-locations/"><i class="bi bi-geo-alt"></i> Stock Locations</a>
-        {% endif %}
-    {% endif %}
-    <a href="/stock-location-report/" data-nav-prefix="/stock-location-report/"><i class="bi bi-pin-map"></i> Stock by Location</a>
-    <div class="menu-title">Account</div>
-
-    <a href="/profile/" data-nav-prefix="/profile/"><i class="bi bi-person-circle"></i> Profile</a>
-    <a href="/logout/"><i class="bi bi-box-arrow-right"></i> Logout</a>
+    <details class="menu-group">
+        <summary><span><i class="bi bi-person-circle"></i> Account</span><i class="bi bi-chevron-down menu-chevron"></i></summary>
+        <div class="menu-group-links">
+            <a href="/profile/" data-nav-prefix="/profile/"><i class="bi bi-person-circle"></i> Profile</a>
+            <a href="/logout/"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        </div>
+    </details>
 
 </div>
 
@@ -152,13 +168,29 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const path = window.location.pathname;
+        let activeLink = null;
+        let activeLength = -1;
+
         document.querySelectorAll('.sidebar a[data-nav-prefix], .sidebar a[data-nav-match]').forEach(function (link) {
             const prefix = link.dataset.navPrefix;
             const exact = link.dataset.navMatch === 'exact';
-            if ((exact && path === '/') || (prefix && path.startsWith(prefix))) {
-                link.classList.add('active');
+            const isMatch = (exact && path === '/') || (prefix && path.startsWith(prefix));
+            const matchLength = exact ? path.length : (prefix || '').length;
+
+            if (isMatch && matchLength > activeLength) {
+                activeLink = link;
+                activeLength = matchLength;
             }
         });
+
+        if (activeLink) {
+            activeLink.classList.add('active');
+            const group = activeLink.closest('.menu-group');
+            if (group) {
+                group.open = true;
+                group.classList.add('has-active');
+            }
+        }
 
         const toggle = document.querySelector('.mobile-menu-toggle');
         const backdrop = document.querySelector('.sidebar-backdrop');

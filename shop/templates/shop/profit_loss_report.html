@@ -3,198 +3,128 @@
 {% block title %}Profit & Loss{% endblock %}
 
 {% block page_title %}
-💰 Profit & Loss Report
+Profit & Loss Report
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+<div class="toolbar no-print">
     <div>
-        <h4 class="mb-1">Financial Overview</h4>
-        <p class="text-muted mb-0">Sales, costs, expenses, profit, and inventory performance.</p>
+        <span class="eyebrow">Finance</span>
+        <h5 class="mb-0">Sales, costs, general expenses, profit, and inventory performance</h5>
     </div>
-
-    <div>
-        <a href="/" class="btn btn-secondary">⬅ Dashboard</a>
-        <a href="/stock-report/" class="btn btn-outline-primary">📦 Stock Report</a>
-        <button onclick="window.print()" class="btn btn-primary">🖨 Print</button>
+    <div class="toolbar-actions">
+        <a href="/" class="btn btn-outline-secondary"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a href="/stock-report/" class="btn btn-outline-primary"><i class="bi bi-bar-chart"></i> Stock Report</a>
+        <button onclick="window.print()" class="btn btn-primary" data-no-loading="true"><i class="bi bi-printer"></i> Print</button>
     </div>
 </div>
 
 <div class="row g-4 mb-4">
-
-    <div class="col-md-3">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Sales Revenue</p>
-            <h2 class="text-primary">{{ total_sales_revenue|floatformat:2 }}</h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Sales Revenue</span>
+                <span class="metric-icon"><i class="bi bi-cash-coin"></i></span>
+            </div>
+            <h2 class="metric-value">{{ total_sales_revenue|floatformat:2 }}</h2>
         </div>
     </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">COGS</p>
-            <h2 class="text-warning">{{ total_cogs|floatformat:2 }}</h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">COGS</span>
+                <span class="metric-icon"><i class="bi bi-box-arrow-down"></i></span>
+            </div>
+            <h2 class="metric-value text-warning">{{ total_cogs|floatformat:2 }}</h2>
         </div>
     </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Gross Profit</p>
-            <h2 class="{% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                {{ total_gross_profit|floatformat:2 }}
-            </h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Gross Profit</span>
+                <span class="metric-icon"><i class="bi bi-graph-up-arrow"></i></span>
+            </div>
+            <h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:2 }}</h2>
         </div>
     </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Net Profit</p>
-            <h2 class="{% if net_profit_after_expenses < 0 %}text-danger{% else %}text-success{% endif %}">
-                {{ net_profit_after_expenses|floatformat:2 }}
-            </h2>
+    <div class="col-md-6 col-xl-3">
+        <div class="card card-box metric-card p-4">
+            <div class="d-flex justify-content-between">
+                <span class="metric-label">Net Profit</span>
+                <span class="metric-icon"><i class="bi bi-activity"></i></span>
+            </div>
+            <h2 class="metric-value {% if net_profit_after_expenses < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit_after_expenses|floatformat:2 }}</h2>
         </div>
     </div>
+</div>
 
+<div class="total-strip">
+    <div class="total-pill"><span>General Expenses</span><strong class="text-danger">{{ total_expenses|floatformat:2 }}</strong></div>
+    <div class="total-pill"><span>Batch Expenses</span><strong class="text-danger">{{ total_batch_expenses|floatformat:2 }}</strong></div>
+    <div class="total-pill"><span>Discounts</span><strong>{{ total_discount|floatformat:2 }}</strong></div>
+    <div class="total-pill"><span>Outstanding</span><strong class="text-danger">{{ outstanding_balance|floatformat:2 }}</strong></div>
+    <div class="total-pill"><span>Inventory Value</span><strong>{{ total_inventory_value|floatformat:2 }}</strong></div>
+    <div class="total-pill"><span>Sold Qty</span><strong>{{ total_sold_qty }}</strong></div>
+    <div class="total-pill"><span>Remaining Qty</span><strong>{{ total_remaining_qty }}</strong></div>
 </div>
 
 <div class="row g-4 mb-4">
-
-    <div class="col-md-3">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Total Expenses</p>
-            <h2 class="text-danger">{{ total_expenses|floatformat:2 }}</h2>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Discounts</p>
-            <h2>{{ total_discount|floatformat:2 }}</h2>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Outstanding Balance</p>
-            <h2 class="text-danger">{{ outstanding_balance|floatformat:2 }}</h2>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card card-box p-4">
-            <p class="text-muted mb-1">Inventory Value</p>
-            <h2 class="text-primary">{{ total_inventory_value|floatformat:2 }}</h2>
-        </div>
-    </div>
-
-</div>
-
-<div class="row g-4 mb-4">
-
-    <div class="col-md-6">
+    <div class="col-lg-6">
         <div class="card card-box p-4 h-100">
-            <h5 class="mb-3">📊 Financial Statement</h5>
-
-            <div class="d-flex justify-content-between border-bottom py-2">
-                <span>Sales Revenue</span>
-                <strong>{{ total_sales_revenue|floatformat:2 }}</strong>
-            </div>
-
-            <div class="d-flex justify-content-between border-bottom py-2">
-                <span>Cost of Goods Sold</span>
-                <strong class="text-warning">- {{ total_cogs|floatformat:2 }}</strong>
-            </div>
-
-            <div class="d-flex justify-content-between border-bottom py-2">
-                <span>Gross Profit</span>
-                <strong class="{% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                    {{ total_gross_profit|floatformat:2 }}
-                </strong>
-            </div>
-
-            <div class="d-flex justify-content-between border-bottom py-2">
-                <span>Discounts</span>
-                <strong>- {{ total_discount|floatformat:2 }}</strong>
-            </div>
-
-            <div class="d-flex justify-content-between border-bottom py-2">
-                <span>General Expenses</span>
-                <strong class="text-danger">- {{ total_expenses|floatformat:2 }}</strong>
-            </div>
-
-            <div class="d-flex justify-content-between pt-3 fs-5">
-                <strong>Final Net Profit</strong>
-                <strong class="{% if net_profit_after_expenses < 0 %}text-danger{% else %}text-success{% endif %}">
-                    {{ net_profit_after_expenses|floatformat:2 }}
-                </strong>
-            </div>
+            <h5 class="mb-3">Financial Statement</h5>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Sales Revenue</span><strong>{{ total_sales_revenue|floatformat:2 }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Cost of Goods Sold</span><strong class="text-warning">{{ total_cogs|floatformat:2 }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Gross Profit</span><strong class="{% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:2 }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Discounts</span><strong>{{ total_discount|floatformat:2 }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Batch Expenses</span><strong class="text-danger">{{ total_batch_expenses|floatformat:2 }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>General Expenses</span><strong class="text-danger">{{ total_expenses|floatformat:2 }}</strong></div>
+            <div class="d-flex justify-content-between pt-3 fs-5"><strong>Final Net Profit</strong><strong class="{% if net_profit_after_expenses < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit_after_expenses|floatformat:2 }}</strong></div>
         </div>
     </div>
 
-    <div class="col-md-6">
+    <div class="col-lg-6">
         <div class="card card-box p-4 h-100">
-            <h5 class="mb-3">📌 Business Health</h5>
-
-            <div class="d-flex justify-content-between border-bottom py-2">
-                <span>Total Sold Quantity</span>
-                <strong>{{ total_sold_qty }}</strong>
-            </div>
-
-            <div class="d-flex justify-content-between border-bottom py-2">
-                <span>Total Remaining Stock</span>
-                <strong>{{ total_remaining_qty }}</strong>
-            </div>
-
-            <div class="d-flex justify-content-between border-bottom py-2">
-                <span>Total Paid</span>
-                <strong>{{ total_paid|floatformat:2 }}</strong>
-            </div>
-
-            <div class="d-flex justify-content-between border-bottom py-2">
-                <span>Outstanding Balance</span>
-                <strong class="text-danger">{{ outstanding_balance|floatformat:2 }}</strong>
-            </div>
-
-            <div class="d-flex justify-content-between pt-3 fs-5">
-                <strong>Inventory Value</strong>
-                <strong class="text-primary">{{ total_inventory_value|floatformat:2 }}</strong>
-            </div>
+            <h5 class="mb-3">Business Health</h5>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Total Sold Quantity</span><strong>{{ total_sold_qty }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Total Remaining Stock</span><strong>{{ total_remaining_qty }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Total Paid</span><strong>{{ total_paid|floatformat:2 }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Outstanding Balance</span><strong class="text-danger">{{ outstanding_balance|floatformat:2 }}</strong></div>
+            <div class="d-flex justify-content-between pt-3 fs-5"><strong>Inventory Value</strong><strong>{{ total_inventory_value|floatformat:2 }}</strong></div>
         </div>
     </div>
-
 </div>
 
 <div class="card card-box p-4 mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">📦 Product Performance</h5>
-        <span class="text-muted small">Summary by product</span>
+    <div class="section-title">
+        <div>
+            <h5>Product Performance</h5>
+            <p>Summary by product after returns.</p>
+        </div>
     </div>
 
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
-            <thead class="table-dark">
+            <thead>
                 <tr>
                     <th>Product</th>
-                    <th>Sold</th>
-                    <th>Remaining</th>
-                    <th>Revenue</th>
-                    <th>Gross Profit</th>
-                    <th>Stock Value</th>
+                    <th class="number">Sold</th>
+                    <th class="number">Remaining</th>
+                    <th class="money">Revenue</th>
+                    <th class="money">Gross Profit</th>
+                    <th class="money">Stock Value</th>
                     <th>Status</th>
                 </tr>
             </thead>
-
             <tbody>
                 {% for row in product_summary %}
                 <tr>
                     <td><strong>{{ row.product_name }}</strong></td>
-                    <td>{{ row.sold_qty }}</td>
-                    <td>{{ row.remaining_qty }}</td>
-                    <td>{{ row.sales_value|floatformat:2 }}</td>
-                    <td class="{% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                        <strong>{{ row.gross_profit|floatformat:2 }}</strong>
-                    </td>
-                    <td>{{ row.inventory_value|floatformat:2 }}</td>
+                    <td class="number">{{ row.sold_qty }}</td>
+                    <td class="number">{{ row.remaining_qty }}</td>
+                    <td class="money">{{ row.sales_value|floatformat:2 }}</td>
+                    <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.gross_profit|floatformat:2 }}</strong></td>
+                    <td class="money">{{ row.inventory_value|floatformat:2 }}</td>
                     <td>
                         {% if row.sold_qty == 0 %}
                             <span class="badge bg-secondary">No Sales</span>
@@ -206,11 +136,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="7" class="text-center text-muted">
-                        No product performance data found.
-                    </td>
-                </tr>
+                <tr><td colspan="7"><div class="empty-state">No product performance data found.</div></td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -218,54 +144,45 @@
 </div>
 
 <div class="card card-box p-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">🔎 Variant Analysis</h5>
-        <span class="text-muted small">Detailed performance by variant</span>
+    <div class="section-title">
+        <div>
+            <h5>Variant Analysis</h5>
+            <p>Detailed performance by variant after returns.</p>
+        </div>
     </div>
 
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
-            <thead class="table-dark">
+            <thead>
                 <tr>
                     <th>Product</th>
-                    <th>Size</th>
-                    <th>Color</th>
-                    <th>Model</th>
-                    <th>Purchased</th>
-                    <th>Sold</th>
-                    <th>Remaining</th>
-                    <th>Avg Cost</th>
-                    <th>Revenue</th>
-                    <th>COGS</th>
-                    <th>Gross Profit</th>
-                    <th>Stock Value</th>
+                    <th>Variant</th>
+                    <th class="number">Purchased</th>
+                    <th class="number">Sold</th>
+                    <th class="number">Remaining</th>
+                    <th class="money">Avg Cost</th>
+                    <th class="money">Revenue</th>
+                    <th class="money">COGS</th>
+                    <th class="money">Gross Profit</th>
+                    <th class="money">Stock Value</th>
                 </tr>
             </thead>
-
             <tbody>
                 {% for row in variant_rows %}
                 <tr>
                     <td><strong>{{ row.variant.product.name }}</strong></td>
-                    <td>{{ row.variant.size|default:"-" }}</td>
-                    <td>{{ row.variant.color|default:"-" }}</td>
-                    <td>{{ row.variant.model|default:"-" }}</td>
-                    <td>{{ row.purchased_qty }}</td>
-                    <td>{{ row.sold_qty }}</td>
-                    <td>{{ row.remaining_qty }}</td>
-                    <td>{{ row.avg_buying_price|floatformat:2 }}</td>
-                    <td>{{ row.sales_value|floatformat:2 }}</td>
-                    <td>{{ row.cogs|floatformat:2 }}</td>
-                    <td class="{% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                        <strong>{{ row.gross_profit|floatformat:2 }}</strong>
-                    </td>
-                    <td>{{ row.remaining_inventory_value|floatformat:2 }}</td>
+                    <td>{{ row.variant.variant_name|default:row.variant }}</td>
+                    <td class="number">{{ row.purchased_qty }}</td>
+                    <td class="number">{{ row.sold_qty }}</td>
+                    <td class="number">{{ row.remaining_qty }}</td>
+                    <td class="money">{{ row.avg_buying_price|floatformat:2 }}</td>
+                    <td class="money">{{ row.sales_value|floatformat:2 }}</td>
+                    <td class="money">{{ row.cogs|floatformat:2 }}</td>
+                    <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.gross_profit|floatformat:2 }}</strong></td>
+                    <td class="money">{{ row.remaining_inventory_value|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="12" class="text-center text-muted">
-                        No variant analysis data found.
-                    </td>
-                </tr>
+                <tr><td colspan="10"><div class="empty-state">No variant analysis data found.</div></td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -276,6 +193,7 @@
 @media print {
     .sidebar,
     .topbar,
+    .mobile-menu-toggle,
     .no-print {
         display: none !important;
     }
@@ -286,7 +204,7 @@
     }
 
     body {
-        background: white !important;
+        background: #fff !important;
     }
 
     .card {
