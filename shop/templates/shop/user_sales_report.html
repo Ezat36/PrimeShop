@@ -1,0 +1,114 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}User Sales Report{% endblock %}
+
+{% block page_title %}
+User Sales Report
+{% endblock %}
+
+{% block content %}
+
+<div class="toolbar">
+    <form method="get" class="search-box">
+        <select name="user" class="form-control">
+            <option value="">All salespeople</option>
+            {% for user in users %}
+                <option value="{{ user.id }}" {% if selected_user == user.id|stringformat:"s" %}selected{% endif %}>
+                    {{ user.username }}
+                </option>
+            {% endfor %}
+        </select>
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+    </form>
+    <button type="button" onclick="window.print()" class="btn btn-primary" data-no-loading="true"><i class="bi bi-printer"></i> Print</button>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Revenue</span><h2 class="metric-value">{{ total_revenue|floatformat:2 }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">COGS</span><h2 class="metric-value text-warning">{{ total_cogs|floatformat:2 }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Gross Profit</span><h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:2 }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Net Profit</span><h2 class="metric-value {% if total_net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_net_profit|floatformat:2 }}</h2></div></div>
+</div>
+
+<div class="total-strip">
+    <div class="total-pill"><span>Rows</span><strong>{{ rows|length }}</strong></div>
+    <div class="total-pill"><span>Quantity</span><strong>{{ total_qty }}</strong></div>
+    <div class="total-pill"><span>Discounts</span><strong>{{ total_discount|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Expenses Allocated</span><strong>{{ total_expenses|floatformat:2 }} {{ store_currency }}</strong></div>
+</div>
+
+<div class="card card-box p-4">
+    <div class="section-title">
+        <div>
+            <h5>Sales by User</h5>
+            <p>Rows are allocation-based, so split stock batches appear separately.</p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Date</th>
+                    <th>Invoice</th>
+                    <th>Salesperson</th>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Variant</th>
+                    <th>Size</th>
+                    <th>Color</th>
+                    <th>Model</th>
+                    <th>SKU</th>
+                    {% for field_name in flexible_field_names %}
+                        <th>{{ field_name }}</th>
+                    {% endfor %}
+                    <th>Batch</th>
+                    <th>Stock Location</th>
+                    <th class="money">Buying Price</th>
+                    <th class="money">Selling Price</th>
+                    <th class="number">Qty</th>
+                    <th class="money">Revenue</th>
+                    <th class="money">Gross Profit</th>
+                    <th class="money">Expenses</th>
+                    <th class="money">Net Profit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.date }}</td>
+                    <td>{{ row.invoice.invoice_number|default:"-" }}</td>
+                    <td>{{ row.salesperson|default:"-" }}</td>
+                    <td>{{ row.customer|default:"Walk-in" }}</td>
+                    <td>{{ row.product }}</td>
+                    <td>{{ row.variant }}</td>
+                    <td>{{ row.size|default:"-" }}</td>
+                    <td>{{ row.color|default:"-" }}</td>
+                    <td>{{ row.model|default:"-" }}</td>
+                    <td>{{ row.sku|default:"-" }}</td>
+                    {% for value in row.flexible_values %}
+                        <td>{{ value }}</td>
+                    {% endfor %}
+                    <td>{{ row.batch_number|default:"-" }}</td>
+                    <td>{{ row.stock_location|default:"-" }}</td>
+                    <td class="money">{{ row.buying_price|floatformat:2 }}</td>
+                    <td class="money">{{ row.selling_price|floatformat:2 }}</td>
+                    <td class="number">{{ row.qty }}</td>
+                    <td class="money">{{ row.revenue|floatformat:2 }}</td>
+                    <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ row.gross_profit|floatformat:2 }}</td>
+                    <td class="money text-danger">{{ row.expense_share|floatformat:2 }}</td>
+                    <td class="money {% if row.net_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.net_profit|floatformat:2 }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="24"><div class="empty-state">No user sales found.</div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

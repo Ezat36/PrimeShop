@@ -72,7 +72,32 @@ def filter_by_period(queryset, filter_type, field_name):
     return queryset
 
 
-def build_dashboard_context(filter_type):
+def can_view_all_sales(user):
+    return user.is_superuser or user.has_perm('shop.view_profit_report')
+
+
+def scope_sales_queryset(queryset, user):
+    if can_view_all_sales(user):
+        return queryset
+
+    return queryset.filter(created_by=user)
+
+
+def scope_sale_items_queryset(queryset, user):
+    if can_view_all_sales(user):
+        return queryset
+
+    return queryset.filter(sale__created_by=user)
+
+
+def scope_invoices_queryset(queryset, user):
+    if can_view_all_sales(user):
+        return queryset
+
+    return queryset.filter(sale__created_by=user)
+
+
+def build_dashboard_context(filter_type, user):
     sale_items = SaleItem.objects.select_related(
         'sale',
         'sale__customer',
@@ -84,6 +109,7 @@ def build_dashboard_context(filter_type):
         'allocations__purchase_item',
     ).order_by('-sale__date', '-sale__id', '-id')
 
+    sale_items = scope_sale_items_queryset(sale_items, user)
     sale_items = list(filter_by_period(sale_items, filter_type, 'sale__date'))
 
     sold_items = []
@@ -161,8 +187,12 @@ def build_dashboard_context(filter_type):
     expenses = filter_by_period(Expense.objects.all(), filter_type, 'date')
     batch_expenses = filter_by_period(BatchExpense.objects.all(), filter_type, 'date')
 
-    total_expenses = sum(expense.amount for expense in expenses)
-    total_batch_expenses = sum(expense.amount for expense in batch_expenses)
+    if can_view_all_sales(user):
+        total_expenses = sum(expense.amount for expense in expenses)
+        total_batch_expenses = sum(expense.amount for expense in batch_expenses)
+    else:
+        total_expenses = Decimal('0')
+        total_batch_expenses = Decimal('0')
     total_all_expenses = total_expenses + total_batch_expenses
 
     total_profit = sum(item['gross_profit'] for item in sold_items)
@@ -183,8 +213,11 @@ def build_dashboard_context(filter_type):
 
     outstanding_balance = sum(
         get_sale_payment_status(sale)['amount_due']
-        for sale in Sale.objects.select_related('customer').prefetch_related(
-            'customer__payments'
+        for sale in scope_sales_queryset(
+            Sale.objects.select_related('customer').prefetch_related(
+                'customer__payments'
+            ),
+            user,
         )
     )
 

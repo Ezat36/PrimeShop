@@ -8,7 +8,13 @@
         <div class="row g-3 mb-3">
             <div class="col-md-4"><label class="form-label">Customer</label><select name="customer" class="form-control"><option value="">Walk-in Customer</option>{% for customer in customers %}<option value="{{ customer.id }}">{{ customer.name }}</option>{% endfor %}</select></div>
             <div class="col-md-4"><label class="form-label">Discount</label><input type="number" step="0.01" name="discount" class="form-control" value="0" id="discount"></div>
-            <div class="col-md-4"><label class="form-label">Paid Amount</label><input type="number" step="0.01" name="paid_amount" class="form-control" value="0"></div>
+            <div class="col-md-4">
+                <label class="form-label">Paid Now</label>
+                <div class="input-group">
+                    <input type="number" step="0.01" name="paid_amount" class="form-control" value="0" id="paid-amount">
+                    <button type="button" class="btn btn-outline-primary" onclick="markPaidFull()" data-no-loading="true">Paid Full</button>
+                </div>
+            </div>
         </div>
         <input type="text" id="pos-search" class="form-control mb-3" placeholder="Search product or scan SKU/barcode...">
         <div class="table-responsive mb-3">
@@ -46,6 +52,11 @@ function refreshPosTotals() {
     });
     total -= parseFloat(document.getElementById('discount').value || 0);
     document.getElementById('pos-total').textContent = total.toFixed(2) + ' {{ store_currency }}';
+    return total;
+}
+function markPaidFull() {
+    const total = refreshPosTotals();
+    document.getElementById('paid-amount').value = total.toFixed(2);
 }
 function addPosRow() {
     const tbody = document.querySelector('#items-table tbody');

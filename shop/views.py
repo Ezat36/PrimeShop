@@ -1,4 +1,5 @@
 import csv
+from decimal import Decimal
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -14,7 +15,13 @@ from .models import CustomerPayment, SupplierPayment, StockTransfer, SaleReturn,
 from django.contrib.auth.decorators import permission_required
 from django.db import transaction
 from django.db.models import Prefetch, Q
-from .services.reports import build_dashboard_context, get_sale_payment_status
+from .services.reports import (
+    build_dashboard_context,
+    get_sale_payment_status,
+    scope_invoices_queryset,
+    scope_sale_items_queryset,
+    scope_sales_queryset,
+)
 
 
 def log_activity(request, action, instance=None, description=''):
@@ -40,15 +47,20 @@ def apply_date_filter(queryset, request, field_name):
     return queryset
 
 
+def money_value(value, default='0'):
+    return Decimal(value or default)
+
+
 @login_required
 def dashboard(request):
     filter_type = request.GET.get('filter', 'today')
-    context = build_dashboard_context(filter_type)
+    context = build_dashboard_context(filter_type, request.user)
 
     return render(request, 'shop/dashboard.html', context)
 
 
 @login_required
+@permission_required('shop.view_stock_report', raise_exception=True)
 def stock_report(request):
     variants = ProductVariant.objects.all()
 
@@ -189,8 +201,156 @@ def profit_loss_report(request):
     }
 
     return render(request, 'shop/profit_loss_report.html', context)
+
+
+@login_required
+@permission_required(
+    'shop.view_profit_report',
+    raise_exception=True
+)
+def user_sales_report(request):
+    user_id = request.GET.get('user')
+    allocations = SaleItemAllocation.objects.select_related(
+        'sale_item',
+        'sale_item__sale',
+        'sale_item__sale__invoice',
+        'sale_item__sale__created_by',
+        'sale_item__sale__customer',
+        'sale_item__variant',
+        'sale_item__variant__product',
+        'purchase_item',
+        'purchase_item__location',
+    ).prefetch_related(
+        'sale_item__variant__details',
+    ).order_by('-sale_item__sale__date', '-sale_item__sale__id', '-id')
+
+    allocations = apply_date_filter(allocations, request, 'sale_item__sale__date')
+
+    if user_id:
+        allocations = allocations.filter(sale_item__sale__created_by_id=user_id)
+
+    allocations = list(allocations)
+    allocations = [
+        allocation
+        for allocation in allocations
+        if allocation.net_quantity() > 0
+    ]
+
+    flexible_field_names = []
+    for allocation in allocations:
+        for detail in allocation.sale_item.variant.details.all():
+            if detail.name not in flexible_field_names:
+                flexible_field_names.append(detail.name)
+            if len(flexible_field_names) == 4:
+                break
+        if len(flexible_field_names) == 4:
+            break
+    flexible_field_names += ['Field'] * (4 - len(flexible_field_names))
+
+    rows = []
+    total_revenue = Decimal('0')
+    total_cogs = Decimal('0')
+    total_gross_profit = Decimal('0')
+    total_discount = Decimal('0')
+
+    sale_totals = {
+        allocation.sale_item.sale_id: sum(
+            item.net_total_price()
+            for item in allocation.sale_item.sale.items.all()
+        )
+        for allocation in allocations
+    }
+
+    for allocation in allocations:
+        sale_item = allocation.sale_item
+        sale = sale_item.sale
+        variant = sale_item.variant
+        qty = allocation.net_quantity()
+        revenue_before_discount = qty * sale_item.selling_price
+        cogs = qty * allocation.unit_cost
+        sale_total = sale_totals.get(sale.id) or Decimal('0')
+        discount_share = (
+            sale.discount * revenue_before_discount / sale_total
+            if sale_total > 0 else Decimal('0')
+        )
+        revenue = revenue_before_discount - discount_share
+        gross_profit = revenue_before_discount - cogs
+
+        detail_values = {
+            detail.name: detail.value
+            for detail in variant.details.all()
+        }
+        try:
+            invoice = sale.invoice
+        except Invoice.DoesNotExist:
+            invoice = None
+
+        row = {
+            'date': sale.date,
+            'invoice': invoice,
+            'salesperson': sale.created_by,
+            'customer': sale.customer,
+            'product': variant.product.name,
+            'variant': variant.variant_name or str(variant),
+            'size': variant.size,
+            'color': variant.color,
+            'model': variant.model,
+            'sku': variant.sku,
+            'flexible_values': [
+                detail_values.get(name, '-')
+                for name in flexible_field_names
+            ],
+            'batch_number': allocation.purchase_item.batch_number,
+            'stock_location': allocation.purchase_item.location,
+            'buying_price': allocation.unit_cost,
+            'selling_price': sale_item.selling_price,
+            'qty': qty,
+            'revenue': revenue,
+            'cogs': cogs,
+            'gross_profit': gross_profit,
+            'discount_share': discount_share,
+        }
+        rows.append(row)
+
+        total_revenue += revenue
+        total_cogs += cogs
+        total_gross_profit += gross_profit
+        total_discount += discount_share
+
+    expenses = apply_date_filter(Expense.objects.all(), request, 'date')
+    batch_expenses = apply_date_filter(BatchExpense.objects.all(), request, 'date')
+    total_expenses = sum(expense.amount for expense in expenses)
+    total_batch_expenses = sum(expense.amount for expense in batch_expenses)
+    total_all_expenses = total_expenses + total_batch_expenses
+
+    total_net_profit = Decimal('0')
+    for row in rows:
+        expense_share = (
+            total_all_expenses * row['revenue'] / total_revenue
+            if total_revenue > 0 else Decimal('0')
+        )
+        row['expense_share'] = expense_share
+        row['net_profit'] = row['gross_profit'] - row['discount_share'] - expense_share
+        total_net_profit += row['net_profit']
+
+    context = {
+        'rows': rows,
+        'users': User.objects.all().order_by('username'),
+        'selected_user': user_id,
+        'flexible_field_names': flexible_field_names,
+        'total_qty': sum(row['qty'] for row in rows),
+        'total_revenue': total_revenue,
+        'total_cogs': total_cogs,
+        'total_gross_profit': total_gross_profit,
+        'total_discount': total_discount,
+        'total_expenses': total_all_expenses,
+        'total_net_profit': total_net_profit,
+    }
+
+    return render(request, 'shop/user_sales_report.html', context)
     
 @login_required
+@permission_required('shop.view_product', raise_exception=True)
 def product_list(request):
     search = request.GET.get('search', '')
 
@@ -223,6 +383,7 @@ def product_list(request):
     return render(request, 'shop/product_list.html', context)
 
 @login_required
+@permission_required('shop.add_product', raise_exception=True)
 def product_add(request):
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -243,6 +404,7 @@ def product_add(request):
     return render(request, 'shop/product_add.html')
 
 @login_required
+@permission_required('shop.view_product', raise_exception=True)
 def product_manage(request, product_id):
     product = Product.objects.get(id=product_id)
     variants = product.variants.all()
@@ -256,6 +418,7 @@ def product_manage(request, product_id):
 
 
 @login_required
+@permission_required('shop.add_productdetail', raise_exception=True)
 def product_detail_add(request, product_id):
     product = Product.objects.get(id=product_id)
 
@@ -275,7 +438,7 @@ def product_detail_add(request, product_id):
 
 
 @login_required
-@login_required
+@permission_required('shop.add_productvariant', raise_exception=True)
 def product_variant_add(request, product_id):
     product = Product.objects.get(id=product_id)
 
@@ -288,7 +451,7 @@ def product_variant_add(request, product_id):
             color='',
             model='',
             sku=request.POST.get('sku'),
-            selling_price=request.POST.get('selling_price'),
+            selling_price=money_value(request.POST.get('selling_price')),
             low_stock_alert=request.POST.get('low_stock_alert') or 5
         )
 
@@ -317,6 +480,7 @@ def product_variant_add(request, product_id):
     )
 
 @login_required
+@permission_required('shop.view_purchase', raise_exception=True)
 def purchase_list(request):
     search = request.GET.get('search', '')
     purchases = Purchase.objects.all().order_by('-date', '-id')
@@ -344,7 +508,7 @@ def purchase_list(request):
 
 
 @login_required
-@login_required
+@permission_required('shop.add_purchase', raise_exception=True)
 def purchase_add(request):
     suppliers = Supplier.objects.all()
     variants = ProductVariant.objects.all()
@@ -356,61 +520,62 @@ def purchase_add(request):
 
         supplier = Supplier.objects.get(id=supplier_id) if supplier_id else None
 
-        purchase = Purchase.objects.create(
-            supplier=supplier,
-            note=note
-        )
+        with transaction.atomic():
+            purchase = Purchase.objects.create(
+                supplier=supplier,
+                note=note
+            )
 
-        variant_ids = request.POST.getlist('variant')
-        quantities = request.POST.getlist('quantity')
-        buying_prices = request.POST.getlist('buying_price')
-        location_ids = request.POST.getlist('location')
+            variant_ids = request.POST.getlist('variant')
+            quantities = request.POST.getlist('quantity')
+            buying_prices = request.POST.getlist('buying_price')
+            location_ids = request.POST.getlist('location')
 
-        product_batch_numbers = {}
+            product_batch_numbers = {}
 
-        for variant_id, quantity, buying_price, location_id in zip(
-            variant_ids,
-            quantities,
-            buying_prices,
-            location_ids
-        ):
-            if variant_id and quantity and buying_price:
-                variant = ProductVariant.objects.get(id=variant_id)
-                product = variant.product
+            for variant_id, quantity, buying_price, location_id in zip(
+                variant_ids,
+                quantities,
+                buying_prices,
+                location_ids
+            ):
+                if variant_id and quantity and buying_price:
+                    variant = ProductVariant.objects.get(id=variant_id)
+                    product = variant.product
 
-                if product.id not in product_batch_numbers:
-                    product_code = product.name[:4].upper()
+                    if product.id not in product_batch_numbers:
+                        product_code = product.name[:4].upper()
 
-                    existing_numbers = (
-                        PurchaseItem.objects
-                        .filter(variant__product=product)
-                        .exclude(batch_number='')
-                        .values_list('batch_number', flat=True)
-                        .distinct()
+                        existing_numbers = (
+                            PurchaseItem.objects
+                            .filter(variant__product=product)
+                            .exclude(batch_number='')
+                            .values_list('batch_number', flat=True)
+                            .distinct()
+                        )
+
+                        max_number = 0
+
+                        for number in existing_numbers:
+                            try:
+                                current_number = int(number.split('-')[-1])
+                                if current_number > max_number:
+                                    max_number = current_number
+                            except (TypeError, ValueError):
+                                pass
+
+                        batch_number = f"{product_code}-{max_number + 1:04d}"
+
+                        product_batch_numbers[product.id] = batch_number
+
+                    PurchaseItem.objects.create(
+                        purchase=purchase,
+                        variant=variant,
+                        location_id=location_id or None,
+                        batch_number=product_batch_numbers[product.id],
+                        quantity=int(quantity),
+                        buying_price=money_value(buying_price)
                     )
-
-                    max_number = 0
-
-                    for number in existing_numbers:
-                        try:
-                            current_number = int(number.split('-')[-1])
-                            if current_number > max_number:
-                                max_number = current_number
-                        except:
-                            pass
-
-                    batch_number = f"{product_code}-{max_number + 1:04d}"
-
-                    product_batch_numbers[product.id] = batch_number
-
-                PurchaseItem.objects.create(
-                    purchase=purchase,
-                    variant=variant,
-                    location_id=location_id or None,
-                    batch_number=product_batch_numbers[product.id],
-                    quantity=int(quantity),
-                    buying_price=float(buying_price)
-                )
 
         log_activity(request, 'Created purchase', purchase)
         messages.success(request, 'Purchase saved successfully.')
@@ -425,13 +590,16 @@ def purchase_add(request):
 
 
 @login_required
+@permission_required('shop.view_sale', raise_exception=True)
 def sale_list(request):  
     search = request.GET.get('search', '')
     sales = Sale.objects.select_related(
         'customer',
+        'created_by',
     ).prefetch_related(
         'customer__payments',
     ).order_by('-date', '-id')
+    sales = scope_sales_queryset(sales, request.user)
 
     if search:
         sales = sales.filter(
@@ -463,83 +631,92 @@ def sale_list(request):
 
 
 @login_required
+@permission_required('shop.add_sale', raise_exception=True)
 def sale_add(request):
     customers = Customer.objects.all()
     variants = ProductVariant.objects.all()
 
     if request.method == 'POST':
         customer_id = request.POST.get('customer')
-        discount = float(request.POST.get('discount') or 0)
-        paid_amount = float(request.POST.get('paid_amount') or 0)
+        discount = money_value(request.POST.get('discount'))
+        paid_amount = money_value(request.POST.get('paid_amount'))
         note = request.POST.get('note')
 
         customer = Customer.objects.get(id=customer_id) if customer_id else None
 
-        sale = Sale.objects.create(
-            customer=customer,
-            discount=discount,
-            paid_amount=paid_amount,
-            note=note
-        )
-
         variant_ids = request.POST.getlist('variant')
         quantities = request.POST.getlist('quantity')
         selling_prices = request.POST.getlist('selling_price')
+        requested_quantities = {}
 
         for variant_id, quantity, selling_price in zip(variant_ids, quantities, selling_prices):
             if variant_id and quantity and selling_price:
-                quantity = int(quantity)
-                selling_price = float(selling_price)
+                requested_quantities[variant_id] = requested_quantities.get(variant_id, 0) + int(quantity)
 
-                variant = ProductVariant.objects.get(id=variant_id)
-
-                available_stock = sum(
-                    batch.remaining_qty
-                    for batch in PurchaseItem.objects.filter(
-                        variant=variant,
-                        remaining_qty__gt=0
-                    )
-                )
-
-                if quantity > available_stock:
-                    sale.delete()
-                    return render(request, 'shop/sale_add.html', {
-                        'customers': customers,
-                        'variants': variants,
-                        'error': f"Not enough stock for {variant}. Available: {available_stock}"
-                    })
-
-                sale_item = SaleItem.objects.create(
-                    sale=sale,
-                    variant=variant,
-                    quantity=quantity,
-                    selling_price=selling_price
-                )
-
-                qty_to_allocate = quantity
-
-                batches = PurchaseItem.objects.filter(
+        for variant_id, requested_quantity in requested_quantities.items():
+            variant = ProductVariant.objects.get(id=variant_id)
+            available_stock = sum(
+                batch.remaining_qty
+                for batch in PurchaseItem.objects.filter(
                     variant=variant,
                     remaining_qty__gt=0
-                ).order_by('purchase__date', 'id')
+                )
+            )
 
-                for batch in batches:
-                    if qty_to_allocate <= 0:
-                        break
+            if requested_quantity > available_stock:
+                return render(request, 'shop/sale_add.html', {
+                    'customers': customers,
+                    'variants': variants,
+                    'error': f"Not enough stock for {variant}. Available: {available_stock}"
+                })
 
-                    take_qty = min(qty_to_allocate, batch.remaining_qty)
+        with transaction.atomic():
+            sale = Sale.objects.create(
+                customer=customer,
+                created_by=request.user,
+                discount=discount,
+                paid_amount=paid_amount,
+                note=note
+            )
 
-                    SaleItemAllocation.objects.create(
-                        sale_item=sale_item,
-                        purchase_item=batch,
-                        quantity=take_qty,
-                        unit_cost=batch.buying_price
+            for variant_id, quantity, selling_price in zip(variant_ids, quantities, selling_prices):
+                if variant_id and quantity and selling_price:
+                    quantity = int(quantity)
+                    selling_price = money_value(selling_price)
+
+                    variant = ProductVariant.objects.get(id=variant_id)
+
+                    sale_item = SaleItem.objects.create(
+                        sale=sale,
+                        variant=variant,
+                        quantity=quantity,
+                        selling_price=selling_price
                     )
 
-                    batch.remaining_qty -= take_qty
-                    batch.save()
+                    qty_to_allocate = quantity
 
-                    qty_to_allocate -= take_qty
+                    batches = PurchaseItem.objects.filter(
+                        variant=variant,
+                        remaining_qty__gt=0
+                    ).order_by('purchase__date', 'id')
+
+                    for batch in batches:
+                        if qty_to_allocate <= 0:
+                            break
+
+                        take_qty = min(qty_to_allocate, batch.remaining_qty)
+
+                        SaleItemAllocation.objects.create(
+                            sale_item=sale_item,
+                            purchase_item=batch,
+                            quantity=take_qty,
+                            unit_cost=batch.buying_price
+                        )
+
+                        batch.remaining_qty -= take_qty
+                        batch.save(update_fields=['remaining_qty'])
+
+                        qty_to_allocate -= take_qty
 
         log_activity(request, 'Created sale', sale)
         messages.success(request, 'Sale saved successfully.')
@@ -552,6 +729,7 @@ def sale_add(request):
 
 
 @login_required
+@permission_required('shop.view_customer', raise_exception=True)
 def customer_list(request):
     search = request.GET.get('search', '')
 
@@ -563,55 +741,25 @@ def customer_list(request):
     customer_data = []
 
     for customer in customers:
-        sales = Sale.objects.filter(customer=customer)
+        sales = scope_sales_queryset(
+            Sale.objects.filter(customer=customer),
+            request.user,
+        )
+        sales = list(sales)
 
         total_purchase = sum(sale.final_amount() for sale in sales)
-        total_paid = sum(sale.paid_amount for sale in sales)
-        payments = sum(payment.amount for payment in customer.payments.all())
-        balance = sum(sale.remaining_balance() for sale in sales) - payments
+        total_paid_at_sale = sum(sale.paid_amount for sale in sales)
+        total_paid = sum(get_sale_payment_status(sale)['paid_total'] for sale in sales)
+        payments = total_paid - total_paid_at_sale
+        balance = sum(get_sale_payment_status(sale)['amount_due'] for sale in sales)
 
         customer_data.append({
             'customer': customer,
             'total_purchase': total_purchase,
-            'total_paid': total_paid,
+            'total_paid': total_paid_at_sale,
             'payments': payments,
             'balance': balance,
-            'sales_count': sales.count(),
-        })
-
-    return render(request, 'shop/customer_list.html', {
-        'customer_data': customer_data,
-        'search': search,
-    })
-
-
-
-@login_required
-def customer_list(request):
-    search = request.GET.get('search', '')
-
-    customers = Customer.objects.all()
-
-    if search:
-        customers = customers.filter(name__icontains=search)
-
-    customer_data = []
-
-    for customer in customers:
-        sales = Sale.objects.filter(customer=customer)
-
-        total_purchase = sum(sale.final_amount() for sale in sales)
-        total_paid = sum(sale.paid_amount for sale in sales)
-        payments = sum(payment.amount for payment in customer.payments.all())
-        balance = sum(sale.remaining_balance() for sale in sales) - payments
-
-        customer_data.append({
-            'customer': customer,
-            'total_purchase': total_purchase,
-            'total_paid': total_paid,
-            'payments': payments,
-            'balance': balance,
-            'sales_count': sales.count(),
+            'sales_count': len(sales),
         })
 
     return render(request, 'shop/customer_list.html', {
@@ -621,6 +769,7 @@ def customer_list(request):
 
 
 @login_required
+@permission_required('shop.add_customer', raise_exception=True)
 def customer_add(request):
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -641,14 +790,17 @@ def customer_add(request):
 
 
 @login_required
+@permission_required('shop.view_invoice', raise_exception=True)
 def invoice_list(request):
     search = request.GET.get('search', '')
     invoices = Invoice.objects.select_related(
         'sale',
         'sale__customer',
+        'sale__created_by',
     ).prefetch_related(
         'sale__customer__payments',
     ).order_by('-created_at')
+    invoices = scope_invoices_queryset(invoices, request.user)
 
     if search:
         invoices = invoices.filter(
@@ -679,13 +831,19 @@ def invoice_list(request):
 
 
 @login_required
+@permission_required('shop.view_invoice', raise_exception=True)
 def invoice_detail(request, invoice_id):
-    invoice = Invoice.objects.select_related(
+    invoices = Invoice.objects.select_related(
         'sale',
         'sale__customer',
+        'sale__created_by',
     ).prefetch_related(
         'sale__customer__payments',
-    ).get(id=invoice_id)
+    )
+    invoice = get_object_or_404(
+        scope_invoices_queryset(invoices, request.user),
+        id=invoice_id,
+    )
     sale = invoice.sale
     sale_items = [
         item
@@ -706,6 +864,7 @@ def invoice_detail(request, invoice_id):
     })
 
 @login_required
+@permission_required('shop.view_supplier', raise_exception=True)
 def supplier_list(request):
     search = request.GET.get('search', '')
 
@@ -740,6 +899,7 @@ def supplier_list(request):
 
 
 @login_required
+@permission_required('shop.add_supplier', raise_exception=True)
 def supplier_add(request):
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -759,6 +919,7 @@ def supplier_add(request):
     return render(request, 'shop/supplier_add.html')
 
 @login_required
+@permission_required('auth.view_user', raise_exception=True)
 def user_list(request):
     users = User.objects.all()
 
@@ -768,6 +929,7 @@ def user_list(request):
 
 
 @login_required
+@permission_required('auth.add_user', raise_exception=True)
 def user_add(request):
     groups = Group.objects.all()
 
@@ -799,6 +961,7 @@ def user_add(request):
 
 
 @login_required
+@permission_required('auth.change_user', raise_exception=True)
 def user_toggle_active(request, user_id):
     user = User.objects.get(id=user_id)
     user.is_active = not user.is_active
@@ -808,6 +971,7 @@ def user_toggle_active(request, user_id):
 
 
 @login_required
+@permission_required('auth.view_group', raise_exception=True)
 def group_list(request):
     groups = Group.objects.all()
 
@@ -817,6 +981,7 @@ def group_list(request):
 
 
 @login_required
+@permission_required('auth.add_group', raise_exception=True)
 def group_add(request):
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -829,6 +994,7 @@ def group_add(request):
 
 
 @login_required
+@permission_required('auth.change_group', raise_exception=True)
 def group_permissions(request, group_id):
     group = Group.objects.get(id=group_id)
     permissions = Permission.objects.select_related('content_type').all().order_by(
@@ -941,6 +1107,7 @@ def change_password(request):
 
 
 @login_required
+@permission_required('shop.change_storesetting', raise_exception=True)
 def settings_page(request):
     setting, created = StoreSetting.objects.get_or_create(id=1)
 
@@ -962,6 +1129,7 @@ def settings_page(request):
 
 
 @login_required
+@permission_required('shop.view_expense', raise_exception=True)
 def expense_list(request):
     search = request.GET.get('search', '')
     expenses = Expense.objects.all().order_by('-date', '-id')
@@ -985,12 +1153,13 @@ def expense_list(request):
 
 
 @login_required
+@permission_required('shop.add_expense', raise_exception=True)
 def expense_add(request):
     if request.method == 'POST':
         expense = Expense.objects.create(
             title=request.POST.get('title'),
             category=request.POST.get('category'),
-            amount=request.POST.get('amount'),
+            amount=money_value(request.POST.get('amount')),
             date=request.POST.get('date'),
             note=request.POST.get('note')
         )
@@ -1003,6 +1172,7 @@ def expense_add(request):
 
 #Batch Sock Report 
 @login_required
+@permission_required('shop.view_stock_report', raise_exception=True)
 def batch_stock_report(request):
     batches = PurchaseItem.objects.all().order_by(
         'variant__product__name',
@@ -1162,6 +1332,7 @@ def batch_profit_report(request):
         context
     )
 @login_required
+@permission_required('shop.view_batchexpense', raise_exception=True)
 def batch_expense_list(request):
     expenses = BatchExpense.objects.all().order_by('-date', '-id')
     total_batch_expenses = sum(expense.amount for expense in expenses)
@@ -1173,7 +1344,7 @@ def batch_expense_list(request):
 
 
 @login_required
-@login_required
+@permission_required('shop.add_batchexpense', raise_exception=True)
 def batch_expense_add(request):
     batch_numbers = (
         PurchaseItem.objects
@@ -1188,7 +1359,7 @@ def batch_expense_add(request):
             batch_number=request.POST.get('batch_number'),
             title=request.POST.get('title'),
             category=request.POST.get('category'),
-            amount=request.POST.get('amount'),
+            amount=money_value(request.POST.get('amount')),
             date=request.POST.get('date'),
             note=request.POST.get('note')
         )
@@ -1197,44 +1368,6 @@ def batch_expense_add(request):
 
     return render(request, 'shop/batch_expense_add.html', {
         'batch_numbers': batch_numbers
-    })
-
-
-def permission_denied_view(request, exception=None):
-    return render(request, 'shop/403.html', status=403)
-
-@login_required
-@permission_required('auth.change_user', raise_exception=True)
-def user_edit(request, user_id):
-    user = User.objects.get(id=user_id)
-    groups = Group.objects.all()
-
-    if request.method == 'POST':
-        user.username = request.POST.get('username')
-        user.email = request.POST.get('email')
-        user.first_name = request.POST.get('first_name')
-        user.last_name = request.POST.get('last_name')
-        user.is_active = True if request.POST.get('is_active') == 'on' else False
-        user.is_staff = True if request.POST.get('is_staff') == 'on' else False
-
-        group_id = request.POST.get('group')
-        user.groups.clear()
-
-        if group_id:
-            group = Group.objects.get(id=group_id)
-            user.groups.add(group)
-
-        password = request.POST.get('password')
-        if password:
-            user.set_password(password)
-
-        user.save()
-
-        return redirect('user_list')
-
-    return render(request, 'shop/user_edit.html', {
-        'edit_user': user,
-        'groups': groups,
     })
 
 
@@ -1421,6 +1554,7 @@ def batch_detail(request, batch_number):
     return render(request, 'shop/batch_detail.html', context)
 
 @login_required
+@permission_required('shop.view_stocklocation', raise_exception=True)
 def stock_location_list(request):
     locations = StockLocation.objects.all().order_by('name')
 
@@ -1430,6 +1564,7 @@ def stock_location_list(request):
 
 
 @login_required
+@permission_required('shop.add_stocklocation', raise_exception=True)
 def stock_location_add(request):
     if request.method == 'POST':
         StockLocation.objects.create(
@@ -1444,6 +1579,7 @@ def stock_location_add(request):
     return render(request, 'shop/stock_location_add.html')
 
 @login_required
+@permission_required('shop.change_stocklocation', raise_exception=True)
 def stock_location_edit(request, location_id):
     location = StockLocation.objects.get(id=location_id)
 
@@ -1462,6 +1598,7 @@ def stock_location_edit(request, location_id):
 
 
 @login_required
+@permission_required('shop.delete_stocklocation', raise_exception=True)
 def stock_location_delete(request, location_id):
     location = StockLocation.objects.get(id=location_id)
 
@@ -1474,6 +1611,7 @@ def stock_location_delete(request, location_id):
     })
 
 @login_required
+@permission_required('shop.view_stocklocation', raise_exception=True)
 def stock_location_report(request):
     locations = StockLocation.objects.all().order_by('name')
 
@@ -1537,6 +1675,7 @@ def stock_location_report(request):
 
 
 @login_required
+@permission_required('shop.view_stock_report', raise_exception=True)
 def low_stock_alerts(request):
     variants = [
         variant for variant in ProductVariant.objects.all()
@@ -1549,6 +1688,7 @@ def low_stock_alerts(request):
 
 
 @login_required
+@permission_required('shop.view_customerpayment', raise_exception=True)
 def customer_payment_list(request):
     payments = CustomerPayment.objects.select_related('customer', 'created_by').order_by('-date', '-id')
     total_payments = sum(payment.amount for payment in payments)
@@ -1560,6 +1700,7 @@ def customer_payment_list(request):
 
 
 @login_required
+@permission_required('shop.add_customerpayment', raise_exception=True)
 def customer_payment_add(request):
     customers = Customer.objects.all().order_by('name')
 
@@ -1567,7 +1708,7 @@ def customer_payment_add(request):
         customer = get_object_or_404(Customer, id=request.POST.get('customer'))
         payment = CustomerPayment.objects.create(
             customer=customer,
-            amount=request.POST.get('amount'),
+            amount=money_value(request.POST.get('amount')),
             date=request.POST.get('date') or timezone.now().date(),
             method=request.POST.get('method') or 'Cash',
             note=request.POST.get('note'),
@@ -1583,6 +1724,7 @@ def customer_payment_add(request):
 
 
 @login_required
+@permission_required('shop.view_supplierpayment', raise_exception=True)
 def supplier_payment_list(request):
     payments = SupplierPayment.objects.select_related('supplier', 'created_by').order_by('-date', '-id')
     total_payments = sum(payment.amount for payment in payments)
@@ -1594,6 +1736,7 @@ def supplier_payment_list(request):
 
 
 @login_required
+@permission_required('shop.add_supplierpayment', raise_exception=True)
 def supplier_payment_add(request):
     suppliers = Supplier.objects.all().order_by('name')
 
@@ -1601,7 +1744,7 @@ def supplier_payment_add(request):
         supplier = get_object_or_404(Supplier, id=request.POST.get('supplier'))
         payment = SupplierPayment.objects.create(
             supplier=supplier,
-            amount=request.POST.get('amount'),
+            amount=money_value(request.POST.get('amount')),
             date=request.POST.get('date') or timezone.now().date(),
             method=request.POST.get('method') or 'Cash',
             note=request.POST.get('note'),
@@ -1617,6 +1760,7 @@ def supplier_payment_add(request):
 
 
 @login_required
+@permission_required('shop.view_stocktransfer', raise_exception=True)
 def stock_transfer_list(request):
     transfers = StockTransfer.objects.select_related(
         'variant',
@@ -1632,6 +1776,7 @@ def stock_transfer_list(request):
 
 
 @login_required
+@permission_required('shop.add_stocktransfer', raise_exception=True)
 def stock_transfer_add(request):
     variants = ProductVariant.objects.all().order_by('product__name')
     locations = StockLocation.objects.all().order_by('name')
@@ -1657,35 +1802,36 @@ def stock_transfer_add(request):
             messages.error(request, f'Not enough stock in {from_location}. Available: {available}.')
             return redirect('stock_transfer_add')
 
-        qty_to_move = quantity
-        for batch in source_batches:
-            take_qty = min(qty_to_move, batch.remaining_qty)
-            batch.quantity -= take_qty
-            batch.remaining_qty -= take_qty
-            batch.save()
+        with transaction.atomic():
+            qty_to_move = quantity
+            for batch in source_batches:
+                take_qty = min(qty_to_move, batch.remaining_qty)
+                batch.quantity -= take_qty
+                batch.remaining_qty -= take_qty
+                batch.save(update_fields=['quantity', 'remaining_qty'])
 
-            PurchaseItem.objects.create(
-                purchase=batch.purchase,
-                variant=batch.variant,
-                batch_number=batch.batch_number,
-                quantity=take_qty,
-                buying_price=batch.buying_price,
-                location=to_location,
+                PurchaseItem.objects.create(
+                    purchase=batch.purchase,
+                    variant=batch.variant,
+                    batch_number=batch.batch_number,
+                    quantity=take_qty,
+                    buying_price=batch.buying_price,
+                    location=to_location,
+                )
+
+                qty_to_move -= take_qty
+                if qty_to_move <= 0:
+                    break
+
+            transfer = StockTransfer.objects.create(
+                variant=variant,
+                from_location=from_location,
+                to_location=to_location,
+                quantity=quantity,
+                date=request.POST.get('date') or timezone.now().date(),
+                note=request.POST.get('note'),
+                created_by=request.user,
             )
-
-            qty_to_move -= take_qty
-            if qty_to_move <= 0:
-                break
-
-        transfer = StockTransfer.objects.create(
-            variant=variant,
-            from_location=from_location,
-            to_location=to_location,
-            quantity=quantity,
-            date=request.POST.get('date') or timezone.now().date(),
-            note=request.POST.get('note'),
-            created_by=request.user,
-        )
         log_activity(request, 'Transferred stock', transfer)
         messages.success(request, 'Stock transfer completed successfully.')
         return redirect('stock_transfer_list')
@@ -1697,6 +1843,7 @@ def stock_transfer_add(request):
 
 
 @login_required
+@permission_required('shop.view_salereturn', raise_exception=True)
 def sale_return_list(request):
     returns = SaleReturn.objects.select_related(
         'sale_item',
@@ -1706,20 +1853,28 @@ def sale_return_list(request):
         'created_by',
     ).order_by('-date', '-id')
 
+    if not request.user.is_superuser and not request.user.has_perm('shop.view_profit_report'):
+        returns = returns.filter(sale_item__sale__created_by=request.user)
+
     return render(request, 'shop/sale_return_list.html', {
         'returns': returns
     })
 
 
 @login_required
+@permission_required('shop.add_salereturn', raise_exception=True)
 def sale_return_add(request):
     sale_items = SaleItem.objects.select_related('sale', 'variant', 'variant__product').order_by('-sale__date', '-id')
+    sale_items = scope_sale_items_queryset(sale_items, request.user)
 
     for item in sale_items:
         item.available_to_return = item.net_quantity()
 
     if request.method == 'POST':
-        sale_item = get_object_or_404(SaleItem, id=request.POST.get('sale_item'))
+        sale_item = get_object_or_404(
+            scope_sale_items_queryset(SaleItem.objects.all(), request.user),
+            id=request.POST.get('sale_item'),
+        )
         quantity = int(request.POST.get('quantity') or 0)
         existing_returns = sale_item.returned_quantity()
         available_to_return = sale_item.quantity - existing_returns
@@ -1732,7 +1887,7 @@ def sale_return_add(request):
             sale_return = SaleReturn.objects.create(
                 sale_item=sale_item,
                 quantity=quantity,
-                refund_amount=request.POST.get('refund_amount') or 0,
+                refund_amount=money_value(request.POST.get('refund_amount')),
                 date=request.POST.get('date') or timezone.now().date(),
                 reason=request.POST.get('reason'),
                 created_by=request.user,
@@ -1769,6 +1924,7 @@ def sale_return_add(request):
 
 
 @login_required
+@permission_required('shop.view_activitylog', raise_exception=True)
 def activity_log_list(request):
     logs = ActivityLog.objects.select_related('user').all()[:300]
 
@@ -1778,6 +1934,7 @@ def activity_log_list(request):
 
 
 @login_required
+@permission_required('shop.view_sale', raise_exception=True)
 def export_data(request, report_type):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="{report_type}.csv"'
@@ -1785,7 +1942,8 @@ def export_data(request, report_type):
 
     if report_type == 'sales':
         writer.writerow(['ID', 'Date', 'Customer', 'Final', 'Paid', 'Balance'])
-        for sale in apply_date_filter(Sale.objects.all().order_by('-date'), request, 'date'):
+        sales = scope_sales_queryset(Sale.objects.all().order_by('-date'), request.user)
+        for sale in apply_date_filter(sales, request, 'date'):
             writer.writerow([sale.id, sale.date, sale.customer, sale.final_amount(), sale.paid_amount, sale.remaining_balance()])
     elif report_type == 'purchases':
         writer.writerow(['ID', 'Date', 'Supplier', 'Items', 'Note'])
@@ -1810,6 +1968,7 @@ def export_data(request, report_type):
 
 
 @login_required
+@permission_required('shop.add_sale', raise_exception=True)
 def pos_sale(request):
     customers = Customer.objects.all().order_by('name')
     variants = ProductVariant.objects.select_related('product').all().order_by('product__name')

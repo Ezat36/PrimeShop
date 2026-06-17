@@ -35,6 +35,7 @@ Invoices
                     <th>Invoice Number</th>
                     <th>Date</th>
                     <th>Customer</th>
+                    <th>Salesperson</th>
                     <th class="money">Total</th>
                     <th class="money">Paid</th>
                     <th class="money">Amount Due</th>
@@ -49,6 +50,7 @@ Invoices
                     <td>{{ invoice.invoice_number }}</td>
                     <td>{{ invoice.created_at|date:"Y-m-d H:i" }}</td>
                     <td>{{ invoice.sale.customer }}</td>
+                    <td>{{ invoice.sale.created_by|default:"-" }}</td>
                     <td class="money">{{ invoice.sale.final_amount|floatformat:2 }} {{ store_currency }}</td>
                     <td class="money">{{ invoice.paid_total|floatformat:2 }} {{ store_currency }}</td>
                     <td class="money">
@@ -68,7 +70,7 @@ Invoices
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8">
+                    <td colspan="9">
                         <div class="empty-state">No invoices found.</div>
                     </td>
                 </tr>

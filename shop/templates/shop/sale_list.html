@@ -36,6 +36,7 @@ Sales
                     <th>#</th>
                     <th>Date</th>
                     <th>Customer</th>
+                    <th>Salesperson</th>
                     <th>Items</th>
                     <th class="money">Total</th>
                     <th class="money">Discount</th>
@@ -51,6 +52,7 @@ Sales
                     <td>{{ sale.id }}</td>
                     <td>{{ sale.date }}</td>
                     <td>{{ sale.customer }}</td>
+                    <td>{{ sale.created_by|default:"-" }}</td>
                     <td>{{ sale.items.count }}</td>
                     <td class="money">{{ sale.total_amount|floatformat:2 }}</td>
                     <td class="money">{{ sale.discount|floatformat:2 }}</td>
@@ -66,7 +68,7 @@ Sales
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9"><div class="empty-state">No sales found.</div></td>
+                    <td colspan="10"><div class="empty-state">No sales found.</div></td>
                 </tr>
                 {% endfor %}
             </tbody>
