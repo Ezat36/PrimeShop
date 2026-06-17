@@ -12,7 +12,7 @@ New Sale
     <div class="section-title">
         <div>
             <h5>Sale Details</h5>
-            <p>Choose a customer, record payment, then add sold items.</p>
+            <p>Choose a customer, record the amount paid now, then add sold items.</p>
         </div>
     </div>
 
@@ -41,7 +41,7 @@ New Sale
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Paid Amount</label>
+                <label class="form-label">Paid Now</label>
                 <input type="number" step="0.01" name="paid_amount" class="form-control" value="0">
             </div>
         </div>
@@ -76,7 +76,7 @@ New Sale
                             <option value="">Select variant</option>
                             {% for variant in variants %}
                                 <option value="{{ variant.id }}">
-                                    {{ variant.variant_name|default:variant }} - Stock: {{ variant.current_stock }}
+                                    {{ variant.variant_name|default:variant }} - Stock: {{ variant.current_stock }} {{ variant.sku }}
                                 </option>
                             {% endfor %}
                         </select>

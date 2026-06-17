@@ -1,5 +1,4 @@
 import csv
-from decimal import Decimal
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -14,7 +13,8 @@ from .models import StoreSetting, Expense, SaleItemAllocation, BatchExpense, Var
 from .models import CustomerPayment, SupplierPayment, StockTransfer, SaleReturn, ActivityLog
 from django.contrib.auth.decorators import permission_required
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
+from .services.reports import build_dashboard_context, get_sale_payment_status
 
 
 def log_activity(request, action, instance=None, description=''):
@@ -43,133 +43,7 @@ def apply_date_filter(queryset, request, field_name):
 @login_required
 def dashboard(request):
     filter_type = request.GET.get('filter', 'today')
-    today = timezone.now().date()
-
-    sale_items = SaleItem.objects.all()
-
-    if filter_type == 'today':
-        sale_items = sale_items.filter(sale__date=today)
-    elif filter_type == 'month':
-        sale_items = sale_items.filter(
-            sale__date__year=today.year,
-            sale__date__month=today.month
-        )
-    elif filter_type == 'year':
-        sale_items = sale_items.filter(sale__date__year=today.year)
-
-    sale_items = list(sale_items)
-
-    total_items_sold = 0
-    total_sales_value = 0
-    total_profit = 0
-    
-    sold_items = []
-
-    product_sales_qty = {}
-    product_sales_value = {}
-    product_profit = {}
-
-    for item in sale_items:
-        variant = item.variant
-        net_quantity = item.net_quantity()
-
-        if net_quantity <= 0:
-            continue
-
-        label = f"{variant.product.name} - {variant.size} - {variant.color}"
-        net_total = item.net_total_price()
-
-        total_items_sold += net_quantity
-        total_sales_value += net_total
-
-        purchased_qty = variant.total_purchased()
-        purchase_items = PurchaseItem.objects.filter(variant=variant)
-        purchase_value = sum(p.total_price() for p in purchase_items)
-
-        avg_buying_price = purchase_value / purchased_qty if purchased_qty > 0 else 0
-        item_profit = net_total - (avg_buying_price * net_quantity)
-
-        total_profit += item_profit
-
-        if label not in product_sales_qty:
-            product_sales_qty[label] = 0
-            product_sales_value[label] = 0
-            product_profit[label] = 0
-
-        product_sales_qty[label] += net_quantity
-        product_sales_value[label] += net_total
-        product_profit[label] += item_profit
-
-        sold_items.append({
-            'product': variant.product.name,
-            'size': variant.size,
-            'color': variant.color,
-            'model': variant.model,
-            'quantity': net_quantity,
-            'selling_price': item.selling_price,
-            'total': net_total,
-            'date': item.sale.date,
-        })
-
-    expenses = Expense.objects.all()
-
-    if filter_type == 'today':
-        expenses = expenses.filter(date=today)
-
-    elif filter_type == 'month':
-        expenses = expenses.filter(
-        date__year=today.year,
-        date__month=today.month
-    )
-
-    elif filter_type == 'year':
-        expenses = expenses.filter(
-        date__year=today.year
-    )
-
-    total_expenses = sum(expense.amount for expense in expenses)
-    net_profit = total_profit - total_expenses
-
-    variants = ProductVariant.objects.all()
-
-    current_stock_value = 0
-    low_stock_items = []
-
-    for variant in variants:
-        purchased_qty = variant.total_purchased()
-        purchase_items = PurchaseItem.objects.filter(variant=variant)
-        purchase_value = sum(p.total_price() for p in purchase_items)
-
-        avg_buying_price = purchase_value / purchased_qty if purchased_qty > 0 else 0
-        current_stock_value += variant.current_stock() * avg_buying_price
-
-        if variant.current_stock() <= variant.low_stock_alert:
-            low_stock_items.append(variant)
-
-    outstanding_balance = sum(
-        sale.remaining_balance()
-        for sale in Sale.objects.all()
-    )
-
-    context = {
-        'filter_type': filter_type,
-        'total_items_sold': total_items_sold,
-        'total_sales_value': total_sales_value,
-        'total_profit': total_profit,
-        'current_stock_value': current_stock_value,
-        'outstanding_balance': outstanding_balance,
-        'low_stock_count': len(low_stock_items),
-        'low_stock_items': low_stock_items,
-        'sold_items': sold_items,
-
-        'total_expenses': total_expenses,
-        'net_profit': net_profit,
-
-        'chart_labels': list(product_sales_qty.keys()),
-        'chart_values': list(product_sales_qty.values()),
-        'sales_value_chart': list(product_sales_value.values()),
-        'profit_chart': list(product_profit.values()),
-    }
+    context = build_dashboard_context(filter_type)
 
     return render(request, 'shop/dashboard.html', context)
 
@@ -553,7 +427,11 @@ def purchase_add(request):
 @login_required
 def sale_list(request):  
     search = request.GET.get('search', '')
-    sales = Sale.objects.all().order_by('-date', '-id')
+    sales = Sale.objects.select_related(
+        'customer',
+    ).prefetch_related(
+        'customer__payments',
+    ).order_by('-date', '-id')
 
     if search:
         sales = sales.filter(
@@ -564,9 +442,16 @@ def sale_list(request):
 
     sales = apply_date_filter(sales, request, 'date')
 
+    sales = list(sales)
+
+    for sale in sales:
+        payment_status = get_sale_payment_status(sale)
+        sale.paid_total = payment_status['paid_total']
+        sale.amount_due = payment_status['amount_due']
+
     total_final = sum(sale.final_amount() for sale in sales)
-    total_paid = sum(sale.paid_amount for sale in sales)
-    total_balance = sum(sale.remaining_balance() for sale in sales)
+    total_paid = sum(sale.paid_total for sale in sales)
+    total_balance = sum(sale.amount_due for sale in sales)
 
     return render(request, 'shop/sale_list.html', {
         'sales': sales,
@@ -758,7 +643,12 @@ def customer_add(request):
 @login_required
 def invoice_list(request):
     search = request.GET.get('search', '')
-    invoices = Invoice.objects.all().order_by('-created_at')
+    invoices = Invoice.objects.select_related(
+        'sale',
+        'sale__customer',
+    ).prefetch_related(
+        'sale__customer__payments',
+    ).order_by('-created_at')
 
     if search:
         invoices = invoices.filter(
@@ -768,9 +658,16 @@ def invoice_list(request):
 
     invoices = apply_date_filter(invoices, request, 'created_at')
 
+    invoices = list(invoices)
+
+    for invoice in invoices:
+        payment_status = get_sale_payment_status(invoice.sale)
+        invoice.paid_total = payment_status['paid_total']
+        invoice.amount_due = payment_status['amount_due']
+
     total_amount = sum(invoice.sale.final_amount() for invoice in invoices)
-    total_paid = sum(invoice.sale.paid_amount for invoice in invoices)
-    total_balance = sum(invoice.sale.remaining_balance() for invoice in invoices)
+    total_paid = sum(invoice.paid_total for invoice in invoices)
+    total_balance = sum(invoice.amount_due for invoice in invoices)
 
     return render(request, 'shop/invoice_list.html', {
         'invoices': invoices,
@@ -783,7 +680,12 @@ def invoice_list(request):
 
 @login_required
 def invoice_detail(request, invoice_id):
-    invoice = Invoice.objects.get(id=invoice_id)
+    invoice = Invoice.objects.select_related(
+        'sale',
+        'sale__customer',
+    ).prefetch_related(
+        'sale__customer__payments',
+    ).get(id=invoice_id)
     sale = invoice.sale
     sale_items = [
         item
@@ -792,12 +694,15 @@ def invoice_detail(request, invoice_id):
     ]
 
     setting, created = StoreSetting.objects.get_or_create(id=1)
+    payment_status = get_sale_payment_status(sale)
 
     return render(request, 'shop/invoice_detail.html', {
         'invoice': invoice,
         'sale': sale,
         'sale_items': sale_items,
         'setting': setting,
+        'paid_total': payment_status['paid_total'],
+        'amount_due': payment_status['amount_due'],
     })
 
 @login_required
@@ -1378,6 +1283,16 @@ def user_edit(request, user_id):
 def batch_detail(request, batch_number):
     batch_items = PurchaseItem.objects.filter(
         batch_number=batch_number
+    ).select_related(
+        'purchase',
+        'purchase__supplier',
+        'variant',
+        'variant__product',
+    ).prefetch_related(
+        Prefetch(
+            'variant__details',
+            queryset=VariantDetail.objects.order_by('id'),
+        )
     ).order_by('variant__size', 'variant__color', 'id')
 
     if not batch_items.exists():
@@ -1387,6 +1302,12 @@ def batch_detail(request, batch_number):
 
     allocations = SaleItemAllocation.objects.filter(
         purchase_item__batch_number=batch_number
+    ).select_related(
+        'sale_item',
+        'sale_item__sale',
+        'sale_item__sale__invoice',
+        'purchase_item',
+        'purchase_item__variant',
     ).order_by('-sale_item__sale__date', '-sale_item__sale__id')
 
     expenses = BatchExpense.objects.filter(
@@ -1421,12 +1342,29 @@ def batch_detail(request, batch_number):
 
     net_profit = gross_profit - total_expenses
 
+    flexible_field_names = []
+
+    for item in batch_items:
+        for detail in item.variant.details.all():
+            if detail.name not in flexible_field_names:
+                flexible_field_names.append(detail.name)
+            if len(flexible_field_names) == 4:
+                break
+        if len(flexible_field_names) == 4:
+            break
+
+    flexible_field_names += ['Field'] * (4 - len(flexible_field_names))
+
     variant_rows = []
 
     for item in batch_items:
         item_allocations = SaleItemAllocation.objects.filter(
             purchase_item=item
         )
+        detail_values = {
+            detail.name: detail.value
+            for detail in item.variant.details.all()
+        }
 
         item_sold_qty = sum(a.net_quantity() for a in item_allocations)
 
@@ -1453,12 +1391,17 @@ def batch_detail(request, batch_number):
             'revenue': item_revenue,
             'cogs': item_cogs,
             'gross_profit': item_gross_profit,
+            'flexible_values': [
+                detail_values.get(name, '-')
+                for name in flexible_field_names
+            ],
         })
 
     context = {
         'batch_number': batch_number,
         'first_item': first_item,
         'batch_items': batch_items,
+        'flexible_field_names': flexible_field_names,
         'variant_rows': variant_rows,
         'allocations': allocations,
         'expenses': expenses,

@@ -3,7 +3,7 @@
 {% block page_title %}Add Customer Payment{% endblock %}
 {% block content %}
 <div class="card card-box p-4 form-shell">
-    <div class="section-title"><div><h5>Payment Details</h5><p>Record money received against a customer's balance.</p></div></div>
+    <div class="section-title"><div><h5>Payment Details</h5><p>Record money received later against a customer's balance.</p></div></div>
     <form method="post">{% csrf_token %}
         <div class="form-section">
             <div class="mb-3"><label class="form-label">Customer</label><select name="customer" class="form-control" required><option value="">Select customer</option>{% for customer in customers %}<option value="{{ customer.id }}">{{ customer.name }}</option>{% endfor %}</select></div>

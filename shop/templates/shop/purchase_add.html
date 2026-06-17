@@ -64,7 +64,7 @@ New Purchase
                             <option value="">Select variant</option>
                             {% for variant in variants %}
                                 <option value="{{ variant.id }}">
-                                    {{ variant.product.name }} - {{ variant.size }} - {{ variant.color }} - {{ variant.model }}
+                                    {{ variant.variant_name|default:variant }} - Stock: {{ variant.current_stock }}
                                 </option>
                             {% endfor %}
                         </select>

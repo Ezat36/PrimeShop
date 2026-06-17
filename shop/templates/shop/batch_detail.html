@@ -134,11 +134,12 @@ Batch Detail
         <table class="table table-bordered table-hover align-middle">
             <thead class="table-dark">
                 <tr>
+                    <th>Product</th>
                     <th>Variant</th>
-                    <th>Size</th>
-                    <th>Color</th>
-                    <th>Model</th>
                     <th>SKU</th>
+                    {% for field_name in flexible_field_names %}
+                        <th>{{ field_name }}</th>
+                    {% endfor %}
                     <th>Purchased</th>
                     <th>Sold</th>
                     <th>Remaining</th>
@@ -154,10 +155,11 @@ Batch Detail
                 {% for row in variant_rows %}
                 <tr>
                     <td>{{ row.variant.product.name }}</td>
-                    <td>{{ row.variant.size }}</td>
-                    <td>{{ row.variant.color }}</td>
-                    <td>{{ row.variant.model }}</td>
-                    <td>{{ row.variant.sku }}</td>
+                    <td>{{ row.variant.variant_name|default:"-" }}</td>
+                    <td>{{ row.variant.sku|default:"-" }}</td>
+                    {% for value in row.flexible_values %}
+                        <td>{{ value }}</td>
+                    {% endfor %}
                     <td>{{ row.purchased_qty }}</td>
                     <td>{{ row.sold_qty }}</td>
                     <td>{{ row.remaining_qty }}</td>
@@ -196,7 +198,7 @@ Batch Detail
                 {% for allocation in allocations %}
                 <tr>
                     <td>{{ allocation.sale_item.sale.date }}</td>
-                    <td>Sale #{{ allocation.sale_item.sale.id }}</td>
+                    <td>{{ allocation.sale_item.sale.invoice.invoice_number|default:allocation.sale_item.sale.id }}</td>
                     <td>{{ allocation.sale_item.sale.customer|default:"-" }}</td>
                     <td>{{ allocation.purchase_item.variant }}</td>
                     <td>{{ allocation.net_quantity }}</td>

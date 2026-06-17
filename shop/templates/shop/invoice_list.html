@@ -21,7 +21,7 @@ Invoices
     <div class="total-pill"><span>Invoices</span><strong>{{ invoices|length }}</strong></div>
     <div class="total-pill"><span>Total</span><strong>{{ total_amount|floatformat:2 }} {{ store_currency }}</strong></div>
     <div class="total-pill"><span>Paid</span><strong>{{ total_paid|floatformat:2 }} {{ store_currency }}</strong></div>
-    <div class="total-pill"><span>Balance</span><strong>{{ total_balance|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Amount Due</span><strong>{{ total_balance|floatformat:2 }} {{ store_currency }}</strong></div>
 </div>
 
 <div class="card card-box p-4">
@@ -37,7 +37,7 @@ Invoices
                     <th>Customer</th>
                     <th class="money">Total</th>
                     <th class="money">Paid</th>
-                    <th class="money">Balance</th>
+                    <th class="money">Amount Due</th>
                     <th class="actions-cell">Action</th>
                 </tr>
             </thead>
@@ -50,11 +50,11 @@ Invoices
                     <td>{{ invoice.created_at|date:"Y-m-d H:i" }}</td>
                     <td>{{ invoice.sale.customer }}</td>
                     <td class="money">{{ invoice.sale.final_amount|floatformat:2 }} {{ store_currency }}</td>
-                    <td class="money">{{ invoice.sale.paid_amount|floatformat:2 }} {{ store_currency }}</td>
+                    <td class="money">{{ invoice.paid_total|floatformat:2 }} {{ store_currency }}</td>
                     <td class="money">
-                        {% if invoice.sale.remaining_balance > 0 %}
+                        {% if invoice.amount_due > 0 %}
                             <span class="badge bg-danger">
-                                {{ invoice.sale.remaining_balance|floatformat:2 }}
+                                {{ invoice.amount_due|floatformat:2 }}
                             </span>
                         {% else %}
                             <span class="badge bg-success">0.00</span>

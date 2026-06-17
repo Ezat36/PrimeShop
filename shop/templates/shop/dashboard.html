@@ -26,10 +26,10 @@ Business Dashboard
     <div class="col-md-6 col-xl-3">
         <div class="card card-box metric-card p-4">
             <div class="d-flex justify-content-between">
-                <span class="metric-label">Net Profit</span>
+                <span class="metric-label">Paid Net Profit</span>
                 <span class="metric-icon"><i class="bi bi-graph-up-arrow"></i></span>
             </div>
-            <h2 class="metric-value text-success">{{ net_profit|floatformat:2 }}</h2>
+            <h2 class="metric-value {% if net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit|floatformat:2 }}</h2>
         </div>
     </div>
 
@@ -69,7 +69,7 @@ Business Dashboard
                 <span class="metric-label">Gross Profit</span>
                 <span class="metric-icon"><i class="bi bi-arrow-up-right-circle"></i></span>
             </div>
-            <h2 class="metric-value text-success">{{ total_profit|floatformat:2 }}</h2>
+            <h2 class="metric-value {% if total_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_profit|floatformat:2 }}</h2>
         </div>
     </div>
 
@@ -86,7 +86,7 @@ Business Dashboard
     <div class="col-md-6 col-xl-3">
         <div class="card card-box metric-card p-4">
             <div class="d-flex justify-content-between">
-                <span class="metric-label">Customer Balance</span>
+                <span class="metric-label">Customer Amount Due</span>
                 <span class="metric-icon"><i class="bi bi-wallet2"></i></span>
             </div>
             <h2 class="metric-value text-danger">{{ outstanding_balance|floatformat:2 }}</h2>
@@ -96,10 +96,10 @@ Business Dashboard
     <div class="col-md-6 col-xl-3">
         <div class="card card-box metric-card p-4">
             <div class="d-flex justify-content-between">
-                <span class="metric-label">General Expenses</span>
+                <span class="metric-label">Total Expenses</span>
                 <span class="metric-icon"><i class="bi bi-cash-stack"></i></span>
             </div>
-            <h2 class="metric-value text-danger">{{ total_expenses|floatformat:2 }}</h2>
+            <h2 class="metric-value text-danger">{{ total_all_expenses|floatformat:2 }}</h2>
         </div>
     </div>
 
@@ -131,7 +131,7 @@ Business Dashboard
 
     <div class="col-md-8">
         <div class="card card-box chart-card p-4">
-            <h5 class="mb-3">Profit by Product</h5>
+            <h5 class="mb-3">Paid Net Profit by Product</h5>
             {% if chart_labels %}
                 <canvas id="profitChart" height="220"></canvas>
             {% else %}
@@ -173,10 +173,13 @@ Business Dashboard
                     <tr>
                         <th>Date</th>
                         <th>Product</th>
-                        <th>Size</th>
-                        <th>Color</th>
-                        <th>Qty</th>
-                        <th>Total</th>
+                        <th>Variant</th>
+                        <th>Sold Qty</th>
+                        <th>Buying Price</th>
+                        <th>Selling Price</th>
+                        <th>Total Sales</th>
+                        <th>Gross Profit</th>
+                        <th>Paid Net Profit</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -185,14 +188,21 @@ Business Dashboard
                     <tr>
                         <td>{{ item.date }}</td>
                         <td>{{ item.product }}</td>
-                        <td>{{ item.size }}</td>
-                        <td>{{ item.color }}</td>
+                        <td>{{ item.variant }}</td>
                         <td>{{ item.quantity }}</td>
-                        <td>{{ item.total }}</td>
+                        <td>{{ item.buying_price|floatformat:2 }}</td>
+                        <td>{{ item.selling_price|floatformat:2 }}</td>
+                        <td>{{ item.total_sales|floatformat:2 }}</td>
+                        <td class="{% if item.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ item.gross_profit|floatformat:2 }}
+                        </td>
+                        <td class="{% if item.net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ item.net_profit|floatformat:2 }}
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center text-muted">
+                        <td colspan="9" class="text-center text-muted">
                             No sales found.
                         </td>
                     </tr>

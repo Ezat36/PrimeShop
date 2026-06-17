@@ -116,14 +116,14 @@ Invoice {{ invoice.invoice_number }}
             <div class="summary-row">
                 <span>Paid</span>
                 <strong class="text-success">
-                    {{ sale.paid_amount|floatformat:2 }} {{ setting.currency }}
+                    {{ paid_total|floatformat:2 }} {{ setting.currency }}
                 </strong>
             </div>
 
             <div class="summary-row balance-row">
                 <span>Balance Due</span>
                 <strong class="text-danger">
-                    {{ sale.remaining_balance|floatformat:2 }} {{ setting.currency }}
+                    {{ amount_due|floatformat:2 }} {{ setting.currency }}
                 </strong>
             </div>
 
