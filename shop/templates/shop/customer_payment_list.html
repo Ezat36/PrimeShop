@@ -3,7 +3,16 @@
 {% block page_title %}Customer Payments{% endblock %}
 {% block content %}
 <div class="toolbar">
-    <a href="/customers/payments/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Add Payment</a>
+    <form method="get" class="search-box">
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary"><i class="bi bi-funnel"></i></button>
+    </form>
+    <div class="toolbar-actions">
+        <a href="/exports/customer-payments/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> CSV</a>
+        <a href="/exports/customer-payments/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&format=xls" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
+        <a href="/customers/payments/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Add Payment</a>
+    </div>
 </div>
 <div class="total-strip">
     <div class="total-pill"><span>Payments</span><strong>{{ payments|length }}</strong></div>
@@ -12,15 +21,16 @@
 <div class="card card-box p-4">
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
-            <thead class="table-dark"><tr><th>Date</th><th>Customer</th><th>Method</th><th class="money">Amount</th><th>Note</th><th>User</th></tr></thead>
+            <thead class="table-dark"><tr><th>Date</th><th>Customer</th><th>Invoice</th><th>Method</th><th class="money">Amount</th><th>Note</th><th>User</th></tr></thead>
             <tbody>
                 {% for payment in payments %}
-                <tr><td>{{ payment.date }}</td><td>{{ payment.customer }}</td><td><span class="badge bg-secondary">{{ payment.method }}</span></td><td class="money">{{ payment.amount|floatformat:2 }} {{ store_currency }}</td><td>{{ payment.note }}</td><td>{{ payment.created_by|default:"-" }}</td></tr>
+                <tr><td>{{ payment.date }}</td><td>{{ payment.customer }}</td><td>{% if payment.sale %}{{ payment.sale.invoice.invoice_number|default:payment.sale }}{% else %}<span class="text-muted">Auto balance</span>{% endif %}</td><td><span class="badge bg-secondary">{{ payment.method }}</span></td><td class="money">{{ payment.amount|floatformat:2 }} {{ store_currency }}</td><td>{{ payment.note }}</td><td>{{ payment.created_by|default:"-" }}</td></tr>
                 {% empty %}
-                <tr><td colspan="6"><div class="empty-state">No customer payments found.</div></td></tr>
+                <tr><td colspan="7"><div class="empty-state">No customer payments found.</div></td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 </div>
 {% endblock %}

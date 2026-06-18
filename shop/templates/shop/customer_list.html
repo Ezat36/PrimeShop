@@ -28,7 +28,7 @@ Customers
 <div class="total-strip">
     <div class="total-pill">
         <span>Customers</span>
-        <strong>{{ customer_data|length }}</strong>
+        <strong>{{ customers_count }}</strong>
     </div>
 </div>
 
@@ -46,6 +46,7 @@ Customers
                     <th class="money">Paid at Sale</th>
                     <th class="money">Later Payments</th>
                     <th class="money">Amount Due</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
 
@@ -67,10 +68,13 @@ Customers
                             <span class="badge bg-success">0.00</span>
                         {% endif %}
                     </td>
+                    <td>
+                        <a href="{% url 'customer_detail' row.customer.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9">
+                    <td colspan="10">
                         <div class="empty-state">No customers found.</div>
                     </td>
                 </tr>
@@ -78,6 +82,7 @@ Customers
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 </div>
 
 {% endblock %}

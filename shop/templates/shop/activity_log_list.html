@@ -2,5 +2,64 @@
 {% block title %}Activity Logs{% endblock %}
 {% block page_title %}Activity Logs{% endblock %}
 {% block content %}
-<div class="card card-box p-4"><div class="table-responsive"><table class="table table-bordered table-hover align-middle"><thead class="table-dark"><tr><th>Time</th><th>User</th><th>Action</th><th>Model</th><th>Object</th><th>Description</th></tr></thead><tbody>{% for log in logs %}<tr><td>{{ log.created_at|date:"Y-m-d H:i" }}</td><td>{{ log.user|default:"System" }}</td><td><span class="badge bg-primary">{{ log.action }}</span></td><td>{{ log.model_name }}</td><td>{{ log.object_id }}</td><td>{{ log.description }}</td></tr>{% empty %}<tr><td colspan="6"><div class="empty-state">No activity logs found.</div></td></tr>{% endfor %}</tbody></table></div></div>
+
+<div class="toolbar">
+    <form method="get" class="search-box">
+        <select name="user" class="form-control">
+            <option value="">All users</option>
+            {% for user in users %}
+                <option value="{{ user.id }}" {% if request.GET.user == user.id|stringformat:"s" %}selected{% endif %}>{{ user.username }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="action" class="form-control" placeholder="Action" value="{{ request.GET.action }}">
+        <input type="text" name="model_name" class="form-control" placeholder="Model" value="{{ request.GET.model_name }}">
+        <input type="text" name="ip_address" class="form-control" placeholder="IP address" value="{{ request.GET.ip_address }}">
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+    </form>
+</div>
+
+<div class="card card-box p-4">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Model</th>
+                    <th>Object</th>
+                    <th>IP Address</th>
+                    <th>Device</th>
+                    <th>Location</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                    <tr>
+                        <td>{{ log.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>{{ log.user|default:"System" }}</td>
+                        <td><span class="badge bg-primary">{{ log.action }}</span></td>
+                        <td>{{ log.model_name|default:"-" }}</td>
+                        <td>{{ log.object_id|default:"-" }}</td>
+                        <td>{{ log.ip_address|default:"Unknown" }}</td>
+                        <td>{{ log.device|default:"Unknown" }}</td>
+                        <td>{{ log.location|default:"Unknown" }}</td>
+                        <td>{{ log.description }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="9">
+                            <div class="empty-state">No activity logs found.</div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'shop/partials/pagination.html' %}
+</div>
+
 {% endblock %}

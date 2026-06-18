@@ -8,6 +8,33 @@ Store Settings
 
 {% block content %}
 
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card card-box p-4">
+            <h5 class="mb-2">Production Readiness</h5>
+            <div class="d-flex justify-content-between border-bottom py-2">
+                <span>Debug Mode</span>
+                {% if debug_enabled %}
+                    <strong class="text-danger">On</strong>
+                {% else %}
+                    <strong class="text-success">Off</strong>
+                {% endif %}
+            </div>
+            <div class="d-flex justify-content-between py-2">
+                <span>Allowed Hosts</span>
+                <strong>{{ allowed_hosts|join:", " }}</strong>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card card-box p-4">
+            <h5 class="mb-2">Backup Reminder</h5>
+            <p class="text-muted mb-3">Download a backup before deployment, restore, or big stock/accounting changes.</p>
+            <a href="{% url 'backup_restore_page' %}" class="btn btn-outline-primary"><i class="bi bi-database-down"></i> Backup & Restore</a>
+        </div>
+    </div>
+</div>
+
 <div class="card card-box p-4 form-shell">
     <div class="section-title">
         <div>

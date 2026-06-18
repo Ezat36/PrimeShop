@@ -2,7 +2,18 @@
 {% block title %}Supplier Payments{% endblock %}
 {% block page_title %}Supplier Payments{% endblock %}
 {% block content %}
-<div class="toolbar"><a href="/suppliers/payments/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Add Payment</a></div>
+<div class="toolbar">
+    <form method="get" class="search-box">
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary"><i class="bi bi-funnel"></i></button>
+    </form>
+    <div class="toolbar-actions">
+        <a href="/exports/supplier-payments/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> CSV</a>
+        <a href="/exports/supplier-payments/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&format=xls" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
+        <a href="/suppliers/payments/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Add Payment</a>
+    </div>
+</div>
 <div class="total-strip"><div class="total-pill"><span>Payments</span><strong>{{ payments|length }}</strong></div><div class="total-pill"><span>Total Paid</span><strong>{{ total_payments|floatformat:2 }} {{ store_currency }}</strong></div></div>
-<div class="card card-box p-4"><div class="table-responsive"><table class="table table-bordered table-hover align-middle"><thead class="table-dark"><tr><th>Date</th><th>Supplier</th><th>Method</th><th class="money">Amount</th><th>Note</th><th>User</th></tr></thead><tbody>{% for payment in payments %}<tr><td>{{ payment.date }}</td><td>{{ payment.supplier }}</td><td><span class="badge bg-secondary">{{ payment.method }}</span></td><td class="money">{{ payment.amount|floatformat:2 }} {{ store_currency }}</td><td>{{ payment.note }}</td><td>{{ payment.created_by|default:"-" }}</td></tr>{% empty %}<tr><td colspan="6"><div class="empty-state">No supplier payments found.</div></td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card card-box p-4"><div class="table-responsive"><table class="table table-bordered table-hover align-middle"><thead class="table-dark"><tr><th>Date</th><th>Supplier</th><th>Method</th><th class="money">Amount</th><th>Note</th><th>User</th></tr></thead><tbody>{% for payment in payments %}<tr><td>{{ payment.date }}</td><td>{{ payment.supplier }}</td><td><span class="badge bg-secondary">{{ payment.method }}</span></td><td class="money">{{ payment.amount|floatformat:2 }} {{ store_currency }}</td><td>{{ payment.note }}</td><td>{{ payment.created_by|default:"-" }}</td></tr>{% empty %}<tr><td colspan="6"><div class="empty-state">No supplier payments found.</div></td></tr>{% endfor %}</tbody></table></div>{% include 'shop/partials/pagination.html' %}</div>
 {% endblock %}

@@ -23,15 +23,18 @@ Business Dashboard
 
 <div class="row g-4 mb-4">
 
-    <div class="col-md-6 col-xl-3">
-        <div class="card card-box metric-card p-4">
-            <div class="d-flex justify-content-between">
-                <span class="metric-label">Paid Net Profit</span>
-                <span class="metric-icon"><i class="bi bi-graph-up-arrow"></i></span>
+    {% if can_view_dashboard_profit %}
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-box metric-card p-4">
+                <div class="d-flex justify-content-between">
+                    <span class="metric-label">Net Profit</span>
+                    <span class="metric-icon"><i class="bi bi-graph-up-arrow"></i></span>
+                </div>
+                <h2 class="metric-value {% if net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit|floatformat:2 }}</h2>
+                <div class="small text-muted">After expenses for selected period</div>
             </div>
-            <h2 class="metric-value {% if net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit|floatformat:2 }}</h2>
         </div>
-    </div>
+    {% endif %}
 
     <div class="col-md-6 col-xl-3">
         <div class="card card-box metric-card p-4">
@@ -63,45 +66,50 @@ Business Dashboard
         </div>
     </div>
 
-    <div class="col-md-6 col-xl-3">
-        <div class="card card-box metric-card p-4">
-            <div class="d-flex justify-content-between">
-                <span class="metric-label">Gross Profit</span>
-                <span class="metric-icon"><i class="bi bi-arrow-up-right-circle"></i></span>
+    {% if can_view_dashboard_profit %}
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-box metric-card p-4">
+                <div class="d-flex justify-content-between">
+                    <span class="metric-label">Gross Profit</span>
+                    <span class="metric-icon"><i class="bi bi-arrow-up-right-circle"></i></span>
+                </div>
+                <h2 class="metric-value {% if total_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_profit|floatformat:2 }}</h2>
             </div>
-            <h2 class="metric-value {% if total_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_profit|floatformat:2 }}</h2>
         </div>
-    </div>
 
-    <div class="col-md-6 col-xl-3">
-        <div class="card card-box metric-card p-4">
-            <div class="d-flex justify-content-between">
-                <span class="metric-label">Stock Value</span>
-                <span class="metric-icon"><i class="bi bi-boxes"></i></span>
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-box metric-card p-4">
+                <div class="d-flex justify-content-between">
+                    <span class="metric-label">Stock Value</span>
+                    <span class="metric-icon"><i class="bi bi-boxes"></i></span>
+                </div>
+                <h2 class="metric-value">{{ current_stock_value|floatformat:2 }}</h2>
             </div>
-            <h2 class="metric-value">{{ current_stock_value|floatformat:2 }}</h2>
         </div>
-    </div>
 
-    <div class="col-md-6 col-xl-3">
-        <div class="card card-box metric-card p-4">
-            <div class="d-flex justify-content-between">
-                <span class="metric-label">Customer Amount Due</span>
-                <span class="metric-icon"><i class="bi bi-wallet2"></i></span>
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-box metric-card p-4">
+                <div class="d-flex justify-content-between">
+                    <span class="metric-label">Customer Amount Due</span>
+                    <span class="metric-icon"><i class="bi bi-wallet2"></i></span>
+                </div>
+                <h2 class="metric-value text-danger">{{ outstanding_balance|floatformat:2 }}</h2>
             </div>
-            <h2 class="metric-value text-danger">{{ outstanding_balance|floatformat:2 }}</h2>
         </div>
-    </div>
 
-    <div class="col-md-6 col-xl-3">
-        <div class="card card-box metric-card p-4">
-            <div class="d-flex justify-content-between">
-                <span class="metric-label">Total Expenses</span>
-                <span class="metric-icon"><i class="bi bi-cash-stack"></i></span>
+        <div class="col-md-6 col-xl-3">
+            <div class="card card-box metric-card p-4">
+                <div class="d-flex justify-content-between">
+                    <span class="metric-label">Total Expenses</span>
+                    <span class="metric-icon"><i class="bi bi-cash-stack"></i></span>
+                </div>
+                <h2 class="metric-value text-danger">{{ total_all_expenses|floatformat:2 }}</h2>
+                <div class="small text-muted">
+                    General {{ total_expenses|floatformat:2 }} + Batch {{ total_batch_expenses|floatformat:2 }}
+                </div>
             </div>
-            <h2 class="metric-value text-danger">{{ total_all_expenses|floatformat:2 }}</h2>
         </div>
-    </div>
+    {% endif %}
 
 </div>
 
@@ -129,9 +137,10 @@ Business Dashboard
         </div>
     </div>
 
+    {% if can_view_dashboard_profit %}
     <div class="col-md-8">
         <div class="card card-box chart-card p-4">
-            <h5 class="mb-3">Paid Net Profit by Product</h5>
+            <h5 class="mb-3">Net Profit by Product</h5>
             {% if chart_labels %}
                 <canvas id="profitChart" height="220"></canvas>
             {% else %}
@@ -139,6 +148,7 @@ Business Dashboard
             {% endif %}
         </div>
     </div>
+    {% endif %}
 
     <div class="col-md-4">
         <div class="card card-box p-4">
@@ -175,11 +185,15 @@ Business Dashboard
                         <th>Product</th>
                         <th>Variant</th>
                         <th>Sold Qty</th>
+                        {% if can_view_dashboard_profit %}
                         <th>Buying Price</th>
+                        {% endif %}
                         <th>Selling Price</th>
                         <th>Total Sales</th>
+                        {% if can_view_dashboard_profit %}
                         <th>Gross Profit</th>
-                        <th>Paid Net Profit</th>
+                        <th>Net Profit</th>
+                        {% endif %}
                     </tr>
                     </thead>
                     <tbody>
@@ -190,19 +204,23 @@ Business Dashboard
                         <td>{{ item.product }}</td>
                         <td>{{ item.variant }}</td>
                         <td>{{ item.quantity }}</td>
+                        {% if can_view_dashboard_profit %}
                         <td>{{ item.buying_price|floatformat:2 }}</td>
+                        {% endif %}
                         <td>{{ item.selling_price|floatformat:2 }}</td>
                         <td>{{ item.total_sales|floatformat:2 }}</td>
+                        {% if can_view_dashboard_profit %}
                         <td class="{% if item.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">
                             {{ item.gross_profit|floatformat:2 }}
                         </td>
                         <td class="{% if item.net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
                             {{ item.net_profit|floatformat:2 }}
                         </td>
+                        {% endif %}
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="text-center text-muted">
+                        <td colspan="{% if can_view_dashboard_profit %}9{% else %}6{% endif %}" class="text-center text-muted">
                             No sales found.
                         </td>
                     </tr>
@@ -272,6 +290,7 @@ Business Dashboard
 
     
 
+    {% if can_view_dashboard_profit %}
     new Chart(document.getElementById('profitChart'), {
         type: 'line',
         data: {
@@ -295,6 +314,7 @@ Business Dashboard
             scales: { y: { beginAtZero: true } }
         }
     });
+    {% endif %}
     }
 </script>
 

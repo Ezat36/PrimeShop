@@ -11,6 +11,7 @@ urlpatterns = [
     path('products/', views.product_list, name='product_list'),
 
     path('stock-report/', views.stock_report, name='stock_report'),
+    path('stock-report/<int:variant_id>/movements/', views.stock_movement_report, name='stock_movement_report'),
     path('profit-loss-report/', views.profit_loss_report, name='profit_loss_report'),
     path('user-sales-report/', views.user_sales_report, name='user_sales_report'),
     path('purchases/', views.purchase_list, name='purchase_list'),
@@ -18,16 +19,19 @@ urlpatterns = [
     path('sales/', views.sale_list, name='sale_list'),
     path('sales/pos/', views.pos_sale, name='pos_sale'),
     path('sales/add/', views.sale_add, name='sale_add'),
+    path('sales/<int:sale_id>/cancel/', views.sale_cancel, name='sale_cancel'),
     path('sales/returns/', views.sale_return_list, name='sale_return_list'),
     path('sales/returns/add/', views.sale_return_add, name='sale_return_add'),
     path('customers/', views.customer_list, name='customer_list'),
     path('customers/add/', views.customer_add, name='customer_add'),
+    path('customers/<int:customer_id>/', views.customer_detail, name='customer_detail'),
     path('customers/payments/', views.customer_payment_list, name='customer_payment_list'),
     path('customers/payments/add/', views.customer_payment_add, name='customer_payment_add'),
     path('invoices/', views.invoice_list, name='invoice_list'),
     path('invoices/<int:invoice_id>/', views.invoice_detail, name='invoice_detail'),
     path('suppliers/', views.supplier_list, name='supplier_list'),
     path('suppliers/add/', views.supplier_add, name='supplier_add'),
+    path('suppliers/<int:supplier_id>/', views.supplier_detail, name='supplier_detail'),
     path('suppliers/payments/', views.supplier_payment_list, name='supplier_payment_list'),
     path('suppliers/payments/add/', views.supplier_payment_add, name='supplier_payment_add'),
 
@@ -47,6 +51,9 @@ urlpatterns = [
     path('profile/change-password/', views.change_password, name='change_password'),
 
     path('settings/', views.settings_page, name='settings_page'),
+    path('backup-restore/', views.backup_restore_page, name='backup_restore_page'),
+    path('backup-restore/download/', views.backup_download, name='backup_download'),
+    path('backup-restore/restore/', views.backup_restore, name='backup_restore'),
 
     path('expenses/', views.expense_list, name='expense_list'),
     path('expenses/add/', views.expense_add, name='expense_add'),
@@ -67,6 +74,8 @@ urlpatterns = [
     path('low-stock-alerts/', views.low_stock_alerts, name='low_stock_alerts'),
     path('stock-transfers/', views.stock_transfer_list, name='stock_transfer_list'),
     path('stock-transfers/add/', views.stock_transfer_add, name='stock_transfer_add'),
+    path('stock-adjustments/', views.stock_adjustment_list, name='stock_adjustment_list'),
+    path('stock-adjustments/add/', views.stock_adjustment_add, name='stock_adjustment_add'),
     path('activity-logs/', views.activity_log_list, name='activity_log_list'),
     path('exports/<str:report_type>/', views.export_data, name='export_data'),
     

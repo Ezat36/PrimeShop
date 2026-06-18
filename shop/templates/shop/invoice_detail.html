@@ -33,9 +33,13 @@ Invoice {{ invoice.invoice_number }}
         </div>
 
         <div class="invoice-meta">
-            <h2>INVOICE</h2>
+            <h2>{% if sale.is_canceled %}CANCELED INVOICE{% else %}INVOICE{% endif %}</h2>
             <div><span>No</span><strong>{{ invoice.invoice_number }}</strong></div>
             <div><span>Date</span><strong>{{ invoice.created_at|date:"Y-m-d H:i" }}</strong></div>
+            <div><span>Payment</span><strong>{% if amount_due > 0 %}Partially Paid{% else %}Paid{% endif %}</strong></div>
+            {% if sale.is_canceled %}
+                <div><span>Status</span><strong class="text-danger">Canceled</strong></div>
+            {% endif %}
         </div>
 
     </div>
@@ -133,6 +137,24 @@ Invoice {{ invoice.invoice_number }}
 
     <hr class="my-3">
 
+    <div class="signature-grid">
+        <div>
+            <span>Customer Signature</span>
+        </div>
+        <div>
+            <span>Authorized Signature</span>
+        </div>
+    </div>
+
+    <hr class="my-3">
+
+    {% if sale.is_canceled %}
+        <div class="alert alert-secondary">
+            This sale was canceled by {{ sale.canceled_by|default:"-" }} on {{ sale.canceled_at|date:"Y-m-d H:i" }}.
+            {% if sale.cancel_reason %}Reason: {{ sale.cancel_reason }}{% endif %}
+        </div>
+    {% endif %}
+
     <div class="terms">
         <strong>Terms & Conditions</strong><br>
         Final Sale, No Returns or Refunds.<br>
@@ -228,6 +250,24 @@ Invoice {{ invoice.invoice_number }}
         color: #333;
         line-height: 1.4;
         page-break-inside: avoid;
+    }
+
+    .signature-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+        page-break-inside: avoid;
+    }
+
+    .signature-grid div {
+        min-height: 58px;
+        border-bottom: 1px solid #94a3b8;
+        display: flex;
+        align-items: flex-end;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
     }
 
     #invoice-area {

@@ -1,0 +1,123 @@
+{% extends 'shop/base.html' %}
+{% block title %}Customer Detail{% endblock %}
+{% block page_title %}Customer Detail{% endblock %}
+{% block content %}
+
+<div class="toolbar">
+    <div>
+        <span class="eyebrow">Customer</span>
+        <h5 class="mb-0">{{ customer.name }}</h5>
+    </div>
+    <div class="toolbar-actions no-print">
+        <a href="/exports/customer-statement/?customer={{ customer.id }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> CSV</a>
+        <a href="/exports/customer-statement/?customer={{ customer.id }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&format=xls" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
+        <button onclick="window.print()" class="btn btn-primary" data-no-loading="true"><i class="bi bi-printer"></i> Print</button>
+        <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary">Back</a>
+    </div>
+</div>
+
+<div class="total-strip">
+    <div class="total-pill"><span>Total Purchase</span><strong>{{ total_purchase|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Total Paid</span><strong>{{ total_paid|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Balance</span><strong>{{ total_balance|floatformat:2 }} {{ store_currency }}</strong></div>
+</div>
+
+<form method="get" class="toolbar no-print">
+    <div class="search-box">
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary"><i class="bi bi-funnel"></i> Filter</button>
+        <a href="{% url 'customer_detail' customer.id %}" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+<div class="card card-box p-4 mb-4">
+    <h5 class="mb-3">Customer Statement</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark"><tr><th>Date</th><th>Type</th><th>Reference</th><th>Description</th><th class="money">Debit</th><th class="money">Credit</th><th class="money">Balance</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for row in statement_rows %}
+                    <tr>
+                        <td>{{ row.date }}</td>
+                        <td>{{ row.type }}</td>
+                        <td>{{ row.reference }}</td>
+                        <td>{{ row.description }}</td>
+                        <td class="money">{{ row.debit|floatformat:2 }}</td>
+                        <td class="money">{{ row.credit|floatformat:2 }}</td>
+                        <td class="money">{{ row.balance|floatformat:2 }}</td>
+                        <td>{{ row.status }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="8"><div class="empty-state">No statement activity found.</div></td></tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="4">Filtered Totals</th>
+                    <th class="money">{{ statement_debit|floatformat:2 }}</th>
+                    <th class="money">{{ statement_credit|floatformat:2 }}</th>
+                    <th colspan="2"></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% include 'shop/partials/pagination.html' %}
+</div>
+
+<div class="card card-box p-4 mb-4">
+    <h5 class="mb-3">Sales</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark"><tr><th>Invoice</th><th>Date</th><th>Final</th><th>Paid</th><th>Due</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for sale in sales %}
+                    <tr>
+                        <td>{{ sale.invoice.invoice_number|default:sale }}</td>
+                        <td>{{ sale.date }}</td>
+                        <td class="money">{{ sale.final_amount|floatformat:2 }}</td>
+                        <td class="money">{{ sale.paid_total|floatformat:2 }}</td>
+                        <td class="money">{{ sale.amount_due|floatformat:2 }}</td>
+                        <td>{% if sale.is_canceled %}<span class="badge bg-secondary">Canceled</span>{% else %}<span class="badge bg-success">Active</span>{% endif %}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6"><div class="empty-state">No sales found.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card card-box p-4">
+    <h5 class="mb-3">Payments</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark"><tr><th>Date</th><th>Invoice</th><th>Method</th><th>Amount</th><th>Note</th><th>User</th></tr></thead>
+            <tbody>
+                {% for payment in payments %}
+                    <tr>
+                        <td>{{ payment.date }}</td>
+                        <td>{% if payment.sale %}{{ payment.sale.invoice.invoice_number|default:payment.sale }}{% else %}Auto balance{% endif %}</td>
+                        <td>{{ payment.method }}</td>
+                        <td class="money">{{ payment.amount|floatformat:2 }}</td>
+                        <td>{{ payment.note }}</td>
+                        <td>{{ payment.created_by|default:"-" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6"><div class="empty-state">No payments found.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+@media print {
+    .sidebar, .topbar, .mobile-menu-toggle, .no-print { display: none !important; }
+    .content { margin-left: 0 !important; padding: 10px !important; }
+    body { background: #fff !important; }
+    .card { box-shadow: none !important; }
+}
+</style>
+
+{% endblock %}

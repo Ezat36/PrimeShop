@@ -3,7 +3,7 @@
 {% block title %}Users{% endblock %}
 
 {% block page_title %}
-👤 User Management
+User Management
 {% endblock %}
 
 {% block content %}
@@ -17,7 +17,7 @@
     </div>
 
     <a href="/users/add/" class="btn btn-success">
-        + Add User
+        <i class="bi bi-plus-lg"></i> Add User
     </a>
 </div>
 
@@ -113,24 +113,23 @@
                     </td>
 
                     <td class="text-end">
-
                         <a href="/users/{{ user.id }}/edit/"
                            class="btn btn-sm btn-outline-primary">
-                            ✏ Edit
+                            <i class="bi bi-pencil"></i> Edit
                         </a>
 
-                        {% if user.is_active %}
-                            <a href="/users/{{ user.id }}/toggle/"
-                               class="btn btn-sm btn-outline-danger">
-                                Disable
-                            </a>
-                        {% else %}
-                            <a href="/users/{{ user.id }}/toggle/"
-                               class="btn btn-sm btn-outline-success">
-                                Enable
-                            </a>
-                        {% endif %}
-
+                        <form method="post" action="/users/{{ user.id }}/toggle/" class="d-inline">
+                            {% csrf_token %}
+                            {% if user.is_active %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    Disable
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    Enable
+                                </button>
+                            {% endif %}
+                        </form>
                     </td>
                 </tr>
 

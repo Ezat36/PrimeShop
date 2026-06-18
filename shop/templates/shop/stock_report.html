@@ -13,9 +13,16 @@ Stock Report
         <span class="eyebrow">Inventory</span>
         <h5 class="mb-0">Stock by product variant</h5>
     </div>
+    <form method="get" class="search-box">
+        <input type="text" name="search" class="form-control" placeholder="Search product, variant, SKU..." value="{{ search }}">
+        <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+    </form>
     <div class="toolbar-actions">
-        <a href="/exports/stock/" class="btn btn-outline-primary">
-            <i class="bi bi-download"></i> Export
+        <a href="/exports/stock/?search={{ search }}" class="btn btn-outline-primary">
+            <i class="bi bi-download"></i> CSV
+        </a>
+        <a href="/exports/stock/?search={{ search }}&format=xls" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Excel
         </a>
         <button type="button" onclick="window.print()" class="btn btn-primary" data-no-loading="true">
             <i class="bi bi-printer"></i> Print
@@ -84,6 +91,7 @@ Stock Report
                     <th class="number">Sold</th>
                     <th class="number">Remaining</th>
                     <th>Status</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -104,15 +112,19 @@ Stock Report
                             <span class="badge bg-success">Available</span>
                         {% endif %}
                     </td>
+                    <td>
+                        <a href="{% url 'stock_movement_report' variant.id %}" class="btn btn-sm btn-outline-primary">Movement</a>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7"><div class="empty-state">No stock data found.</div></td>
+                    <td colspan="8"><div class="empty-state">No stock data found.</div></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 </div>
 
 <style>

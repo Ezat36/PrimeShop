@@ -16,7 +16,8 @@ Purchases
         <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
     </form>
     <div class="toolbar-actions">
-        <a href="/exports/purchases/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export</a>
+        <a href="/exports/purchases/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&search={{ search }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> CSV</a>
+        <a href="/exports/purchases/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&search={{ search }}&format=xls" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
         <a href="/purchases/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> New Purchase</a>
     </div>
 </div>
@@ -62,6 +63,7 @@ Purchases
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 </div>
 
 {% endblock %}

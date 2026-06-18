@@ -32,6 +32,7 @@
     <div class="menu-title">Main</div>
     <a href="/" data-nav-match="exact"><i class="bi bi-speedometer2"></i> Dashboard</a>
 
+    {% if perms.shop.view_product or perms.shop.view_purchase or perms.shop.view_supplier or perms.shop.view_stock_report or perms.shop.view_stocktransfer or perms.shop.view_stockadjustment %}
     <details class="menu-group">
         <summary><span><i class="bi bi-box-seam"></i> Inventory</span><i class="bi bi-chevron-down menu-chevron"></i></summary>
         <div class="menu-group-links">
@@ -47,22 +48,42 @@
                 <a href="/suppliers/" data-nav-prefix="/suppliers/"><i class="bi bi-truck"></i> Suppliers</a>
             {% endif %}
 
-            <a href="/low-stock-alerts/" data-nav-prefix="/low-stock-alerts/"><i class="bi bi-exclamation-triangle"></i> Low Stock Alerts</a>
-            <a href="/stock-transfers/" data-nav-prefix="/stock-transfers/"><i class="bi bi-arrow-left-right"></i> Stock Transfers</a>
+            {% if perms.shop.view_stock_report %}
+                <a href="/low-stock-alerts/" data-nav-prefix="/low-stock-alerts/"><i class="bi bi-exclamation-triangle"></i> Low Stock Alerts</a>
+            {% endif %}
+
+            {% if perms.shop.view_stocktransfer %}
+                <a href="/stock-transfers/" data-nav-prefix="/stock-transfers/"><i class="bi bi-arrow-left-right"></i> Stock Transfers</a>
+            {% endif %}
+
+            {% if perms.shop.view_stockadjustment %}
+                <a href="/stock-adjustments/" data-nav-prefix="/stock-adjustments/"><i class="bi bi-sliders"></i> Stock Adjustments</a>
+            {% endif %}
         </div>
     </details>
+    {% endif %}
 
+    {% if perms.shop.view_sale or perms.shop.add_sale or perms.shop.view_salereturn or perms.shop.view_customer or perms.shop.view_customerpayment or perms.shop.view_invoice %}
     <details class="menu-group">
         <summary><span><i class="bi bi-receipt"></i> Sales</span><i class="bi bi-chevron-down menu-chevron"></i></summary>
         <div class="menu-group-links">
             {% if perms.shop.view_sale %}
                 <a href="/sales/" data-nav-prefix="/sales/"><i class="bi bi-receipt"></i> Sales</a>
+            {% endif %}
+
+            {% if perms.shop.add_sale %}
                 <a href="/sales/pos/" data-nav-prefix="/sales/pos/"><i class="bi bi-upc-scan"></i> POS Sale</a>
+            {% endif %}
+
+            {% if perms.shop.view_salereturn %}
                 <a href="/sales/returns/" data-nav-prefix="/sales/returns/"><i class="bi bi-arrow-counterclockwise"></i> Returns</a>
             {% endif %}
 
             {% if perms.shop.view_customer %}
                 <a href="/customers/" data-nav-prefix="/customers/"><i class="bi bi-people"></i> Customers</a>
+            {% endif %}
+
+            {% if perms.shop.view_customerpayment %}
                 <a href="/customers/payments/" data-nav-prefix="/customers/payments/"><i class="bi bi-wallet2"></i> Customer Payments</a>
             {% endif %}
 
@@ -71,7 +92,9 @@
             {% endif %}
         </div>
     </details>
+    {% endif %}
 
+    {% if perms.shop.view_expense or perms.shop.view_supplierpayment or perms.shop.view_batchexpense or perms.shop.view_profit_report or perms.shop.view_batch_profit_report or perms.shop.view_stock_report %}
     <details class="menu-group">
         <summary><span><i class="bi bi-graph-up-arrow"></i> Finance & Reports</span><i class="bi bi-chevron-down menu-chevron"></i></summary>
         <div class="menu-group-links">
@@ -79,9 +102,11 @@
                 <a href="/expenses/" data-nav-prefix="/expenses/"><i class="bi bi-cash-stack"></i> General Expenses</a>
             {% endif %}
 
-            <a href="/suppliers/payments/" data-nav-prefix="/suppliers/payments/"><i class="bi bi-credit-card"></i> Supplier Payments</a>
+            {% if perms.shop.view_supplierpayment %}
+                <a href="/suppliers/payments/" data-nav-prefix="/suppliers/payments/"><i class="bi bi-credit-card"></i> Supplier Payments</a>
+            {% endif %}
 
-            {% if perms.shop.view_batch_expense %}
+            {% if perms.shop.view_batchexpense %}
                 <a href="/batch-expenses/" data-nav-prefix="/batch-expenses/"><i class="bi bi-clipboard-data"></i> Batch Expenses</a>
             {% endif %}
 
@@ -98,12 +123,14 @@
             <a href="/stock-report/" data-nav-prefix="/stock-report/"><i class="bi bi-bar-chart"></i> Stock Report</a>
             {% endif %}
 
-            {% if perms.shop.view_batch_stock_report %}
-            <a href="/batch-stock-report/" data-nav-prefix="/batch-stock-report/"><i class="bi bi-boxes"></i> Batch Stock</a>
+            {% if perms.shop.view_stock_report %}
+                <a href="/batch-stock-report/" data-nav-prefix="/batch-stock-report/"><i class="bi bi-boxes"></i> Batch Stock</a>
             {% endif %}
         </div>
     </details>
+    {% endif %}
 
+    {% if perms.auth.view_user or perms.auth.view_group or perms.shop.change_storesetting or perms.shop.view_activitylog or perms.shop.view_stocklocation %}
     <details class="menu-group">
         <summary><span><i class="bi bi-shield-lock"></i> Administration</span><i class="bi bi-chevron-down menu-chevron"></i></summary>
         <div class="menu-group-links">
@@ -115,22 +142,34 @@
                 <a href="/groups/" data-nav-prefix="/groups/"><i class="bi bi-shield-lock"></i> Roles & Permissions</a>
             {% endif %}
 
-            {% if request.user.is_superuser %}
+            {% if perms.shop.change_storesetting %}
                 <a href="/settings/" data-nav-prefix="/settings/"><i class="bi bi-gear"></i> Settings</a>
-                <a href="/activity-logs/" data-nav-prefix="/activity-logs/"><i class="bi bi-clock-history"></i> Activity Logs</a>
-                {% if request.user.is_superuser %}
-                    <a href="/stock-locations/" data-nav-prefix="/stock-locations/"><i class="bi bi-geo-alt"></i> Stock Locations</a>
-                {% endif %}
+                <a href="/backup-restore/" data-nav-prefix="/backup-restore/"><i class="bi bi-database-down"></i> Backup & Restore</a>
             {% endif %}
-            <a href="/stock-location-report/" data-nav-prefix="/stock-location-report/"><i class="bi bi-pin-map"></i> Stock by Location</a>
+
+            {% if perms.shop.view_activitylog %}
+                <a href="/activity-logs/" data-nav-prefix="/activity-logs/"><i class="bi bi-clock-history"></i> Activity Logs</a>
+            {% endif %}
+
+            {% if perms.shop.view_stocklocation %}
+                <a href="/stock-locations/" data-nav-prefix="/stock-locations/"><i class="bi bi-geo-alt"></i> Stock Locations</a>
+            {% endif %}
+
+            {% if perms.shop.view_stocklocation %}
+                <a href="/stock-location-report/" data-nav-prefix="/stock-location-report/"><i class="bi bi-pin-map"></i> Stock by Location</a>
+            {% endif %}
         </div>
     </details>
+    {% endif %}
 
     <details class="menu-group">
         <summary><span><i class="bi bi-person-circle"></i> Account</span><i class="bi bi-chevron-down menu-chevron"></i></summary>
         <div class="menu-group-links">
             <a href="/profile/" data-nav-prefix="/profile/"><i class="bi bi-person-circle"></i> Profile</a>
-            <a href="/logout/"><i class="bi bi-box-arrow-right"></i> Logout</a>
+            <form method="post" action="/logout/" class="menu-form">
+                {% csrf_token %}
+                <button type="submit"><i class="bi bi-box-arrow-right"></i> Logout</button>
+            </form>
         </div>
     </details>
 

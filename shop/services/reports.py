@@ -13,41 +13,73 @@ from shop.models import (
 
 
 def get_sale_payment_status(sale):
+    if sale.is_canceled:
+        return {
+            'paid_total': Decimal('0'),
+            'amount_due': Decimal('0'),
+        }
+
     paid_at_sale = sale.paid_amount
-    original_due = sale.remaining_balance()
+    linked_payments = sum(
+        payment.amount
+        for payment in sale.customer_payments.all()
+    )
+    original_due = sale.remaining_balance() - linked_payments
 
     if not sale.customer or original_due <= 0:
         return {
-            'paid_total': paid_at_sale,
+            'paid_total': paid_at_sale + linked_payments,
             'amount_due': max(original_due, 0),
         }
 
-    later_payments = sum(
-        payment.amount
-        for payment in sale.customer.payments.all()
-    )
+    unlinked_payments = [
+        {
+            'date': payment.date,
+            'remaining': payment.amount,
+        }
+        for payment in sale.customer.payments.filter(
+            sale_id__isnull=True,
+        ).order_by('date', 'id')
+    ]
 
     customer_sales = Sale.objects.filter(
-        customer=sale.customer
+        customer=sale.customer,
+        is_canceled=False,
+    ).prefetch_related(
+        'customer_payments',
     ).order_by('date', 'id')
 
     for customer_sale in customer_sales:
-        sale_due = customer_sale.remaining_balance()
+        customer_sale_linked_payments = sum(
+            payment.amount
+            for payment in customer_sale.customer_payments.all()
+        )
+        sale_due = customer_sale.remaining_balance() - customer_sale_linked_payments
+        applied_to_sale = Decimal('0')
 
         if sale_due <= 0:
             continue
 
-        applied_payment = min(later_payments, sale_due)
-        later_payments -= applied_payment
+        for payment in unlinked_payments:
+            if payment['date'] < customer_sale.date or payment['remaining'] <= 0:
+                continue
+
+            applied_payment = min(payment['remaining'], sale_due)
+            payment['remaining'] -= applied_payment
+            sale_due -= applied_payment
+            applied_to_sale += applied_payment
+
+            if sale_due <= 0:
+                break
 
         if customer_sale.id == sale.id:
             return {
-                'paid_total': paid_at_sale + applied_payment,
-                'amount_due': sale_due - applied_payment,
+                'paid_total': paid_at_sale + linked_payments + applied_to_sale,
+                'amount_due': max(sale_due, 0),
             }
 
     return {
-        'paid_total': paid_at_sale,
+        'paid_total': paid_at_sale + linked_payments,
         'amount_due': max(original_due, 0),
     }
 
@@ -107,6 +139,8 @@ def build_dashboard_context(filter_type, user):
         'sale__customer__payments',
         'allocations',
         'allocations__purchase_item',
+    ).filter(
+        sale__is_canceled=False,
     ).order_by('-sale__date', '-sale__id', '-id')
 
     sale_items = scope_sale_items_queryset(sale_items, user)
@@ -148,8 +182,9 @@ def build_dashboard_context(filter_type, user):
         buying_price = item_cogs / net_quantity if net_quantity > 0 else Decimal('0')
         gross_profit = item_revenue - item_cogs
         sale_total = sale_totals.get(item.sale_id) or Decimal('0')
+        effective_discount = min(item.sale.discount, sale_total)
         discount_share = (
-            item.sale.discount * item_revenue / sale_total
+            effective_discount * item_revenue / sale_total
             if sale_total > 0 else Decimal('0')
         )
         total_sales = item_revenue - discount_share
@@ -197,7 +232,10 @@ def build_dashboard_context(filter_type, user):
 
     total_profit = sum(item['gross_profit'] for item in sold_items)
     total_paid_profit = sum(item['net_profit'] for item in sold_items)
-    net_profit = total_paid_profit - total_all_expenses
+    net_profit = (
+        total_paid_profit - total_all_expenses
+        if total_paid_profit > 0 else Decimal('0')
+    )
 
     variants = ProductVariant.objects.all()
     low_stock_items = [
@@ -216,7 +254,7 @@ def build_dashboard_context(filter_type, user):
         for sale in scope_sales_queryset(
             Sale.objects.select_related('customer').prefetch_related(
                 'customer__payments'
-            ),
+            ).filter(is_canceled=False),
             user,
         )
     )

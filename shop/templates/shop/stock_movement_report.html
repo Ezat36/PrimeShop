@@ -1,0 +1,84 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Stock Movement{% endblock %}
+{% block page_title %}Stock Movement{% endblock %}
+
+{% block content %}
+
+<div class="toolbar">
+    <div>
+        <span class="eyebrow">Inventory Movement</span>
+        <h5 class="mb-0">{{ variant }}</h5>
+    </div>
+    <div class="toolbar-actions no-print">
+        <a href="/exports/stock-movement/?variant={{ variant.id }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> CSV</a>
+        <a href="/exports/stock-movement/?variant={{ variant.id }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&format=xls" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
+        <button onclick="window.print()" class="btn btn-primary" data-no-loading="true"><i class="bi bi-printer"></i> Print</button>
+        <a href="{% url 'stock_report' %}" class="btn btn-outline-secondary">Back</a>
+    </div>
+</div>
+
+<form method="get" class="toolbar no-print">
+    <div class="search-box">
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary"><i class="bi bi-funnel"></i> Filter</button>
+        <a href="{% url 'stock_movement_report' variant.id %}" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+<div class="total-strip">
+    <div class="total-pill"><span>Total In</span><strong>{{ total_in }}</strong></div>
+    <div class="total-pill"><span>Total Out</span><strong>{{ total_out }}</strong></div>
+    <div class="total-pill"><span>Current Stock</span><strong>{{ current_stock }}</strong></div>
+</div>
+
+<div class="card card-box p-4">
+    <h5 class="mb-3">Movement History</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Reference</th>
+                    <th>Location</th>
+                    <th class="number">In</th>
+                    <th class="number">Out</th>
+                    <th class="number">Balance</th>
+                    <th class="money">Unit Cost</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in movements %}
+                    <tr>
+                        <td>{{ row.date }}</td>
+                        <td>{{ row.type }}</td>
+                        <td>{{ row.reference }}</td>
+                        <td>{{ row.location|default:"-" }}</td>
+                        <td class="number">{{ row.qty_in }}</td>
+                        <td class="number">{{ row.qty_out }}</td>
+                        <td class="number">{{ row.balance }}</td>
+                        <td class="money">{{ row.unit_cost }}</td>
+                        <td>{{ row.note }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="9"><div class="empty-state">No stock movement found.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'shop/partials/pagination.html' %}
+</div>
+
+<style>
+@media print {
+    .sidebar, .topbar, .mobile-menu-toggle, .no-print { display: none !important; }
+    .content { margin-left: 0 !important; padding: 10px !important; }
+    body { background: #fff !important; }
+    .card { box-shadow: none !important; }
+}
+</style>
+
+{% endblock %}

@@ -22,13 +22,19 @@ Delete Stock Location
         Address: {{ location.address|default:"-" }}
     </div>
 
+    {% if is_used %}
+        <div class="alert alert-danger">
+            This location has stock history. Keep it for accurate stock reports and audit records.
+        </div>
+    {% endif %}
+
     <form method="post">
         {% csrf_token %}
-
-        <button class="btn btn-danger" data-confirm="Delete this stock location? This action cannot be undone.">
-            Yes, Delete
-        </button>
-
+        {% if not is_used %}
+            <button class="btn btn-danger" data-confirm="Delete this stock location? This action cannot be undone.">
+                Yes, Delete
+            </button>
+        {% endif %}
         <a href="{% url 'stock_location_list' %}" class="btn btn-outline-secondary">
             Cancel
         </a>

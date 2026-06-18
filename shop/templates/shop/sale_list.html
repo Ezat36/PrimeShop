@@ -13,16 +13,22 @@ Sales
         <input type="text" name="search" class="form-control" placeholder="Search customer, note, invoice..." value="{{ search }}">
         <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
         <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <select name="status" class="form-control">
+            <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+            <option value="canceled" {% if status == 'canceled' %}selected{% endif %}>Canceled</option>
+            <option value="all" {% if status == 'all' %}selected{% endif %}>All</option>
+        </select>
         <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
     </form>
     <div class="toolbar-actions">
-        <a href="/exports/sales/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> Export</a>
+        <a href="/exports/sales/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&status={{ status }}&search={{ search }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> CSV</a>
+        <a href="/exports/sales/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&status={{ status }}&search={{ search }}&format=xls" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
         <a href="/sales/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> New Sale</a>
     </div>
 </div>
 
 <div class="total-strip">
-    <div class="total-pill"><span>Sales</span><strong>{{ sales|length }}</strong></div>
+    <div class="total-pill"><span>Sales</span><strong>{{ sales_count }}</strong></div>
     <div class="total-pill"><span>Final Total</span><strong>{{ total_final|floatformat:2 }} {{ store_currency }}</strong></div>
     <div class="total-pill"><span>Paid</span><strong>{{ total_paid|floatformat:2 }} {{ store_currency }}</strong></div>
     <div class="total-pill"><span>Amount Due</span><strong>{{ total_balance|floatformat:2 }} {{ store_currency }}</strong></div>
@@ -43,6 +49,8 @@ Sales
                     <th class="money">Final</th>
                     <th class="money">Paid</th>
                     <th class="money">Amount Due</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
 
@@ -65,15 +73,36 @@ Sales
                             <span class="badge bg-success">0.00</span>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if sale.is_canceled %}
+                            <span class="badge bg-secondary">Canceled</span>
+                        {% else %}
+                            <span class="badge bg-success">Active</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if perms.shop.change_sale and not sale.is_canceled %}
+                            <form method="post" action="{% url 'sale_cancel' sale.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="reason" value="Canceled from sales list">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Cancel this sale and restore stock?">
+                                    Cancel
+                                </button>
+                            </form>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="10"><div class="empty-state">No sales found.</div></td>
+                    <td colspan="12"><div class="empty-state">No sales found.</div></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 </div>
 
 {% endblock %}

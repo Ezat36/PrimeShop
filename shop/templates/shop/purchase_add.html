@@ -19,6 +19,10 @@ New Purchase
     <form method="post">
         {% csrf_token %}
 
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
         <div class="form-section">
         <div class="row g-3 mb-3">
             <div class="col-md-6">

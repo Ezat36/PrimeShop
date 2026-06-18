@@ -13,6 +13,10 @@
     <form method="post">
         {% csrf_token %}
 
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
         <div class="mb-3">
             <label class="form-label">Select Batch</label>
             <select name="batch_number" class="form-control" required>

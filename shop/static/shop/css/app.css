@@ -81,7 +81,8 @@ body {
     font-weight: 800;
 }
 
-.sidebar a {
+.sidebar a,
+.menu-form button {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -95,13 +96,26 @@ body {
     transition: background .18s ease, color .18s ease, transform .18s ease;
 }
 
-.sidebar a i {
+.menu-form {
+    margin: 0;
+}
+
+.menu-form button {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+}
+
+.sidebar a i,
+.menu-form button i {
     width: 22px;
     color: #8bb6ff;
     font-size: 16px;
 }
 
-.sidebar a:hover {
+.sidebar a:hover,
+.menu-form button:hover {
     background: var(--nav-soft);
     color: #fff;
     transform: translateX(2px);

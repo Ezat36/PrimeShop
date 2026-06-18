@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -142,6 +144,13 @@ class Customer(models.Model):
 
 class CustomerPayment(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="payments")
+    sale = models.ForeignKey(
+        "Sale",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="customer_payments",
+    )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     date = models.DateField(default=timezone.now)
     method = models.CharField(max_length=50, default="Cash")
@@ -189,15 +198,31 @@ class Sale(models.Model):
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     note = models.TextField(blank=True)
+    is_canceled = models.BooleanField(default=False)
+    canceled_at = models.DateTimeField(null=True, blank=True)
+    canceled_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="canceled_sales",
+    )
+    cancel_reason = models.TextField(blank=True)
 
     def total_amount(self):
+        if self.is_canceled:
+            return Decimal("0")
         return sum(item.net_total_price() for item in self.items.all())
 
     def final_amount(self):
-        return self.total_amount() - self.discount
+        if self.is_canceled:
+            return Decimal("0")
+        return max(self.total_amount() - self.discount, Decimal("0"))
 
     def remaining_balance(self):
-        return self.final_amount() - self.paid_amount
+        if self.is_canceled:
+            return Decimal("0")
+        return max(self.final_amount() - self.paid_amount, Decimal("0"))
 
     def __str__(self):
         return f"Sale #{self.id}"
@@ -228,6 +253,8 @@ class SaleItem(models.Model):
         return sum(item.quantity for item in self.returns.all())
 
     def net_quantity(self):
+        if self.sale.is_canceled:
+            return 0
         return max(self.quantity - self.returned_quantity(), 0)
 
     def net_total_price(self):
@@ -276,6 +303,9 @@ class SaleItemAllocation(models.Model):
         return self.quantity * self.unit_cost
 
     def net_quantity(self):
+        if self.sale_item.sale.is_canceled:
+            return 0
+
         returned_qty = self.sale_item.returned_quantity()
 
         for allocation in self.sale_item.allocations.order_by('id'):
@@ -424,6 +454,45 @@ class StockTransfer(models.Model):
         return f"{self.variant} transfer {self.quantity}"
 
 
+class StockAdjustment(models.Model):
+    ADJUSTMENT_CHOICES = [
+        ("IN", "Stock In"),
+        ("OUT", "Stock Out"),
+    ]
+
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name="adjustments")
+    target_batch = models.ForeignKey(
+        PurchaseItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_adjustments",
+    )
+    location = models.ForeignKey(
+        StockLocation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="adjustments",
+    )
+    adjustment_type = models.CharField(max_length=3, choices=ADJUSTMENT_CHOICES)
+    quantity = models.PositiveIntegerField()
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    date = models.DateField(default=timezone.now)
+    reason = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_adjustments",
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.get_adjustment_type_display()} {self.quantity} x {self.variant}"
+
+
 class ActivityLog(models.Model):
     user = models.ForeignKey(
         "auth.User",
@@ -436,6 +505,9 @@ class ActivityLog(models.Model):
     model_name = models.CharField(max_length=120, blank=True)
     object_id = models.CharField(max_length=60, blank=True)
     description = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    device = models.CharField(max_length=255, blank=True)
+    location = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

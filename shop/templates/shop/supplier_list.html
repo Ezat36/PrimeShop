@@ -28,7 +28,7 @@ Suppliers
 <div class="total-strip">
     <div class="total-pill">
         <span>Suppliers</span>
-        <strong>{{ supplier_data|length }}</strong>
+        <strong>{{ suppliers_count }}</strong>
     </div>
 </div>
 
@@ -45,6 +45,7 @@ Suppliers
                     <th class="money">Total Purchased Value</th>
                     <th class="money">Paid</th>
                     <th class="money">Balance</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
 
@@ -65,10 +66,13 @@ Suppliers
                             <span class="badge bg-success">0.00</span>
                         {% endif %}
                     </td>
+                    <td>
+                        <a href="{% url 'supplier_detail' row.supplier.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8">
+                    <td colspan="9">
                         <div class="empty-state">No suppliers found.</div>
                     </td>
                 </tr>
@@ -76,6 +80,7 @@ Suppliers
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 </div>
 
 {% endblock %}

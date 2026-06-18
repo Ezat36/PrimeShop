@@ -1,0 +1,39 @@
+{% extends 'shop/base.html' %}
+{% block title %}Backup & Restore{% endblock %}
+{% block page_title %}Backup & Restore{% endblock %}
+{% block content %}
+
+<div class="alert alert-warning">
+    <strong>Backup reminder:</strong>
+    Download a backup before restoring data, deploying changes, or making large stock/accounting corrections.
+    {% if latest_backup_log %}
+        Last backup download: {{ latest_backup_log.created_at|date:"Y-m-d H:i" }} by {{ latest_backup_log.user|default:"Unknown" }}.
+    {% else %}
+        No backup download has been recorded yet.
+    {% endif %}
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Download Backup</h5>
+            <p class="text-muted">Download a zip containing the SQLite database and media files.</p>
+            <a href="{% url 'backup_download' %}" class="btn btn-primary"><i class="bi bi-download"></i> Download Backup</a>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Restore Database</h5>
+            <p class="text-muted">Upload a .sqlite3 or .db file. The current database is copied before restore.</p>
+            <form method="post" action="{% url 'backup_restore' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="file" name="database_file" class="form-control mb-3" accept=".sqlite3,.db" required>
+                <button type="submit" class="btn btn-danger" data-confirm="Restore this database backup? You must restart the server after restore.">
+                    <i class="bi bi-upload"></i> Restore Database
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

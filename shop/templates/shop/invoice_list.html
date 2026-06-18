@@ -13,12 +13,17 @@ Invoices
         <input type="text" name="search" class="form-control" placeholder="Search invoice or customer..." value="{{ search }}">
         <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
         <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <select name="status" class="form-control">
+            <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+            <option value="canceled" {% if status == 'canceled' %}selected{% endif %}>Canceled</option>
+            <option value="all" {% if status == 'all' %}selected{% endif %}>All</option>
+        </select>
         <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
     </form>
 </div>
 
 <div class="total-strip">
-    <div class="total-pill"><span>Invoices</span><strong>{{ invoices|length }}</strong></div>
+    <div class="total-pill"><span>Invoices</span><strong>{{ invoices_count }}</strong></div>
     <div class="total-pill"><span>Total</span><strong>{{ total_amount|floatformat:2 }} {{ store_currency }}</strong></div>
     <div class="total-pill"><span>Paid</span><strong>{{ total_paid|floatformat:2 }} {{ store_currency }}</strong></div>
     <div class="total-pill"><span>Amount Due</span><strong>{{ total_balance|floatformat:2 }} {{ store_currency }}</strong></div>
@@ -39,6 +44,7 @@ Invoices
                     <th class="money">Total</th>
                     <th class="money">Paid</th>
                     <th class="money">Amount Due</th>
+                    <th>Status</th>
                     <th class="actions-cell">Action</th>
                 </tr>
             </thead>
@@ -62,6 +68,13 @@ Invoices
                             <span class="badge bg-success">0.00</span>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if invoice.sale.is_canceled %}
+                            <span class="badge bg-secondary">Canceled</span>
+                        {% else %}
+                            <span class="badge bg-success">Active</span>
+                        {% endif %}
+                    </td>
                     <td class="actions-cell">
                         <a href="/invoices/{{ invoice.id }}/" class="btn btn-sm btn-primary">
                             <i class="bi bi-eye"></i> View
@@ -70,7 +83,7 @@ Invoices
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9">
+                    <td colspan="10">
                         <div class="empty-state">No invoices found.</div>
                     </td>
                 </tr>
@@ -79,6 +92,7 @@ Invoices
 
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 
 </div>
 

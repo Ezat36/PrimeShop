@@ -15,7 +15,11 @@ General Expenses
         <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
         <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
     </form>
-    <a href="/expenses/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Add General Expense</a>
+    <div class="toolbar-actions">
+        <a href="/exports/expenses/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}" class="btn btn-outline-primary"><i class="bi bi-download"></i> CSV</a>
+        <a href="/exports/expenses/?date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}&format=xls" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
+        <a href="/expenses/add/" class="btn btn-success"><i class="bi bi-plus-lg"></i> Add General Expense</a>
+    </div>
 </div>
 
 <div class="total-strip">
@@ -55,6 +59,7 @@ General Expenses
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 </div>
 
 {% endblock %}

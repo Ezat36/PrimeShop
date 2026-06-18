@@ -1,0 +1,41 @@
+{% extends 'shop/base.html' %}
+{% block title %}Stock Adjustments{% endblock %}
+{% block page_title %}Stock Adjustments{% endblock %}
+{% block content %}
+
+<div class="toolbar">
+    <form method="get" class="search-box">
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary"><i class="bi bi-funnel"></i></button>
+    </form>
+    <a href="{% url 'stock_adjustment_add' %}" class="btn btn-success"><i class="bi bi-plus-lg"></i> New Adjustment</a>
+</div>
+
+<div class="card card-box p-4">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark"><tr><th>Date</th><th>Type</th><th>Product</th><th>Batch</th><th>Location</th><th>Qty</th><th>Unit Cost</th><th>Reason</th><th>User</th></tr></thead>
+            <tbody>
+                {% for adjustment in adjustments %}
+                    <tr>
+                        <td>{{ adjustment.date }}</td>
+                        <td>{% if adjustment.adjustment_type == 'IN' %}<span class="badge bg-success">In</span>{% else %}<span class="badge bg-danger">Out</span>{% endif %}</td>
+                        <td>{{ adjustment.variant }}</td>
+                        <td>{{ adjustment.target_batch.batch_number|default:"Auto" }}</td>
+                        <td>{{ adjustment.location|default:"No location" }}</td>
+                        <td>{{ adjustment.quantity }}</td>
+                        <td class="money">{{ adjustment.unit_cost|floatformat:2 }}</td>
+                        <td>{{ adjustment.reason }}</td>
+                        <td>{{ adjustment.created_by|default:"-" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="9"><div class="empty-state">No stock adjustments found.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'shop/partials/pagination.html' %}
+</div>
+
+{% endblock %}

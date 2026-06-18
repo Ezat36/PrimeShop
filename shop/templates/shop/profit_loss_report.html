@@ -20,6 +20,15 @@ Profit & Loss Report
     </div>
 </div>
 
+<form method="get" class="toolbar no-print">
+    <div class="search-box">
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary"><i class="bi bi-funnel"></i> Filter</button>
+        <a href="{% url 'profit_loss_report' %}" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
 <div class="row g-4 mb-4">
     <div class="col-md-6 col-xl-3">
         <div class="card card-box metric-card p-4">
