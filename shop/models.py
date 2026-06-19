@@ -16,6 +16,12 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["category"]),
+        ]
+
 
 class ProductVariant(models.Model):
 
@@ -58,6 +64,15 @@ class ProductVariant(models.Model):
             parts.append(self.model)
         return " - ".join(parts)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["product", "variant_name"]),
+            models.Index(fields=["sku"]),
+            models.Index(fields=["size"]),
+            models.Index(fields=["color"]),
+            models.Index(fields=["model"]),
+        ]
+
 class ProductDetail(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="details")
     name = models.CharField(max_length=100)
@@ -74,6 +89,11 @@ class Supplier(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
+
 
 class Purchase(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True)
@@ -83,6 +103,12 @@ class Purchase(models.Model):
     def __str__(self):
         return f"Purchase #{self.id}"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["supplier", "date"]),
+        ]
+
 class StockLocation(models.Model):
     name = models.CharField(max_length=150)
     code = models.CharField(max_length=50, blank=True)
@@ -91,6 +117,12 @@ class StockLocation(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["code"]),
+        ]
     
 class PurchaseItem(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name="items")
@@ -131,6 +163,16 @@ class PurchaseItem(models.Model):
     def __str__(self):
         return f"{self.batch_number} - {self.variant}"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["variant"]),
+            models.Index(fields=["batch_number"]),
+            models.Index(fields=["location"]),
+            models.Index(fields=["variant", "remaining_qty"]),
+            models.Index(fields=["batch_number", "purchase"]),
+            models.Index(fields=["location", "variant"]),
+        ]
+
 
 
 class Customer(models.Model):
@@ -140,6 +182,12 @@ class Customer(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["phone"]),
+        ]
 
 
 class CustomerPayment(models.Model):
@@ -166,6 +214,13 @@ class CustomerPayment(models.Model):
     def __str__(self):
         return f"{self.customer} payment {self.amount}"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["customer", "date"]),
+            models.Index(fields=["sale"]),
+            models.Index(fields=["date"]),
+        ]
+
 
 class SupplierPayment(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name="payments")
@@ -183,6 +238,12 @@ class SupplierPayment(models.Model):
 
     def __str__(self):
         return f"{self.supplier} payment {self.amount}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["supplier", "date"]),
+            models.Index(fields=["date"]),
+        ]
 
 
 class Sale(models.Model):
@@ -227,6 +288,14 @@ class Sale(models.Model):
     def __str__(self):
         return f"Sale #{self.id}"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["is_canceled", "date"]),
+            models.Index(fields=["customer", "date"]),
+            models.Index(fields=["created_by", "date"]),
+        ]
+
 
 class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="items")
@@ -260,6 +329,12 @@ class SaleItem(models.Model):
     def net_total_price(self):
         return self.net_quantity() * self.selling_price
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["sale"]),
+            models.Index(fields=["variant"]),
+        ]
+
 
 class SaleReturn(models.Model):
     sale_item = models.ForeignKey(SaleItem, on_delete=models.CASCADE, related_name="returns")
@@ -277,6 +352,12 @@ class SaleReturn(models.Model):
 
     def __str__(self):
         return f"Return {self.quantity} x {self.sale_item.variant}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["sale_item"]),
+        ]
 
 
 class SaleItemAllocation(models.Model):
@@ -331,6 +412,12 @@ class SaleItemAllocation(models.Model):
             f"← Batch {self.purchase_item.batch_number}"
         )
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["sale_item"]),
+            models.Index(fields=["purchase_item"]),
+        ]
+
 class Invoice(models.Model):
     sale = models.OneToOneField(Sale, on_delete=models.CASCADE, related_name="invoice")
     invoice_number = models.CharField(max_length=50, unique=True)
@@ -338,6 +425,11 @@ class Invoice(models.Model):
 
     def __str__(self):
         return self.invoice_number
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_at"]),
+        ]
 
 
 @receiver(post_save, sender=Sale)
@@ -387,6 +479,12 @@ class Expense(models.Model):
     def __str__(self):
         return self.title
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["category", "date"]),
+        ]
+
 
 
 class BatchExpense(models.Model):
@@ -412,6 +510,13 @@ class BatchExpense(models.Model):
 
     def __str__(self):
         return self.title
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["batch_number"]),
+            models.Index(fields=["batch_number", "date"]),
+        ]
     
 
 class VariantDetail(models.Model):
@@ -421,6 +526,11 @@ class VariantDetail(models.Model):
 
     def __str__(self):
         return f"{self.name}: {self.value}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["variant", "name"]),
+        ]
 
 
 class StockTransfer(models.Model):
@@ -452,6 +562,14 @@ class StockTransfer(models.Model):
 
     def __str__(self):
         return f"{self.variant} transfer {self.quantity}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["variant", "date"]),
+            models.Index(fields=["from_location"]),
+            models.Index(fields=["to_location"]),
+        ]
 
 
 class StockAdjustment(models.Model):
@@ -492,6 +610,14 @@ class StockAdjustment(models.Model):
     def __str__(self):
         return f"{self.get_adjustment_type_display()} {self.quantity} x {self.variant}"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["variant", "date"]),
+            models.Index(fields=["target_batch"]),
+            models.Index(fields=["location"]),
+        ]
+
 
 class ActivityLog(models.Model):
     user = models.ForeignKey(
@@ -512,8 +638,158 @@ class ActivityLog(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["user", "created_at"]),
+            models.Index(fields=["action"]),
+            models.Index(fields=["model_name"]),
+            models.Index(fields=["ip_address"]),
+        ]
 
     def __str__(self):
         return f"{self.action} {self.model_name} {self.object_id}"
     
+
+class DailyBusinessSummary(models.Model):
+    date = models.DateField(unique=True)
+    sale_count = models.PositiveIntegerField(default=0)
+    total_items_sold = models.PositiveIntegerField(default=0)
+    sales_value = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cogs = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    gross_profit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    net_sales = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    outstanding_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    general_expenses = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    batch_expenses = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    paid_profit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    net_profit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    calculated_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-date"]
+        indexes = [
+            models.Index(fields=["date"]),
+        ]
+
+    def __str__(self):
+        return f"Business summary {self.date}"
+
+
+class DailyUserSalesSummary(models.Model):
+    date = models.DateField()
+    user = models.ForeignKey(
+        "auth.User",
+        on_delete=models.CASCADE,
+        related_name="daily_sales_summaries",
+    )
+    sale_count = models.PositiveIntegerField(default=0)
+    total_items_sold = models.PositiveIntegerField(default=0)
+    sales_value = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cogs = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    gross_profit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    outstanding_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    paid_profit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    net_profit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    calculated_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["date", "user"], name="unique_daily_user_sales_summary"),
+        ]
+        ordering = ["-date", "user_id"]
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["user", "date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} sales summary {self.date}"
+
+
+class DailyVariantSummary(models.Model):
+    date = models.DateField()
+    variant = models.ForeignKey(
+        ProductVariant,
+        on_delete=models.CASCADE,
+        related_name="daily_summaries",
+    )
+    sold_qty = models.PositiveIntegerField(default=0)
+    sales_value = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cogs = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    gross_profit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    calculated_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["date", "variant"], name="unique_daily_variant_summary"),
+        ]
+        ordering = ["-date", "variant_id"]
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["variant", "date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.variant} summary {self.date}"
+
+
+class SaleFinancialSummary(models.Model):
+    sale = models.OneToOneField(Sale, on_delete=models.CASCADE, related_name="financial_summary")
+    final_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    paid_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    amount_due = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    calculated_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["amount_due"]),
+        ]
+
+    def __str__(self):
+        return f"{self.sale} financial summary"
+
+
+class CustomerAccountSummary(models.Model):
+    customer = models.OneToOneField(Customer, on_delete=models.CASCADE, related_name="account_summary")
+    sales_count = models.PositiveIntegerField(default=0)
+    total_purchase = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    paid_at_sale = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    payments = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    calculated_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["balance"]),
+        ]
+
+    def __str__(self):
+        return f"{self.customer} account summary"
+
+
+class BatchProfitSummary(models.Model):
+    batch_number = models.CharField(max_length=50, unique=True)
+    purchased_qty = models.PositiveIntegerField(default=0)
+    sold_qty = models.PositiveIntegerField(default=0)
+    remaining_qty = models.PositiveIntegerField(default=0)
+    revenue = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cost = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    gross_profit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    batch_expenses = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    net_profit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    stock_value = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    calculated_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["batch_number"]
+        indexes = [
+            models.Index(fields=["batch_number"]),
+        ]
+
+    def __str__(self):
+        return f"Batch summary {self.batch_number}"
 

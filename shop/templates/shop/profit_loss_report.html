@@ -36,7 +36,7 @@ Profit & Loss Report
                 <span class="metric-label">Sales Revenue</span>
                 <span class="metric-icon"><i class="bi bi-cash-coin"></i></span>
             </div>
-            <h2 class="metric-value">{{ total_sales_revenue|floatformat:2 }}</h2>
+            <h2 class="metric-value">{{ total_sales_revenue|floatformat:"2g" }}</h2>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
@@ -45,7 +45,7 @@ Profit & Loss Report
                 <span class="metric-label">COGS</span>
                 <span class="metric-icon"><i class="bi bi-box-arrow-down"></i></span>
             </div>
-            <h2 class="metric-value text-warning">{{ total_cogs|floatformat:2 }}</h2>
+            <h2 class="metric-value text-warning">{{ total_cogs|floatformat:"2g" }}</h2>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
@@ -54,7 +54,7 @@ Profit & Loss Report
                 <span class="metric-label">Gross Profit</span>
                 <span class="metric-icon"><i class="bi bi-graph-up-arrow"></i></span>
             </div>
-            <h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:2 }}</h2>
+            <h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:"2g" }}</h2>
         </div>
     </div>
     <div class="col-md-6 col-xl-3">
@@ -63,17 +63,17 @@ Profit & Loss Report
                 <span class="metric-label">Net Profit</span>
                 <span class="metric-icon"><i class="bi bi-activity"></i></span>
             </div>
-            <h2 class="metric-value {% if net_profit_after_expenses < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit_after_expenses|floatformat:2 }}</h2>
+            <h2 class="metric-value {% if net_profit_after_expenses < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit_after_expenses|floatformat:"2g" }}</h2>
         </div>
     </div>
 </div>
 
 <div class="total-strip">
-    <div class="total-pill"><span>General Expenses</span><strong class="text-danger">{{ total_expenses|floatformat:2 }}</strong></div>
-    <div class="total-pill"><span>Batch Expenses</span><strong class="text-danger">{{ total_batch_expenses|floatformat:2 }}</strong></div>
-    <div class="total-pill"><span>Discounts</span><strong>{{ total_discount|floatformat:2 }}</strong></div>
-    <div class="total-pill"><span>Outstanding</span><strong class="text-danger">{{ outstanding_balance|floatformat:2 }}</strong></div>
-    <div class="total-pill"><span>Inventory Value</span><strong>{{ total_inventory_value|floatformat:2 }}</strong></div>
+    <div class="total-pill"><span>General Expenses</span><strong class="text-danger">{{ total_expenses|floatformat:"2g" }}</strong></div>
+    <div class="total-pill"><span>Batch Expenses</span><strong class="text-danger">{{ total_batch_expenses|floatformat:"2g" }}</strong></div>
+    <div class="total-pill"><span>Discounts</span><strong>{{ total_discount|floatformat:"2g" }}</strong></div>
+    <div class="total-pill"><span>Outstanding</span><strong class="text-danger">{{ outstanding_balance|floatformat:"2g" }}</strong></div>
+    <div class="total-pill"><span>Inventory Value</span><strong>{{ total_inventory_value|floatformat:"2g" }}</strong></div>
     <div class="total-pill"><span>Sold Qty</span><strong>{{ total_sold_qty }}</strong></div>
     <div class="total-pill"><span>Remaining Qty</span><strong>{{ total_remaining_qty }}</strong></div>
 </div>
@@ -82,13 +82,13 @@ Profit & Loss Report
     <div class="col-lg-6">
         <div class="card card-box p-4 h-100">
             <h5 class="mb-3">Financial Statement</h5>
-            <div class="d-flex justify-content-between border-bottom py-2"><span>Sales Revenue</span><strong>{{ total_sales_revenue|floatformat:2 }}</strong></div>
-            <div class="d-flex justify-content-between border-bottom py-2"><span>Cost of Goods Sold</span><strong class="text-warning">{{ total_cogs|floatformat:2 }}</strong></div>
-            <div class="d-flex justify-content-between border-bottom py-2"><span>Gross Profit</span><strong class="{% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:2 }}</strong></div>
-            <div class="d-flex justify-content-between border-bottom py-2"><span>Discounts</span><strong>{{ total_discount|floatformat:2 }}</strong></div>
-            <div class="d-flex justify-content-between border-bottom py-2"><span>Batch Expenses</span><strong class="text-danger">{{ total_batch_expenses|floatformat:2 }}</strong></div>
-            <div class="d-flex justify-content-between border-bottom py-2"><span>General Expenses</span><strong class="text-danger">{{ total_expenses|floatformat:2 }}</strong></div>
-            <div class="d-flex justify-content-between pt-3 fs-5"><strong>Final Net Profit</strong><strong class="{% if net_profit_after_expenses < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit_after_expenses|floatformat:2 }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Sales Revenue</span><strong>{{ total_sales_revenue|floatformat:"2g" }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Cost of Goods Sold</span><strong class="text-warning">{{ total_cogs|floatformat:"2g" }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Gross Profit</span><strong class="{% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:"2g" }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Discounts</span><strong>{{ total_discount|floatformat:"2g" }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Batch Expenses</span><strong class="text-danger">{{ total_batch_expenses|floatformat:"2g" }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>General Expenses</span><strong class="text-danger">{{ total_expenses|floatformat:"2g" }}</strong></div>
+            <div class="d-flex justify-content-between pt-3 fs-5"><strong>Final Net Profit</strong><strong class="{% if net_profit_after_expenses < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit_after_expenses|floatformat:"2g" }}</strong></div>
         </div>
     </div>
 
@@ -97,9 +97,9 @@ Profit & Loss Report
             <h5 class="mb-3">Business Health</h5>
             <div class="d-flex justify-content-between border-bottom py-2"><span>Total Sold Quantity</span><strong>{{ total_sold_qty }}</strong></div>
             <div class="d-flex justify-content-between border-bottom py-2"><span>Total Remaining Stock</span><strong>{{ total_remaining_qty }}</strong></div>
-            <div class="d-flex justify-content-between border-bottom py-2"><span>Total Paid</span><strong>{{ total_paid|floatformat:2 }}</strong></div>
-            <div class="d-flex justify-content-between border-bottom py-2"><span>Outstanding Balance</span><strong class="text-danger">{{ outstanding_balance|floatformat:2 }}</strong></div>
-            <div class="d-flex justify-content-between pt-3 fs-5"><strong>Inventory Value</strong><strong>{{ total_inventory_value|floatformat:2 }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Total Paid</span><strong>{{ total_paid|floatformat:"2g" }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Outstanding Balance</span><strong class="text-danger">{{ outstanding_balance|floatformat:"2g" }}</strong></div>
+            <div class="d-flex justify-content-between pt-3 fs-5"><strong>Inventory Value</strong><strong>{{ total_inventory_value|floatformat:"2g" }}</strong></div>
         </div>
     </div>
 </div>
@@ -131,9 +131,9 @@ Profit & Loss Report
                     <td><strong>{{ row.product_name }}</strong></td>
                     <td class="number">{{ row.sold_qty }}</td>
                     <td class="number">{{ row.remaining_qty }}</td>
-                    <td class="money">{{ row.sales_value|floatformat:2 }}</td>
-                    <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.gross_profit|floatformat:2 }}</strong></td>
-                    <td class="money">{{ row.inventory_value|floatformat:2 }}</td>
+                    <td class="money">{{ row.sales_value|floatformat:"2g" }}</td>
+                    <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.gross_profit|floatformat:"2g" }}</strong></td>
+                    <td class="money">{{ row.inventory_value|floatformat:"2g" }}</td>
                     <td>
                         {% if row.sold_qty == 0 %}
                             <span class="badge bg-secondary">No Sales</span>
@@ -184,11 +184,11 @@ Profit & Loss Report
                     <td class="number">{{ row.purchased_qty }}</td>
                     <td class="number">{{ row.sold_qty }}</td>
                     <td class="number">{{ row.remaining_qty }}</td>
-                    <td class="money">{{ row.avg_buying_price|floatformat:2 }}</td>
-                    <td class="money">{{ row.sales_value|floatformat:2 }}</td>
-                    <td class="money">{{ row.cogs|floatformat:2 }}</td>
-                    <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.gross_profit|floatformat:2 }}</strong></td>
-                    <td class="money">{{ row.remaining_inventory_value|floatformat:2 }}</td>
+                    <td class="money">{{ row.avg_buying_price|floatformat:"2g" }}</td>
+                    <td class="money">{{ row.sales_value|floatformat:"2g" }}</td>
+                    <td class="money">{{ row.cogs|floatformat:"2g" }}</td>
+                    <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.gross_profit|floatformat:"2g" }}</strong></td>
+                    <td class="money">{{ row.remaining_inventory_value|floatformat:"2g" }}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="10"><div class="empty-state">No variant analysis data found.</div></td></tr>

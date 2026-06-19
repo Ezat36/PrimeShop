@@ -45,7 +45,7 @@ Stock by Location
     <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Purchased</span><h2 class="metric-value">{{ total_purchased }}</h2></div></div>
     <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Sold</span><h2 class="metric-value">{{ total_sold }}</h2></div></div>
     <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Remaining</span><h2 class="metric-value">{{ total_remaining }}</h2></div></div>
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Stock Value</span><h2 class="metric-value">{{ total_value|floatformat:2 }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Stock Value</span><h2 class="metric-value">{{ total_value|floatformat:"2g" }}</h2></div></div>
 </div>
 
 <div class="card card-box p-4">
@@ -93,8 +93,8 @@ Stock by Location
                     <td class="number">{{ row.purchased_qty }}</td>
                     <td class="number">{{ row.sold_qty }}</td>
                     <td class="number">{{ row.remaining_qty }}</td>
-                    <td class="money">{{ row.buying_price|floatformat:2 }}</td>
-                    <td class="money">{{ row.stock_value|floatformat:2 }}</td>
+                    <td class="money">{{ row.buying_price|floatformat:"2g" }}</td>
+                    <td class="money">{{ row.stock_value|floatformat:"2g" }}</td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="12"><div class="empty-state">No stock found for this location.</div></td></tr>
@@ -102,6 +102,7 @@ Stock by Location
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 </div>
 
 {% endblock %}

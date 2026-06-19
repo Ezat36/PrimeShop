@@ -44,7 +44,7 @@ Batch Detail
     <div class="col-md-3">
         <div class="card card-box p-4 text-center">
             <p class="text-muted mb-1">Stock Value</p>
-            <h2>{{ stock_value|floatformat:2 }}</h2>
+            <h2>{{ stock_value|floatformat:"2g" }}</h2>
         </div>
     </div>
 
@@ -55,21 +55,21 @@ Batch Detail
     <div class="col-md-3">
         <div class="card card-box p-4 text-center">
             <p class="text-muted mb-1">Revenue</p>
-            <h2>{{ revenue|floatformat:2 }}</h2>
+            <h2>{{ revenue|floatformat:"2g" }}</h2>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card card-box p-4 text-center">
             <p class="text-muted mb-1">COGS</p>
-            <h2>{{ cogs|floatformat:2 }}</h2>
+            <h2>{{ cogs|floatformat:"2g" }}</h2>
         </div>
     </div>
 
     <div class="col-md-3">
         <div class="card card-box p-4 text-center">
             <p class="text-muted mb-1">Gross Profit</p>
-            <h2 class="text-success">{{ gross_profit|floatformat:2 }}</h2>
+            <h2 class="text-success">{{ gross_profit|floatformat:"2g" }}</h2>
         </div>
     </div>
 
@@ -77,7 +77,7 @@ Batch Detail
         <div class="card card-box p-4 text-center">
             <p class="text-muted mb-1">Net Profit</p>
             <h2 class="{% if net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                {{ net_profit|floatformat:2 }}
+                {{ net_profit|floatformat:"2g" }}
             </h2>
         </div>
     </div>
@@ -111,16 +111,17 @@ Batch Detail
                         </small>
                     </div>
                     <strong class="text-danger">
-                        {{ expense.amount|floatformat:2 }}
+                        {{ expense.amount|floatformat:"2g" }}
                     </strong>
                 </div>
             {% empty %}
                 <p class="text-muted">No expenses for this batch.</p>
             {% endfor %}
+            {% include 'shop/partials/pagination.html' with page_obj=expenses_pagination.page_obj page_size=expenses_pagination.page_size page_query=expenses_pagination.page_query page_param=expenses_pagination.page_param page_size_param=expenses_pagination.page_size_param page_size_options=expenses_pagination.page_size_options %}
 
             <div class="d-flex justify-content-between mt-3">
                 <strong>Total Batch Expenses</strong>
-                <strong class="text-danger">{{ total_expenses|floatformat:2 }}</strong>
+                <strong class="text-danger">{{ total_expenses|floatformat:"2g" }}</strong>
             </div>
         </div>
     </div>
@@ -163,16 +164,17 @@ Batch Detail
                     <td>{{ row.purchased_qty }}</td>
                     <td>{{ row.sold_qty }}</td>
                     <td>{{ row.remaining_qty }}</td>
-                    <td>{{ row.buying_price|floatformat:2 }}</td>
-                    <td>{{ row.revenue|floatformat:2 }}</td>
-                    <td>{{ row.cogs|floatformat:2 }}</td>
-                    <td class="text-success">{{ row.gross_profit|floatformat:2 }}</td>
-                    <td>{{ row.stock_value|floatformat:2 }}</td>
+                    <td>{{ row.buying_price|floatformat:"2g" }}</td>
+                    <td>{{ row.revenue|floatformat:"2g" }}</td>
+                    <td>{{ row.cogs|floatformat:"2g" }}</td>
+                    <td class="text-success">{{ row.gross_profit|floatformat:"2g" }}</td>
+                    <td>{{ row.stock_value|floatformat:"2g" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' with page_obj=variants_pagination.page_obj page_size=variants_pagination.page_size page_query=variants_pagination.page_query page_param=variants_pagination.page_param page_size_param=variants_pagination.page_size_param page_size_options=variants_pagination.page_size_options %}
 </div>
 
 <div class="card card-box p-4">
@@ -202,15 +204,15 @@ Batch Detail
                     <td>{{ allocation.sale_item.sale.customer|default:"-" }}</td>
                     <td>{{ allocation.purchase_item.variant }}</td>
                     <td>{{ allocation.net_quantity }}</td>
-                    <td>{{ allocation.sale_item.selling_price|floatformat:2 }}</td>
+                    <td>{{ allocation.sale_item.selling_price|floatformat:"2g" }}</td>
                     <td>
-                        {{ allocation.net_quantity|floatformat:0 }}
+                        {{ allocation.net_quantity|floatformat:"0g" }}
                         x
-                        {{ allocation.sale_item.selling_price|floatformat:2 }}
+                        {{ allocation.sale_item.selling_price|floatformat:"2g" }}
                     </td>
-                    <td>{{ allocation.net_total_cost|floatformat:2 }}</td>
+                    <td>{{ allocation.net_total_cost|floatformat:"2g" }}</td>
                     <td class="{% if allocation.net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                        {{ allocation.net_profit|floatformat:2 }}
+                        {{ allocation.net_profit|floatformat:"2g" }}
                     </td>
                 </tr>
                 {% empty %}
@@ -223,6 +225,7 @@ Batch Detail
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' with page_obj=allocations_pagination.page_obj page_size=allocations_pagination.page_size page_query=allocations_pagination.page_query page_param=allocations_pagination.page_param page_size_param=allocations_pagination.page_size_param page_size_options=allocations_pagination.page_size_options %}
 </div>
 
 {% endblock %}

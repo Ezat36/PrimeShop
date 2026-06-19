@@ -44,7 +44,7 @@
                                 data-variant="{{ batch.variant_id }}"
                                 data-cost="{{ batch.buying_price }}"
                             >
-                                {{ batch.batch_number|default:"No batch" }} - {{ batch.variant }} - Stock: {{ batch.remaining_qty }} - Cost: {{ batch.buying_price|floatformat:2 }}
+                                {{ batch.batch_number|default:"No batch" }} - {{ batch.variant }} - Stock: {{ batch.remaining_qty }} - Cost: {{ batch.buying_price|floatformat:"2g" }}
                             </option>
                         {% endfor %}
                     </select>

@@ -17,9 +17,9 @@
 </div>
 
 <div class="total-strip">
-    <div class="total-pill"><span>Total Purchase</span><strong>{{ total_purchase|floatformat:2 }} {{ store_currency }}</strong></div>
-    <div class="total-pill"><span>Total Paid</span><strong>{{ total_paid|floatformat:2 }} {{ store_currency }}</strong></div>
-    <div class="total-pill"><span>Balance</span><strong>{{ total_balance|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Total Purchase</span><strong>{{ total_purchase|floatformat:"2g" }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Total Paid</span><strong>{{ total_paid|floatformat:"2g" }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Balance</span><strong>{{ total_balance|floatformat:"2g" }} {{ store_currency }}</strong></div>
 </div>
 
 <form method="get" class="toolbar no-print">
@@ -43,9 +43,9 @@
                         <td>{{ row.type }}</td>
                         <td>{{ row.reference }}</td>
                         <td>{{ row.description }}</td>
-                        <td class="money">{{ row.debit|floatformat:2 }}</td>
-                        <td class="money">{{ row.credit|floatformat:2 }}</td>
-                        <td class="money">{{ row.balance|floatformat:2 }}</td>
+                        <td class="money">{{ row.debit|floatformat:"2g" }}</td>
+                        <td class="money">{{ row.credit|floatformat:"2g" }}</td>
+                        <td class="money">{{ row.balance|floatformat:"2g" }}</td>
                         <td>{{ row.status }}</td>
                     </tr>
                 {% empty %}
@@ -55,8 +55,8 @@
             <tfoot>
                 <tr>
                     <th colspan="4">Filtered Totals</th>
-                    <th class="money">{{ statement_debit|floatformat:2 }}</th>
-                    <th class="money">{{ statement_credit|floatformat:2 }}</th>
+                    <th class="money">{{ statement_debit|floatformat:"2g" }}</th>
+                    <th class="money">{{ statement_credit|floatformat:"2g" }}</th>
                     <th colspan="2"></th>
                 </tr>
             </tfoot>
@@ -75,9 +75,9 @@
                     <tr>
                         <td>{{ sale.invoice.invoice_number|default:sale }}</td>
                         <td>{{ sale.date }}</td>
-                        <td class="money">{{ sale.final_amount|floatformat:2 }}</td>
-                        <td class="money">{{ sale.paid_total|floatformat:2 }}</td>
-                        <td class="money">{{ sale.amount_due|floatformat:2 }}</td>
+                        <td class="money">{{ sale.cached_final_amount|floatformat:"2g" }}</td>
+                        <td class="money">{{ sale.paid_total|floatformat:"2g" }}</td>
+                        <td class="money">{{ sale.amount_due|floatformat:"2g" }}</td>
                         <td>{% if sale.is_canceled %}<span class="badge bg-secondary">Canceled</span>{% else %}<span class="badge bg-success">Active</span>{% endif %}</td>
                     </tr>
                 {% empty %}
@@ -86,6 +86,7 @@
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' with page_obj=sales_pagination.page_obj page_size=sales_pagination.page_size page_query=sales_pagination.page_query page_param=sales_pagination.page_param page_size_param=sales_pagination.page_size_param page_size_options=sales_pagination.page_size_options %}
 </div>
 
 <div class="card card-box p-4">
@@ -99,7 +100,7 @@
                         <td>{{ payment.date }}</td>
                         <td>{% if payment.sale %}{{ payment.sale.invoice.invoice_number|default:payment.sale }}{% else %}Auto balance{% endif %}</td>
                         <td>{{ payment.method }}</td>
-                        <td class="money">{{ payment.amount|floatformat:2 }}</td>
+                        <td class="money">{{ payment.amount|floatformat:"2g" }}</td>
                         <td>{{ payment.note }}</td>
                         <td>{{ payment.created_by|default:"-" }}</td>
                     </tr>
@@ -109,6 +110,7 @@
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' with page_obj=payments_pagination.page_obj page_size=payments_pagination.page_size page_query=payments_pagination.page_query page_param=payments_pagination.page_param page_size_param=payments_pagination.page_size_param page_size_options=payments_pagination.page_size_options %}
 </div>
 
 <style>

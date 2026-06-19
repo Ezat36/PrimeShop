@@ -17,9 +17,9 @@
 </div>
 
 <div class="total-strip">
-    <div class="total-pill"><span>Total Purchases</span><strong>{{ total_purchases|floatformat:2 }} {{ store_currency }}</strong></div>
-    <div class="total-pill"><span>Total Paid</span><strong>{{ total_paid|floatformat:2 }} {{ store_currency }}</strong></div>
-    <div class="total-pill"><span>Balance</span><strong>{{ balance|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Total Purchases</span><strong>{{ total_purchases|floatformat:"2g" }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Total Paid</span><strong>{{ total_paid|floatformat:"2g" }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Balance</span><strong>{{ balance|floatformat:"2g" }} {{ store_currency }}</strong></div>
 </div>
 
 <form method="get" class="toolbar no-print">
@@ -43,9 +43,9 @@
                         <td>{{ row.type }}</td>
                         <td>{{ row.reference }}</td>
                         <td>{{ row.description }}</td>
-                        <td class="money">{{ row.debit|floatformat:2 }}</td>
-                        <td class="money">{{ row.credit|floatformat:2 }}</td>
-                        <td class="money">{{ row.balance|floatformat:2 }}</td>
+                        <td class="money">{{ row.debit|floatformat:"2g" }}</td>
+                        <td class="money">{{ row.credit|floatformat:"2g" }}</td>
+                        <td class="money">{{ row.balance|floatformat:"2g" }}</td>
                     </tr>
                 {% empty %}
                     <tr><td colspan="7"><div class="empty-state">No statement activity found.</div></td></tr>
@@ -54,8 +54,8 @@
             <tfoot>
                 <tr>
                     <th colspan="4">Filtered Totals</th>
-                    <th class="money">{{ statement_debit|floatformat:2 }}</th>
-                    <th class="money">{{ statement_credit|floatformat:2 }}</th>
+                    <th class="money">{{ statement_debit|floatformat:"2g" }}</th>
+                    <th class="money">{{ statement_credit|floatformat:"2g" }}</th>
                     <th></th>
                 </tr>
             </tfoot>
@@ -75,7 +75,7 @@
                         <td>{{ purchase.id }}</td>
                         <td>{{ purchase.date }}</td>
                         <td>{{ purchase.items.count }}</td>
-                        <td class="money">{{ purchase.total_cost|floatformat:2 }}</td>
+                        <td class="money">{{ purchase.total_cost|floatformat:"2g" }}</td>
                         <td>{{ purchase.note }}</td>
                     </tr>
                 {% empty %}
@@ -84,6 +84,7 @@
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' with page_obj=purchases_pagination.page_obj page_size=purchases_pagination.page_size page_query=purchases_pagination.page_query page_param=purchases_pagination.page_param page_size_param=purchases_pagination.page_size_param page_size_options=purchases_pagination.page_size_options %}
 </div>
 
 <div class="card card-box p-4">
@@ -96,7 +97,7 @@
                     <tr>
                         <td>{{ payment.date }}</td>
                         <td>{{ payment.method }}</td>
-                        <td class="money">{{ payment.amount|floatformat:2 }}</td>
+                        <td class="money">{{ payment.amount|floatformat:"2g" }}</td>
                         <td>{{ payment.note }}</td>
                         <td>{{ payment.created_by|default:"-" }}</td>
                     </tr>
@@ -106,6 +107,7 @@
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' with page_obj=payments_pagination.page_obj page_size=payments_pagination.page_size page_query=payments_pagination.page_query page_param=payments_pagination.page_param page_size_param=payments_pagination.page_size_param page_size_options=payments_pagination.page_size_options %}
 </div>
 
 <style>

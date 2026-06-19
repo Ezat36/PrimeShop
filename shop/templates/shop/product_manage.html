@@ -269,7 +269,7 @@ Manage Product
                                     </div>
                                 </td>
 
-                                <td class="money">{{ variant.selling_price|floatformat:2 }}</td>
+                                <td class="money">{{ variant.selling_price|floatformat:"2g" }}</td>
                                 <td>{{ variant.sku|default:"-" }}</td>
 
                                 <td class="number">

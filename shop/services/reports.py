@@ -1,15 +1,83 @@
 from decimal import Decimal
 
+from django.db.models import DecimalField, F, Sum
+from django.db.models.functions import Coalesce
+from django.db import connection
 from django.utils import timezone
 
 from shop.models import (
     BatchExpense,
+    CustomerPayment,
+    DailyBusinessSummary,
+    DailyUserSalesSummary,
     Expense,
     PurchaseItem,
     Sale,
     SaleItem,
     ProductVariant,
 )
+
+
+def _related_list(instance, related_name):
+    cache = getattr(instance, '_prefetched_objects_cache', {})
+    if related_name in cache:
+        return list(cache[related_name])
+
+    return list(getattr(instance, related_name).all())
+
+
+def _sale_item_returned_quantity(sale_item):
+    if hasattr(sale_item, '_returned_quantity_cache'):
+        return sale_item._returned_quantity_cache
+
+    sale_item._returned_quantity_cache = sum(
+        item.quantity
+        for item in _related_list(sale_item, 'returns')
+    )
+    return sale_item._returned_quantity_cache
+
+
+def _sale_item_net_quantity(sale_item):
+    if sale_item.sale.is_canceled:
+        return 0
+
+    return max(sale_item.quantity - _sale_item_returned_quantity(sale_item), 0)
+
+
+def _sale_item_net_total_price(sale_item):
+    return _sale_item_net_quantity(sale_item) * sale_item.selling_price
+
+
+def _sale_total(sale):
+    if sale.is_canceled:
+        return Decimal('0')
+
+    return sum(_sale_item_net_total_price(item) for item in _related_list(sale, 'items'))
+
+
+def _sale_final_amount(sale):
+    if sale.is_canceled:
+        return Decimal('0')
+
+    return max(_sale_total(sale) - sale.discount, Decimal('0'))
+
+
+def _sale_remaining_balance(sale):
+    if sale.is_canceled:
+        return Decimal('0')
+
+    return max(_sale_final_amount(sale) - sale.paid_amount, Decimal('0'))
+
+
+def _allocation_net_quantities(sale_item, allocations):
+    returned_qty = _sale_item_returned_quantity(sale_item)
+    net_quantities = {}
+
+    for allocation in sorted(allocations, key=lambda allocation: allocation.id):
+        net_quantities[allocation.id] = max(allocation.quantity - returned_qty, 0)
+        returned_qty = max(returned_qty - allocation.quantity, 0)
+
+    return net_quantities
 
 
 def get_sale_payment_status(sale):
@@ -84,6 +152,94 @@ def get_sale_payment_status(sale):
     }
 
 
+def get_sale_payment_statuses(sales):
+    sales = list(sales)
+    statuses = {}
+    customer_ids = {
+        sale.customer_id
+        for sale in sales
+        if sale.customer_id and not sale.is_canceled
+    }
+
+    for sale in sales:
+        if sale.is_canceled:
+            statuses[sale.id] = {
+                'paid_total': Decimal('0'),
+                'amount_due': Decimal('0'),
+            }
+        elif not sale.customer_id:
+            statuses[sale.id] = {
+                'paid_total': sale.paid_amount,
+                'amount_due': _sale_remaining_balance(sale),
+            }
+
+    if not customer_ids:
+        return statuses
+
+    target_sale_ids = {
+        sale.id
+        for sale in sales
+        if sale.id and sale.customer_id and not sale.is_canceled
+    }
+    unlinked_payments_by_customer = {}
+    for payment in CustomerPayment.objects.filter(
+        customer_id__in=customer_ids,
+        sale_id__isnull=True,
+    ).order_by('customer_id', 'date', 'id'):
+        unlinked_payments_by_customer.setdefault(payment.customer_id, []).append({
+            'date': payment.date,
+            'remaining': payment.amount,
+        })
+
+    active_customer_sales = Sale.objects.filter(
+        customer_id__in=customer_ids,
+        is_canceled=False,
+    ).prefetch_related(
+        'items',
+        'items__returns',
+        'customer_payments',
+    ).order_by('customer_id', 'date', 'id')
+    active_customer_sales_by_customer = {}
+    for sale in active_customer_sales:
+        active_customer_sales_by_customer.setdefault(sale.customer_id, []).append(sale)
+
+    for customer_id in customer_ids:
+        payments = [
+            {'date': payment['date'], 'remaining': payment['remaining']}
+            for payment in unlinked_payments_by_customer.get(customer_id, [])
+        ]
+        customer_sales = active_customer_sales_by_customer.get(customer_id, [])
+
+        for customer_sale in customer_sales:
+            linked_payments = sum(
+                payment.amount
+                for payment in customer_sale.customer_payments.all()
+            )
+            sale_due = _sale_remaining_balance(customer_sale) - linked_payments
+            applied_to_sale = Decimal('0')
+
+            if sale_due > 0:
+                for payment in payments:
+                    if payment['date'] < customer_sale.date or payment['remaining'] <= 0:
+                        continue
+
+                    applied_payment = min(payment['remaining'], sale_due)
+                    payment['remaining'] -= applied_payment
+                    sale_due -= applied_payment
+                    applied_to_sale += applied_payment
+
+                    if sale_due <= 0:
+                        break
+
+            if customer_sale.id in target_sale_ids:
+                statuses[customer_sale.id] = {
+                    'paid_total': customer_sale.paid_amount + linked_payments + applied_to_sale,
+                    'amount_due': max(sale_due, 0),
+                }
+
+    return statuses
+
+
 def filter_by_period(queryset, filter_type, field_name):
     today = timezone.now().date()
 
@@ -130,13 +286,60 @@ def scope_invoices_queryset(queryset, user):
 
 
 def build_dashboard_context(filter_type, user):
+    if can_view_all_sales(user):
+        summaries = filter_by_period(DailyBusinessSummary.objects.all(), filter_type, 'date')
+        if (connection.in_atomic_block or not summaries.exists()) and filter_by_period(
+            Sale.objects.filter(is_canceled=False),
+            filter_type,
+            'date',
+        ).exists():
+            from shop.services.summaries import rebuild_daily_summaries
+            rebuild_daily_summaries()
+            summaries = filter_by_period(DailyBusinessSummary.objects.all(), filter_type, 'date')
+        summary_totals = summaries.aggregate(
+            total_items_sold=Coalesce(Sum('total_items_sold'), 0),
+            total_sales_value=Coalesce(Sum('sales_value'), Decimal('0'), output_field=DecimalField()),
+            total_profit=Coalesce(Sum('gross_profit'), Decimal('0'), output_field=DecimalField()),
+            total_paid_profit=Coalesce(Sum('paid_profit'), Decimal('0'), output_field=DecimalField()),
+            outstanding_balance=Coalesce(Sum('outstanding_balance'), Decimal('0'), output_field=DecimalField()),
+            total_expenses=Coalesce(Sum('general_expenses'), Decimal('0'), output_field=DecimalField()),
+            total_batch_expenses=Coalesce(Sum('batch_expenses'), Decimal('0'), output_field=DecimalField()),
+            net_profit=Coalesce(Sum('paid_profit'), Decimal('0'), output_field=DecimalField()),
+        )
+    else:
+        summaries = filter_by_period(DailyUserSalesSummary.objects.filter(user=user), filter_type, 'date')
+        if (connection.in_atomic_block or not summaries.exists()) and filter_by_period(
+            Sale.objects.filter(is_canceled=False, created_by=user),
+            filter_type,
+            'date',
+        ).exists():
+            from shop.services.summaries import rebuild_daily_summaries
+            rebuild_daily_summaries()
+            summaries = filter_by_period(DailyUserSalesSummary.objects.filter(user=user), filter_type, 'date')
+        summary_totals = summaries.aggregate(
+            total_items_sold=Coalesce(Sum('total_items_sold'), 0),
+            total_sales_value=Coalesce(Sum('sales_value'), Decimal('0'), output_field=DecimalField()),
+            total_profit=Coalesce(Sum('gross_profit'), Decimal('0'), output_field=DecimalField()),
+            total_paid_profit=Coalesce(Sum('paid_profit'), Decimal('0'), output_field=DecimalField()),
+            outstanding_balance=Coalesce(Sum('outstanding_balance'), Decimal('0'), output_field=DecimalField()),
+            net_profit=Coalesce(Sum('paid_profit'), Decimal('0'), output_field=DecimalField()),
+        )
+        summary_totals.update({
+            'total_expenses': Decimal('0'),
+            'total_batch_expenses': Decimal('0'),
+        })
+    summary_rows = list(summaries.order_by('date'))
+
     sale_items = SaleItem.objects.select_related(
         'sale',
         'sale__customer',
+        'sale__financial_summary',
         'variant',
         'variant__product',
     ).prefetch_related(
-        'sale__customer__payments',
+        'sale__items',
+        'sale__items__returns',
+        'returns',
         'allocations',
         'allocations__purchase_item',
     ).filter(
@@ -144,40 +347,42 @@ def build_dashboard_context(filter_type, user):
     ).order_by('-sale__date', '-sale__id', '-id')
 
     sale_items = scope_sale_items_queryset(sale_items, user)
-    sale_items = list(filter_by_period(sale_items, filter_type, 'sale__date'))
+    sale_items = list(filter_by_period(sale_items, filter_type, 'sale__date')[:15])
 
     sold_items = []
     product_sales_qty = {}
     product_sales_value = {}
     product_profit = {}
 
+    sales_by_id = {item.sale_id: item.sale for item in sale_items}
     sale_totals = {
-        item.sale_id: sum(
-            sale_item.net_total_price()
-            for sale_item in item.sale.items.all()
-        )
-        for item in sale_items
+        sale_id: _sale_total(sale)
+        for sale_id, sale in sales_by_id.items()
     }
-
+    sale_final_totals = {
+        sale_id: max(sale_totals[sale_id] - sale.discount, Decimal('0'))
+        for sale_id, sale in sales_by_id.items()
+    }
     for item in sale_items:
-        net_quantity = item.net_quantity()
+        net_quantity = _sale_item_net_quantity(item)
 
         if net_quantity <= 0:
             continue
 
         variant = item.variant
-        allocations = item.allocations.all()
+        allocations = _related_list(item, 'allocations')
+        allocation_quantities = _allocation_net_quantities(item, allocations)
         item_revenue = sum(
-            allocation.net_total_revenue()
+            allocation_quantities[allocation.id] * item.selling_price
             for allocation in allocations
         )
         item_cogs = sum(
-            allocation.net_total_cost()
+            allocation_quantities[allocation.id] * allocation.unit_cost
             for allocation in allocations
         )
 
         if not allocations:
-            item_revenue = item.net_total_price()
+            item_revenue = _sale_item_net_total_price(item)
 
         buying_price = item_cogs / net_quantity if net_quantity > 0 else Decimal('0')
         gross_profit = item_revenue - item_cogs
@@ -190,10 +395,11 @@ def build_dashboard_context(filter_type, user):
         total_sales = item_revenue - discount_share
         net_profit_before_expenses = gross_profit - discount_share
 
-        payment_status = get_sale_payment_status(item.sale)
-        sale_final_total = item.sale.final_amount()
+        sale_final_total = sale_final_totals[item.sale_id]
+        sale_summary = getattr(item.sale, 'financial_summary', None)
+        paid_total = sale_summary.paid_total if sale_summary else item.sale.paid_amount
         paid_ratio = (
-            min(payment_status['paid_total'], sale_final_total) / sale_final_total
+            min(paid_total, sale_final_total) / sale_final_total
             if sale_final_total > 0 else Decimal('0')
         )
         paid_net_profit = net_profit_before_expenses * paid_ratio
@@ -219,50 +425,45 @@ def build_dashboard_context(filter_type, user):
             'net_profit': paid_net_profit,
         })
 
-    expenses = filter_by_period(Expense.objects.all(), filter_type, 'date')
-    batch_expenses = filter_by_period(BatchExpense.objects.all(), filter_type, 'date')
-
     if can_view_all_sales(user):
-        total_expenses = sum(expense.amount for expense in expenses)
-        total_batch_expenses = sum(expense.amount for expense in batch_expenses)
+        total_expenses = summary_totals['total_expenses']
+        total_batch_expenses = summary_totals['total_batch_expenses']
     else:
         total_expenses = Decimal('0')
         total_batch_expenses = Decimal('0')
     total_all_expenses = total_expenses + total_batch_expenses
 
-    total_profit = sum(item['gross_profit'] for item in sold_items)
-    total_paid_profit = sum(item['net_profit'] for item in sold_items)
+    total_profit = summary_totals['total_profit']
+    total_paid_profit = summary_totals['total_paid_profit']
     net_profit = (
         total_paid_profit - total_all_expenses
         if total_paid_profit > 0 else Decimal('0')
     )
 
-    variants = ProductVariant.objects.all()
-    low_stock_items = [
-        variant
-        for variant in variants
-        if variant.current_stock() <= variant.low_stock_alert
-    ]
-
-    current_stock_value = sum(
-        item.remaining_qty * item.buying_price
-        for item in PurchaseItem.objects.all()
+    low_stock_items = list(
+        ProductVariant.objects.select_related('product')
+        .annotate(current_stock_qty=Coalesce(Sum('purchase_items__remaining_qty'), 0))
+        .filter(current_stock_qty__lte=F('low_stock_alert'))
+        .order_by('current_stock_qty', 'product__name', 'variant_name')[:20]
     )
 
-    outstanding_balance = sum(
-        get_sale_payment_status(sale)['amount_due']
-        for sale in scope_sales_queryset(
-            Sale.objects.select_related('customer').prefetch_related(
-                'customer__payments'
-            ).filter(is_canceled=False),
-            user,
+    current_stock_value = PurchaseItem.objects.aggregate(
+        total=Coalesce(
+            Sum(
+                F('remaining_qty') * F('buying_price'),
+                output_field=DecimalField(max_digits=14, decimal_places=2),
+            ),
+            Decimal('0'),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
         )
-    )
+    )['total']
+
+    outstanding_balance = summary_totals['outstanding_balance']
 
     return {
         'filter_type': filter_type,
-        'total_items_sold': sum(item['quantity'] for item in sold_items),
-        'total_sales_value': sum(item['total_sales'] for item in sold_items),
+        'total_items_sold': summary_totals['total_items_sold'],
+        'total_sales_value': summary_totals['total_sales_value'],
         'total_profit': total_profit,
         'total_paid_profit': total_paid_profit,
         'current_stock_value': current_stock_value,
@@ -270,12 +471,13 @@ def build_dashboard_context(filter_type, user):
         'low_stock_count': len(low_stock_items),
         'low_stock_items': low_stock_items,
         'sold_items': sold_items,
+        'sold_items_count': summary_totals['total_items_sold'],
         'total_expenses': total_expenses,
         'total_batch_expenses': total_batch_expenses,
         'total_all_expenses': total_all_expenses,
         'net_profit': net_profit,
-        'chart_labels': list(product_sales_qty.keys()),
-        'chart_values': list(product_sales_qty.values()),
-        'sales_value_chart': list(product_sales_value.values()),
-        'profit_chart': list(product_profit.values()),
+        'chart_labels': [row.date.strftime('%Y-%m-%d') for row in summary_rows],
+        'chart_values': [row.total_items_sold for row in summary_rows],
+        'sales_value_chart': [row.sales_value for row in summary_rows],
+        'profit_chart': [row.net_profit for row in summary_rows],
     }

@@ -1,23 +1,26 @@
 {% extends 'shop/base.html' %}
 
 {% block title %}Batch Expenses{% endblock %}
-
-{% block page_title %}
-🚚 Batch Expenses
-{% endblock %}
+{% block page_title %}Batch Expenses{% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between mb-4">
-    <h5>Total Batch Expenses: {{ total_batch_expenses|floatformat:2 }}</h5>
+<div class="toolbar">
+    <form method="get" class="search-box">
+        <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+        <button class="btn btn-primary"><i class="bi bi-funnel"></i></button>
+    </form>
 
-    <a href="/batch-expenses/add/" class="btn btn-success">
-        + Add Batch Expense
-    </a>
+    <div class="toolbar-actions">
+        <h5 class="mb-0">Total Batch Expenses: {{ total_batch_expenses|floatformat:"2g" }}</h5>
+        <a href="/batch-expenses/add/" class="btn btn-success">
+            <i class="bi bi-plus-lg"></i> Add Batch Expense
+        </a>
+    </div>
 </div>
 
 <div class="card card-box p-4">
-
     <div class="table-responsive">
         <table class="table table-bordered table-hover align-middle">
             <thead class="table-dark">
@@ -25,48 +28,32 @@
                     <th>#</th>
                     <th>Date</th>
                     <th>Batch</th>
-                    <th>Product</th>
                     <th>Category</th>
                     <th>Title</th>
-                    <th>Amount</th>
+                    <th class="money">Amount</th>
                     <th>Note</th>
                 </tr>
             </thead>
-
             <tbody>
                 {% for expense in expenses %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{{ expense.date }}</td>
-                    <td>
-                        <strong>{{ expense.purchase_item.batch_number }}</strong>
-                    </td>
-                    <td>
-                        {{ expense.purchase_item.variant }}
-                    </td>
-                    <td>
-                        <span class="badge bg-primary">
-                            {{ expense.category }}
-                        </span>
-                    </td>
+                    <td><strong>{{ expense.batch_number }}</strong></td>
+                    <td><span class="badge bg-primary">{{ expense.category }}</span></td>
                     <td>{{ expense.title }}</td>
-                    <td class="text-danger">
-                        {{ expense.amount|floatformat:2 }}
-                    </td>
+                    <td class="money text-danger">{{ expense.amount|floatformat:"2g" }}</td>
                     <td>{{ expense.note }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="text-center text-muted">
-                        No batch expenses found.
-                    </td>
+                    <td colspan="7"><div class="empty-state">No batch expenses found.</div></td>
                 </tr>
                 {% endfor %}
             </tbody>
-
         </table>
     </div>
-
+    {% include 'shop/partials/pagination.html' %}
 </div>
 
 {% endblock %}

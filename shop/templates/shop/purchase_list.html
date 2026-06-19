@@ -24,7 +24,7 @@ Purchases
 
 <div class="total-strip">
     <div class="total-pill"><span>Purchases</span><strong>{{ purchases|length }}</strong></div>
-    <div class="total-pill"><span>Total Cost</span><strong>{{ total_cost|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Total Cost</span><strong>{{ total_cost|floatformat:"2g" }} {{ store_currency }}</strong></div>
 </div>
 
 <div class="card card-box p-4">
@@ -50,7 +50,7 @@ Purchases
                     <td class="number">{{ purchase.items.count }}</td>
                     <td class="money">
                         {% for item in purchase.items.all %}
-                            {{ item.total_price|floatformat:2 }} {{ store_currency }}<br>
+                            {{ item.total_price|floatformat:"2g" }} {{ store_currency }}<br>
                         {% endfor %}
                     </td>
                     <td>{{ purchase.note }}</td>

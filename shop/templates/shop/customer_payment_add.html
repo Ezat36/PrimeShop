@@ -13,7 +13,7 @@
                     <option value="">Oldest unpaid balance automatically</option>
                     {% for sale in sales %}
                         <option value="{{ sale.id }}">
-                            {{ sale.invoice.invoice_number|default:sale }} - {{ sale.customer.name }} - Due: {{ sale.amount_due|floatformat:2 }}
+                            {{ sale.invoice.invoice_number|default:sale }} - {{ sale.customer.name }} - Due: {{ sale.amount_due|floatformat:"2g" }}
                         </option>
                     {% endfor %}
                 </select>

@@ -28,7 +28,7 @@ Products
 <div class="total-strip">
     <div class="total-pill">
         <span>Product Rows</span>
-        <strong>{{ product_data|length }}</strong>
+        <strong>{{ products_count }}</strong>
     </div>
 </div>
 
@@ -85,6 +85,7 @@ Products
         </table>
 
     </div>
+    {% include 'shop/partials/pagination.html' %}
 
 </div>
 

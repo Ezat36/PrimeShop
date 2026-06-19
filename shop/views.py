@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 import zipfile
+from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
@@ -22,12 +23,27 @@ from django.views.decorators.http import require_POST
 from .models import StoreSetting, Expense, SaleItemAllocation, BatchExpense, VariantDetail, StockLocation
 from .models import CustomerPayment, SupplierPayment, StockTransfer, SaleReturn, ActivityLog
 from .models import StockAdjustment
+from .models import (
+    BatchProfitSummary,
+    CustomerAccountSummary,
+    DailyBusinessSummary,
+    DailyUserSalesSummary,
+    DailyVariantSummary,
+    SaleFinancialSummary,
+)
 from django.contrib.auth.decorators import permission_required
 from django.db import transaction
-from django.db.models import Prefetch, Q
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Prefetch, Q, Sum
+from django.db.models.functions import Coalesce
 from .services.reports import (
+    _allocation_net_quantities,
+    _related_list,
+    _sale_final_amount,
+    _sale_item_net_quantity,
+    _sale_item_net_total_price,
     build_dashboard_context,
     get_sale_payment_status,
+    get_sale_payment_statuses,
     scope_invoices_queryset,
     scope_sale_items_queryset,
     scope_sales_queryset,
@@ -146,27 +162,29 @@ def apply_date_filter(queryset, request, field_name):
     return queryset
 
 
-def get_page_size(request, default=25):
+def get_page_size(request, default=15, page_size_param='page_size'):
     try:
-        page_size = int(request.GET.get('page_size', default))
+        page_size = int(request.GET.get(page_size_param, default))
     except (TypeError, ValueError):
         return default
 
-    return page_size if page_size in {25, 50, 100} else default
+    return page_size if page_size in {15, 25, 50, 100} else default
 
 
-def paginate_items(items, request, default_page_size=25):
-    page_size = get_page_size(request, default_page_size)
+def paginate_items(items, request, default_page_size=15, page_param='page', page_size_param='page_size'):
+    page_size = get_page_size(request, default_page_size, page_size_param)
     paginator = Paginator(items, page_size)
-    page_obj = paginator.get_page(request.GET.get('page'))
+    page_obj = paginator.get_page(request.GET.get(page_param))
     query_params = request.GET.copy()
-    query_params.pop('page', None)
+    query_params.pop(page_param, None)
 
     return page_obj, {
         'page_obj': page_obj,
         'page_size': page_size,
         'page_query': query_params.urlencode(),
-        'page_size_options': [25, 50, 100],
+        'page_param': page_param,
+        'page_size_param': page_size_param,
+        'page_size_options': [15, 25, 50, 100],
         'filtered_count': paginator.count,
     }
 
@@ -188,7 +206,9 @@ def build_customer_statement(customer, user, request):
     rows = []
     sales = list(
         scope_sales_queryset(
-            Sale.objects.filter(customer=customer).select_related('invoice'),
+            Sale.objects.filter(customer=customer)
+            .select_related('invoice')
+            .prefetch_related('items', 'items__returns'),
             user,
         )
     )
@@ -200,7 +220,7 @@ def build_customer_statement(customer, user, request):
             'type': 'Sale',
             'reference': getattr(sale, 'invoice', None) or sale,
             'description': 'Canceled sale' if sale.is_canceled else 'Invoice sale',
-            'debit': sale.final_amount(),
+            'debit': _sale_final_amount(sale),
             'credit': Decimal('0'),
             'status': 'Canceled' if sale.is_canceled else 'Active',
         })
@@ -543,14 +563,19 @@ def stock_report(request):
         ).distinct()
 
     total_products = variants.count()
-    total_purchased = 0
-    total_sold = 0
-    total_remaining = 0
-
-    for variant in variants:
-        total_purchased += variant.total_purchased()
-        total_sold += variant.total_sold()
-        total_remaining += variant.current_stock()
+    variants = variants.annotate(
+        purchased_qty=Coalesce(Sum('purchase_items__quantity'), 0),
+        remaining_qty=Coalesce(Sum('purchase_items__remaining_qty'), 0),
+    ).annotate(
+        sold_qty=F('purchased_qty') - F('remaining_qty'),
+    )
+    stock_totals = variants.aggregate(
+        total_purchased=Coalesce(Sum('purchased_qty'), 0),
+        total_remaining=Coalesce(Sum('remaining_qty'), 0),
+    )
+    total_purchased = stock_totals['total_purchased']
+    total_remaining = stock_totals['total_remaining']
+    total_sold = total_purchased - total_remaining
     variants, pagination = paginate_items(variants, request)
 
     context = {
@@ -596,116 +621,146 @@ def stock_movement_report(request, variant_id):
     raise_exception=True
 )
 def profit_loss_report(request):
-    variants = ProductVariant.objects.all()
-    sales = Sale.objects.filter(is_canceled=False)
-    sales = apply_date_filter(sales, request, 'date')
-
-    variant_rows = []
+    summary_qs = apply_date_filter(DailyBusinessSummary.objects.all(), request, 'date')
+    if not summary_qs.exists() and apply_date_filter(
+        Sale.objects.filter(is_canceled=False),
+        request,
+        'date',
+    ).exists():
+        from shop.services.summaries import rebuild_daily_summaries
+        rebuild_daily_summaries()
+        summary_qs = apply_date_filter(DailyBusinessSummary.objects.all(), request, 'date')
+    summary_totals = summary_qs.aggregate(
+        total_sales_revenue=Coalesce(Sum('sales_value'), Decimal('0'), output_field=DecimalField()),
+        total_cogs=Coalesce(Sum('cogs'), Decimal('0'), output_field=DecimalField()),
+        total_gross_profit=Coalesce(Sum('gross_profit'), Decimal('0'), output_field=DecimalField()),
+        total_discount=Coalesce(Sum('discount'), Decimal('0'), output_field=DecimalField()),
+        total_paid=Coalesce(Sum('total_paid'), Decimal('0'), output_field=DecimalField()),
+        outstanding_balance=Coalesce(Sum('outstanding_balance'), Decimal('0'), output_field=DecimalField()),
+        total_expenses=Coalesce(Sum('general_expenses'), Decimal('0'), output_field=DecimalField()),
+        total_batch_expenses=Coalesce(Sum('batch_expenses'), Decimal('0'), output_field=DecimalField()),
+        net_profit_after_expenses=Coalesce(Sum('net_profit'), Decimal('0'), output_field=DecimalField()),
+        total_sold_qty=Coalesce(Sum('total_items_sold'), 0),
+    )
+    variants = list(ProductVariant.objects.select_related('product').order_by('product__name', 'variant_name', 'id'))
+    variant_rows_by_id = {
+        variant.id: {
+            'variant': variant,
+            'purchased_qty': 0,
+            'sold_qty': 0,
+            'remaining_qty': 0,
+            'purchase_value': Decimal('0'),
+            'sales_value': Decimal('0'),
+            'cogs': Decimal('0'),
+            'gross_profit': Decimal('0'),
+            'remaining_inventory_value': Decimal('0'),
+        }
+        for variant in variants
+    }
     product_summary = {}
 
-    total_sales_revenue = 0
-    total_cogs = 0
-    total_gross_profit = 0
-    total_inventory_value = 0
-    total_sold_qty = 0
-    total_remaining_qty = 0
-
-    for variant in variants:
-        purchase_items = PurchaseItem.objects.filter(variant=variant)
-        sale_items = SaleItem.objects.filter(
-            variant=variant,
-            sale__is_canceled=False,
-        )
-        sale_items = apply_date_filter(sale_items, request, 'sale__date')
-        allocations = SaleItemAllocation.objects.filter(
-            purchase_item__variant=variant,
-            sale_item__sale__is_canceled=False,
-        )
-        allocations = apply_date_filter(allocations, request, 'sale_item__sale__date')
-
-        purchased_qty = sum(batch.quantity for batch in purchase_items)
-        sold_qty = sum(item.net_quantity() for item in sale_items)
-        remaining_qty = sum(batch.remaining_qty for batch in purchase_items)
-
-        sales_value = sum(item.net_total_price() for item in sale_items)
-        cogs = sum(allocation.net_total_cost() for allocation in allocations)
-
-        gross_profit = sales_value - cogs
-
-        remaining_inventory_value = sum(
-            batch.remaining_qty * batch.buying_price
-            for batch in purchase_items
-        )
-
-        total_sales_revenue += sales_value
-        total_cogs += cogs
-        total_gross_profit += gross_profit
-        total_inventory_value += remaining_inventory_value
-        total_sold_qty += sold_qty
-        total_remaining_qty += remaining_qty
-
-        product_name = variant.product.name
-
-        if product_name not in product_summary:
-            product_summary[product_name] = {
-                'product_name': product_name,
-                'sold_qty': 0,
-                'remaining_qty': 0,
-                'sales_value': 0,
-                'cogs': 0,
-                'gross_profit': 0,
-                'inventory_value': 0,
-            }
-
-        product_summary[product_name]['sold_qty'] += sold_qty
-        product_summary[product_name]['remaining_qty'] += remaining_qty
-        product_summary[product_name]['sales_value'] += sales_value
-        product_summary[product_name]['cogs'] += cogs
-        product_summary[product_name]['gross_profit'] += gross_profit
-        product_summary[product_name]['inventory_value'] += remaining_inventory_value
-
-        if purchased_qty > 0 or sold_qty > 0:
-            avg_buying_price = (
-                sum(batch.total_price() for batch in purchase_items) / purchased_qty
-                if purchased_qty > 0 else 0
-            )
-
-            variant_rows.append({
-                'variant': variant,
-                'purchased_qty': purchased_qty,
-                'sold_qty': sold_qty,
-                'remaining_qty': remaining_qty,
-                'avg_buying_price': avg_buying_price,
-                'sales_value': sales_value,
-                'cogs': cogs,
-                'gross_profit': gross_profit,
-                'remaining_inventory_value': remaining_inventory_value,
-            })
-
-    total_discount = sum(
-        min(sale.discount, sale.total_amount())
-        for sale in sales
+    purchase_rows = PurchaseItem.objects.values('variant_id').annotate(
+        agg_purchased_qty=Coalesce(Sum('quantity'), 0),
+        agg_remaining_qty=Coalesce(Sum('remaining_qty'), 0),
+        agg_purchase_value=Coalesce(
+            Sum(
+                ExpressionWrapper(
+                    F('quantity') * F('buying_price'),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                )
+            ),
+            Decimal('0'),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        ),
+        agg_remaining_inventory_value=Coalesce(
+            Sum(
+                ExpressionWrapper(
+                    F('remaining_qty') * F('buying_price'),
+                    output_field=DecimalField(max_digits=14, decimal_places=2),
+                )
+            ),
+            Decimal('0'),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        ),
     )
-    payment_statuses = [
-        get_sale_payment_status(sale)
-        for sale in sales.prefetch_related('customer__payments', 'customer_payments')
-    ]
-    total_paid = sum(status['paid_total'] for status in payment_statuses)
-    outstanding_balance = sum(status['amount_due'] for status in payment_statuses)
+    for purchase_row in purchase_rows:
+        row = variant_rows_by_id.get(purchase_row['variant_id'])
+        if not row:
+            continue
+        row['purchased_qty'] = purchase_row['agg_purchased_qty']
+        row['remaining_qty'] = purchase_row['agg_remaining_qty']
+        row['purchase_value'] = purchase_row['agg_purchase_value']
+        row['remaining_inventory_value'] = purchase_row['agg_remaining_inventory_value']
+
+    variant_summary_qs = apply_date_filter(DailyVariantSummary.objects.all(), request, 'date')
+    if not variant_summary_qs.exists() and apply_date_filter(
+        Sale.objects.filter(is_canceled=False),
+        request,
+        'date',
+    ).exists():
+        from shop.services.summaries import rebuild_daily_summaries
+        rebuild_daily_summaries()
+        variant_summary_qs = apply_date_filter(DailyVariantSummary.objects.all(), request, 'date')
+
+    for summary_row in variant_summary_qs.values('variant_id').annotate(
+        sold_qty=Coalesce(Sum('sold_qty'), 0),
+        sales_value=Coalesce(Sum('sales_value'), Decimal('0'), output_field=DecimalField()),
+        cogs=Coalesce(Sum('cogs'), Decimal('0'), output_field=DecimalField()),
+        gross_profit=Coalesce(Sum('gross_profit'), Decimal('0'), output_field=DecimalField()),
+    ):
+        row = variant_rows_by_id.get(summary_row['variant_id'])
+        if not row:
+            continue
+        row['sold_qty'] = summary_row['sold_qty']
+        row['sales_value'] = summary_row['sales_value']
+        row['cogs'] = summary_row['cogs']
+        row['gross_profit'] = summary_row['gross_profit']
+
+    total_sales_revenue = summary_totals['total_sales_revenue']
+    total_cogs = summary_totals['total_cogs']
+    total_gross_profit = summary_totals['total_gross_profit']
+    total_inventory_value = Decimal('0')
+    total_sold_qty = summary_totals['total_sold_qty']
+    total_remaining_qty = 0
+    variant_rows = []
+
+    for row in variant_rows_by_id.values():
+        total_inventory_value += row['remaining_inventory_value']
+        total_remaining_qty += row['remaining_qty']
+
+        product_name = row['variant'].product.name
+        product_row = product_summary.setdefault(product_name, {
+            'product_name': product_name,
+            'sold_qty': 0,
+            'remaining_qty': 0,
+            'sales_value': Decimal('0'),
+            'cogs': Decimal('0'),
+            'gross_profit': Decimal('0'),
+            'inventory_value': Decimal('0'),
+        })
+        product_row['sold_qty'] += row['sold_qty']
+        product_row['remaining_qty'] += row['remaining_qty']
+        product_row['sales_value'] += row['sales_value']
+        product_row['cogs'] += row['cogs']
+        product_row['gross_profit'] += row['gross_profit']
+        product_row['inventory_value'] += row['remaining_inventory_value']
+
+        if row['purchased_qty'] > 0 or row['sold_qty'] > 0:
+            row['avg_buying_price'] = (
+                row['purchase_value'] / row['purchased_qty']
+                if row['purchased_qty'] > 0 else Decimal('0')
+            )
+            variant_rows.append(row)
+
+    total_discount = summary_totals['total_discount']
+    total_paid = summary_totals['total_paid']
+    outstanding_balance = summary_totals['outstanding_balance']
 
     net_profit = total_gross_profit - total_discount
 
-    expenses = apply_date_filter(Expense.objects.all(), request, 'date')
-    total_expenses = sum(expense.amount for expense in expenses)
-    total_batch_expenses = sum(
-        expense.amount
-        for expense in apply_date_filter(BatchExpense.objects.all(), request, 'date')
-    )
-
-    net_profit_after_expenses = (
-        net_profit - total_batch_expenses - total_expenses
-        if net_profit > 0 else 0
-    )
+    total_expenses = summary_totals['total_expenses']
+    total_batch_expenses = summary_totals['total_batch_expenses']
+    net_profit_after_expenses = summary_totals['net_profit_after_expenses']
 
     context = {
         'total_sales_revenue': total_sales_revenue,
@@ -735,6 +790,30 @@ def profit_loss_report(request):
 )
 def user_sales_report(request):
     user_id = request.GET.get('user')
+    if user_id:
+        summary_qs = DailyUserSalesSummary.objects.filter(user_id=user_id)
+    else:
+        summary_qs = DailyBusinessSummary.objects.all()
+    summary_qs = apply_date_filter(summary_qs, request, 'date')
+    sale_check = Sale.objects.filter(is_canceled=False)
+    if user_id:
+        sale_check = sale_check.filter(created_by_id=user_id)
+    if not summary_qs.exists() and apply_date_filter(sale_check, request, 'date').exists():
+        from shop.services.summaries import rebuild_daily_summaries
+        rebuild_daily_summaries()
+        if user_id:
+            summary_qs = DailyUserSalesSummary.objects.filter(user_id=user_id)
+        else:
+            summary_qs = DailyBusinessSummary.objects.all()
+        summary_qs = apply_date_filter(summary_qs, request, 'date')
+    summary_totals = summary_qs.aggregate(
+        total_qty=Coalesce(Sum('total_items_sold'), 0),
+        total_revenue=Coalesce(Sum('sales_value'), Decimal('0'), output_field=DecimalField()),
+        total_cogs=Coalesce(Sum('cogs'), Decimal('0'), output_field=DecimalField()),
+        total_gross_profit=Coalesce(Sum('gross_profit'), Decimal('0'), output_field=DecimalField()),
+        total_discount=Coalesce(Sum('discount'), Decimal('0'), output_field=DecimalField()),
+        total_net_profit=Coalesce(Sum('net_profit'), Decimal('0'), output_field=DecimalField()),
+    )
     allocations = SaleItemAllocation.objects.select_related(
         'sale_item',
         'sale_item__sale',
@@ -749,6 +828,10 @@ def user_sales_report(request):
         sale_item__sale__is_canceled=False,
     ).prefetch_related(
         'sale_item__variant__details',
+        'sale_item__returns',
+        'sale_item__allocations',
+        'sale_item__sale__items',
+        'sale_item__sale__items__returns',
     ).order_by('-sale_item__sale__date', '-sale_item__sale__id', '-id')
 
     allocations = apply_date_filter(allocations, request, 'sale_item__sale__date')
@@ -756,11 +839,20 @@ def user_sales_report(request):
     if user_id:
         allocations = allocations.filter(sale_item__sale__created_by_id=user_id)
 
+    total_rows = allocations.count()
+    allocations, pagination = paginate_items(allocations, request)
     allocations = list(allocations)
+    allocation_net_quantities = {}
+    for allocation in allocations:
+        sale_item_quantities = _allocation_net_quantities(
+            allocation.sale_item,
+            _related_list(allocation.sale_item, 'allocations'),
+        )
+        allocation_net_quantities[allocation.id] = sale_item_quantities[allocation.id]
     allocations = [
         allocation
         for allocation in allocations
-        if allocation.net_quantity() > 0
+        if allocation_net_quantities[allocation.id] > 0
     ]
 
     flexible_field_names = []
@@ -775,24 +867,24 @@ def user_sales_report(request):
     flexible_field_names += ['Field'] * (4 - len(flexible_field_names))
 
     rows = []
-    total_revenue = Decimal('0')
-    total_cogs = Decimal('0')
-    total_gross_profit = Decimal('0')
-    total_discount = Decimal('0')
+    total_revenue = summary_totals['total_revenue']
+    total_cogs = summary_totals['total_cogs']
+    total_gross_profit = summary_totals['total_gross_profit']
+    total_discount = summary_totals['total_discount']
 
     sale_totals = {
-        allocation.sale_item.sale_id: sum(
-            item.net_total_price()
-            for item in allocation.sale_item.sale.items.all()
-        )
-        for allocation in allocations
+        sale.id: sum(_sale_item_net_total_price(item) for item in _related_list(sale, 'items'))
+        for sale in {
+            allocation.sale_item.sale_id: allocation.sale_item.sale
+            for allocation in allocations
+        }.values()
     }
 
     for allocation in allocations:
         sale_item = allocation.sale_item
         sale = sale_item.sale
         variant = sale_item.variant
-        qty = allocation.net_quantity()
+        qty = allocation_net_quantities[allocation.id]
         revenue_before_discount = qty * sale_item.selling_price
         cogs = qty * allocation.unit_cost
         sale_total = sale_totals.get(sale.id) or Decimal('0')
@@ -840,18 +932,18 @@ def user_sales_report(request):
         }
         rows.append(row)
 
-        total_revenue += revenue
-        total_cogs += cogs
-        total_gross_profit += gross_profit
-        total_discount += discount_share
+    if user_id:
+        total_all_expenses = Decimal('0')
+    else:
+        total_all_expenses = summary_qs.aggregate(
+            total=Coalesce(
+                Sum('general_expenses') + Sum('batch_expenses'),
+                Decimal('0'),
+                output_field=DecimalField(),
+            )
+        )['total']
 
-    expenses = apply_date_filter(Expense.objects.all(), request, 'date')
-    batch_expenses = apply_date_filter(BatchExpense.objects.all(), request, 'date')
-    total_expenses = sum(expense.amount for expense in expenses)
-    total_batch_expenses = sum(expense.amount for expense in batch_expenses)
-    total_all_expenses = total_expenses + total_batch_expenses
-
-    total_net_profit = Decimal('0')
+    total_net_profit = summary_totals['total_net_profit']
     for row in rows:
         expense_share = (
             total_all_expenses * row['revenue'] / total_revenue
@@ -859,14 +951,14 @@ def user_sales_report(request):
         )
         row['expense_share'] = expense_share
         row['net_profit'] = row['gross_profit'] - row['discount_share'] - expense_share
-        total_net_profit += row['net_profit']
 
     context = {
         'rows': rows,
         'users': User.objects.all().order_by('username'),
         'selected_user': user_id,
         'flexible_field_names': flexible_field_names,
-        'total_qty': sum(row['qty'] for row in rows),
+        'total_rows': total_rows,
+        'total_qty': summary_totals['total_qty'],
         'total_revenue': total_revenue,
         'total_cogs': total_cogs,
         'total_gross_profit': total_gross_profit,
@@ -874,6 +966,7 @@ def user_sales_report(request):
         'total_expenses': total_all_expenses,
         'total_net_profit': total_net_profit,
     }
+    context.update(pagination)
 
     return render(request, 'shop/user_sales_report.html', context)
     
@@ -882,31 +975,32 @@ def user_sales_report(request):
 def product_list(request):
     search = request.GET.get('search', '')
 
-    products = Product.objects.all()
+    products = Product.objects.all().order_by('name', 'id')
 
     if search:
         products = products.filter(name__icontains=search)
 
+    products = products.annotate(
+        variant_count=Count('variants', distinct=True),
+        total_stock=Coalesce(Sum('variants__purchase_items__remaining_qty'), 0),
+    )
+    products_count = products.count()
+    products, pagination = paginate_items(products, request)
     product_data = []
 
     for product in products:
-        variants = product.variants.all()
-
-        total_stock = sum(
-            variant.current_stock()
-            for variant in variants
-        )
-
         product_data.append({
             'product': product,
-            'variant_count': variants.count(),
-            'total_stock': total_stock,
+            'variant_count': product.variant_count,
+            'total_stock': product.total_stock,
         })
 
     context = {
         'product_data': product_data,
+        'products_count': products_count,
         'search': search,
     }
+    context.update(pagination)
 
     return render(request, 'shop/product_list.html', context)
 
@@ -1023,7 +1117,7 @@ def product_variant_add(request, product_id):
 @permission_required('shop.view_purchase', raise_exception=True)
 def purchase_list(request):
     search = request.GET.get('search', '')
-    purchases = Purchase.objects.all().order_by('-date', '-id')
+    purchases = Purchase.objects.select_related('supplier').prefetch_related('items').order_by('-date', '-id')
 
     if search:
         purchases = purchases.filter(
@@ -1034,11 +1128,11 @@ def purchase_list(request):
 
     purchases = apply_date_filter(purchases, request, 'date')
 
-    total_cost = sum(
-        item.total_price()
-        for purchase in purchases
-        for item in purchase.items.all()
-    )
+    total_cost = PurchaseItem.objects.filter(
+        purchase__in=purchases,
+    ).aggregate(
+        total=Coalesce(Sum(F('quantity') * F('buying_price'), output_field=DecimalField()), Decimal('0'))
+    )['total']
     purchases, pagination = paginate_items(purchases, request)
 
     context = {
@@ -1158,6 +1252,8 @@ def sale_list(request):
         'created_by',
     ).prefetch_related(
         'customer__payments',
+        'items',
+        'items__returns',
     ).order_by('-date', '-id')
     sales = scope_sales_queryset(sales, request.user)
 
@@ -1177,19 +1273,19 @@ def sale_list(request):
         ).distinct()
 
     sales = apply_date_filter(sales, request, 'date')
-
+    sales_count = sales.count()
+    sales, pagination = paginate_items(sales, request)
     sales = list(sales)
 
+    payment_statuses = get_sale_payment_statuses(sales)
     for sale in sales:
-        payment_status = get_sale_payment_status(sale)
+        payment_status = payment_statuses[sale.id]
         sale.paid_total = payment_status['paid_total']
         sale.amount_due = payment_status['amount_due']
 
-    total_final = sum(sale.final_amount() for sale in sales)
+    total_final = sum(_sale_final_amount(sale) for sale in sales)
     total_paid = sum(sale.paid_total for sale in sales)
     total_balance = sum(sale.amount_due for sale in sales)
-    sales_count = len(sales)
-    sales, pagination = paginate_items(sales, request)
 
     context = {
         'sales': sales,
@@ -1362,45 +1458,35 @@ def customer_list(request):
     if search:
         customers = customers.filter(name__icontains=search)
 
+    customers_count = customers.count()
+    customers, pagination = paginate_items(customers.order_by('name', 'id'), request)
+    customers = list(customers)
+    customer_ids = [customer.id for customer in customers]
     customer_data = []
+    account_summaries = {
+        summary.customer_id: summary
+        for summary in CustomerAccountSummary.objects.filter(customer_id__in=customer_ids)
+    }
+    missing_customer_ids = set(customer_ids) - set(account_summaries.keys())
+    if missing_customer_ids:
+        from shop.services.summaries import rebuild_customer_account_summaries
+        rebuild_customer_account_summaries(missing_customer_ids)
+        account_summaries = {
+            summary.customer_id: summary
+            for summary in CustomerAccountSummary.objects.filter(customer_id__in=customer_ids)
+        }
 
     for customer in customers:
-        sales = scope_sales_queryset(
-            Sale.objects.filter(customer=customer),
-            request.user,
-        )
-        sales = list(sales)
-        active_sales = [
-            sale
-            for sale in sales
-            if not sale.is_canceled
-        ]
-
-        total_purchase = sum(sale.final_amount() for sale in active_sales)
-        total_paid_at_sale = sum(
-            sale.paid_amount
-            for sale in active_sales
-        )
-        payments = sum(
-            payment.amount
-            for payment in customer.payments.all()
-        )
-        balance = sum(
-            get_sale_payment_status(sale)['amount_due']
-            for sale in active_sales
-        )
+        summary = account_summaries.get(customer.id)
 
         customer_data.append({
             'customer': customer,
-            'total_purchase': total_purchase,
-            'total_paid': total_paid_at_sale,
-            'payments': payments,
-            'balance': balance,
-            'sales_count': len(sales),
+            'total_purchase': summary.total_purchase if summary else Decimal('0'),
+            'total_paid': summary.paid_at_sale if summary else Decimal('0'),
+            'payments': summary.payments if summary else Decimal('0'),
+            'balance': summary.balance if summary else Decimal('0'),
+            'sales_count': summary.sales_count if summary else 0,
         })
-    customers_count = len(customer_data)
-    customer_data, pagination = paginate_items(customer_data, request)
-
     context = {
         'customer_data': customer_data,
         'customers_count': customers_count,
@@ -1434,23 +1520,51 @@ def customer_add(request):
 @login_required
 @permission_required('shop.view_customer', raise_exception=True)
 def customer_detail(request, customer_id):
-    customer = get_object_or_404(Customer, id=customer_id)
-    sales = list(
+    customer = get_object_or_404(Customer.objects.select_related('account_summary'), id=customer_id)
+    sales_queryset = (
         scope_sales_queryset(
-            Sale.objects.filter(customer=customer).select_related('invoice', 'created_by').order_by('-date', '-id'),
+            Sale.objects.filter(customer=customer)
+            .select_related('invoice', 'created_by', 'financial_summary')
+            .order_by('-date', '-id'),
             request.user,
         )
     )
-    payments = customer.payments.select_related('sale', 'sale__invoice', 'created_by').order_by('-date', '-id')
+    sales, sales_pagination = paginate_items(
+        sales_queryset,
+        request,
+        page_param='sales_page',
+        page_size_param='sales_page_size',
+    )
+    sales = list(sales)
+    payments_queryset = customer.payments.select_related('sale', 'sale__invoice', 'created_by').order_by('-date', '-id')
+    payments, payments_pagination = paginate_items(
+        payments_queryset,
+        request,
+        page_param='payments_page',
+        page_size_param='payments_page_size',
+    )
     statement_rows = build_customer_statement(customer, request.user, request)
     statement_debit = sum(row['debit'] for row in statement_rows)
     statement_credit = sum(row['credit'] for row in statement_rows)
-    statement_rows, pagination = paginate_items(statement_rows, request)
+    statement_rows, pagination = paginate_items(
+        statement_rows,
+        request,
+        page_param='statement_page',
+        page_size_param='statement_page_size',
+    )
 
     for sale in sales:
-        payment_status = get_sale_payment_status(sale)
-        sale.paid_total = payment_status['paid_total']
-        sale.amount_due = payment_status['amount_due']
+        if hasattr(sale, 'financial_summary'):
+            sale.paid_total = sale.financial_summary.paid_total
+            sale.amount_due = sale.financial_summary.amount_due
+            sale.cached_final_amount = sale.financial_summary.final_amount
+        else:
+            payment_status = get_sale_payment_status(sale)
+            sale.paid_total = payment_status['paid_total']
+            sale.amount_due = payment_status['amount_due']
+            sale.cached_final_amount = _sale_final_amount(sale)
+
+    account_summary = getattr(customer, 'account_summary', None)
 
     context = {
         'customer': customer,
@@ -1459,9 +1573,14 @@ def customer_detail(request, customer_id):
         'statement_rows': statement_rows,
         'statement_debit': statement_debit,
         'statement_credit': statement_credit,
-        'total_purchase': sum(sale.final_amount() for sale in sales),
-        'total_paid': sum(sale.paid_total for sale in sales),
-        'total_balance': sum(sale.amount_due for sale in sales),
+        'total_purchase': account_summary.total_purchase if account_summary else Decimal('0'),
+        'total_paid': (
+            account_summary.paid_at_sale + account_summary.payments
+            if account_summary else Decimal('0')
+        ),
+        'total_balance': account_summary.balance if account_summary else Decimal('0'),
+        'sales_pagination': sales_pagination,
+        'payments_pagination': payments_pagination,
     }
     context.update(pagination)
 
@@ -1477,8 +1596,8 @@ def invoice_list(request):
         'sale',
         'sale__customer',
         'sale__created_by',
+        'sale__financial_summary',
     ).prefetch_related(
-        'sale__customer__payments',
     ).order_by('-created_at')
     invoices = scope_invoices_queryset(invoices, request.user)
 
@@ -1497,19 +1616,36 @@ def invoice_list(request):
         ).distinct()
 
     invoices = apply_date_filter(invoices, request, 'created_at')
-
+    invoices_count = invoices.count()
+    invoices, pagination = paginate_items(invoices, request)
     invoices = list(invoices)
-
+    sale_ids = [invoice.sale_id for invoice in invoices]
+    missing_sale_ids = [
+        sale_id
+        for invoice, sale_id in zip(invoices, sale_ids)
+        if not hasattr(invoice.sale, 'financial_summary')
+    ]
+    if missing_sale_ids:
+        from shop.services.summaries import rebuild_sale_financial_summaries
+        rebuild_sale_financial_summaries(sale_ids=missing_sale_ids)
+        summaries = {
+            summary.sale_id: summary
+            for summary in SaleFinancialSummary.objects.filter(sale_id__in=sale_ids)
+        }
+    else:
+        summaries = {
+            invoice.sale_id: invoice.sale.financial_summary
+            for invoice in invoices
+        }
     for invoice in invoices:
-        payment_status = get_sale_payment_status(invoice.sale)
-        invoice.paid_total = payment_status['paid_total']
-        invoice.amount_due = payment_status['amount_due']
+        summary = summaries.get(invoice.sale_id)
+        invoice.final_amount = summary.final_amount if summary else Decimal('0')
+        invoice.paid_total = summary.paid_total if summary else Decimal('0')
+        invoice.amount_due = summary.amount_due if summary else Decimal('0')
 
-    total_amount = sum(invoice.sale.final_amount() for invoice in invoices)
+    total_amount = sum(invoice.final_amount for invoice in invoices)
     total_paid = sum(invoice.paid_total for invoice in invoices)
     total_balance = sum(invoice.amount_due for invoice in invoices)
-    invoices_count = len(invoices)
-    invoices, pagination = paginate_items(invoices, request)
 
     context = {
         'invoices': invoices,
@@ -1541,21 +1677,29 @@ def invoice_detail(request, invoice_id):
     sale = invoice.sale
     sale_items = [
         item
-        for item in sale.items.all()
+        for item in sale.items.select_related('variant', 'variant__product').prefetch_related('returns')
         if item.net_quantity() > 0
     ]
+    sale_items, pagination = paginate_items(
+        sale_items,
+        request,
+        page_param='items_page',
+        page_size_param='items_page_size',
+    )
 
     setting, created = StoreSetting.objects.get_or_create(id=1)
     payment_status = get_sale_payment_status(sale)
 
-    return render(request, 'shop/invoice_detail.html', {
+    context = {
         'invoice': invoice,
         'sale': sale,
         'sale_items': sale_items,
         'setting': setting,
         'paid_total': payment_status['paid_total'],
         'amount_due': payment_status['amount_due'],
-    })
+    }
+    context.update(pagination)
+    return render(request, 'shop/invoice_detail.html', context)
 
 @login_required
 @permission_required('shop.view_supplier', raise_exception=True)
@@ -1567,27 +1711,47 @@ def supplier_list(request):
     if search:
         suppliers = suppliers.filter(name__icontains=search)
 
+    suppliers_count = suppliers.count()
+    suppliers, pagination = paginate_items(suppliers.order_by('name', 'id'), request)
+    suppliers = list(suppliers)
+    supplier_ids = [supplier.id for supplier in suppliers]
+    purchase_totals = {
+        row['purchase__supplier_id']: row['total'] or Decimal('0')
+        for row in PurchaseItem.objects.filter(purchase__supplier_id__in=supplier_ids)
+        .values('purchase__supplier_id')
+        .annotate(
+            total=Coalesce(
+                Sum(F('quantity') * F('buying_price'), output_field=DecimalField()),
+                Decimal('0'),
+                output_field=DecimalField(),
+            )
+        )
+    }
+    purchase_counts = {
+        row['supplier_id']: row['count']
+        for row in Purchase.objects.filter(supplier_id__in=supplier_ids)
+        .values('supplier_id')
+        .annotate(count=Count('id'))
+    }
+    payment_totals = {
+        row['supplier_id']: row['total'] or Decimal('0')
+        for row in SupplierPayment.objects.filter(supplier_id__in=supplier_ids)
+        .values('supplier_id')
+        .annotate(total=Coalesce(Sum('amount'), Decimal('0'), output_field=DecimalField()))
+    }
     supplier_data = []
 
     for supplier in suppliers:
-        purchases = Purchase.objects.filter(supplier=supplier)
-
-        total_purchases = sum(
-            item.total_price()
-            for purchase in purchases
-            for item in purchase.items.all()
-        )
+        total_purchases = purchase_totals.get(supplier.id, Decimal('0'))
+        payments = payment_totals.get(supplier.id, Decimal('0'))
 
         supplier_data.append({
             'supplier': supplier,
-            'purchase_count': purchases.count(),
+            'purchase_count': purchase_counts.get(supplier.id, 0),
             'total_purchases': total_purchases,
-            'payments': sum(payment.amount for payment in supplier.payments.all()),
-            'balance': total_purchases - sum(payment.amount for payment in supplier.payments.all()),
+            'payments': payments,
+            'balance': total_purchases - payments,
         })
-    suppliers_count = len(supplier_data)
-    supplier_data, pagination = paginate_items(supplier_data, request)
-
     context = {
         'supplier_data': supplier_data,
         'suppliers_count': suppliers_count,
@@ -1614,7 +1778,24 @@ def supplier_detail(request, supplier_id):
     statement_rows = build_supplier_statement(supplier, request)
     statement_debit = sum(row['debit'] for row in statement_rows)
     statement_credit = sum(row['credit'] for row in statement_rows)
-    statement_rows, pagination = paginate_items(statement_rows, request)
+    statement_rows, pagination = paginate_items(
+        statement_rows,
+        request,
+        page_param='statement_page',
+        page_size_param='statement_page_size',
+    )
+    purchase_rows, purchases_pagination = paginate_items(
+        purchase_rows,
+        request,
+        page_param='purchases_page',
+        page_size_param='purchases_page_size',
+    )
+    payments, payments_pagination = paginate_items(
+        payments,
+        request,
+        page_param='payments_page',
+        page_size_param='payments_page_size',
+    )
 
     context = {
         'supplier': supplier,
@@ -1626,6 +1807,8 @@ def supplier_detail(request, supplier_id):
         'total_purchases': total_purchases,
         'total_paid': total_paid,
         'balance': total_purchases - total_paid,
+        'purchases_pagination': purchases_pagination,
+        'payments_pagination': payments_pagination,
     }
     context.update(pagination)
     return render(request, 'shop/supplier_detail.html', context)
@@ -1946,7 +2129,9 @@ def expense_list(request):
 
     expenses = apply_date_filter(expenses, request, 'date')
 
-    total_expenses = sum(expense.amount for expense in expenses)
+    total_expenses = expenses.aggregate(
+        total=Coalesce(Sum('amount'), Decimal('0'))
+    )['total']
 
     expenses, pagination = paginate_items(expenses, request)
     context = {
@@ -1985,53 +2170,56 @@ def expense_add(request):
 @login_required
 @permission_required('shop.view_stock_report', raise_exception=True)
 def batch_stock_report(request):
-    batches = PurchaseItem.objects.all().order_by(
-        'variant__product__name',
-        'purchase__date',
-        'id'
+    summaries = BatchProfitSummary.objects.all().order_by('batch_number')
+    if not summaries.exists() and PurchaseItem.objects.exclude(batch_number='').exists():
+        from shop.services.summaries import rebuild_batch_summaries
+        rebuild_batch_summaries()
+        summaries = BatchProfitSummary.objects.all().order_by('batch_number')
+    totals = summaries.aggregate(
+        total_purchased=Coalesce(Sum('purchased_qty'), 0),
+        total_sold=Coalesce(Sum('sold_qty'), 0),
+        total_remaining=Coalesce(Sum('remaining_qty'), 0),
+        total_stock_value=Coalesce(Sum('stock_value'), Decimal('0'), output_field=DecimalField()),
     )
+    summaries, pagination = paginate_items(summaries, request)
+    summaries = list(summaries)
+    batch_numbers = [summary.batch_number for summary in summaries]
+    first_items = {}
+    for item in PurchaseItem.objects.filter(batch_number__in=batch_numbers).select_related(
+        'purchase',
+        'purchase__supplier',
+        'variant',
+        'variant__product',
+    ).order_by('batch_number', 'purchase__date', 'id'):
+        first_items.setdefault(item.batch_number, item)
 
     batch_rows = []
-
-    total_purchased = 0
-    total_sold = 0
-    total_remaining = 0
-    total_stock_value = 0
-
-    for batch in batches:
-        purchased_qty = batch.quantity
-        sold_qty = batch.quantity - batch.remaining_qty
-        remaining_qty = batch.remaining_qty
-        stock_value = remaining_qty * batch.buying_price
-
-        total_purchased += purchased_qty
-        total_sold += sold_qty
-        total_remaining += remaining_qty
-        total_stock_value += stock_value
-
+    for summary in summaries:
+        batch = first_items.get(summary.batch_number)
         batch_rows.append({
             'batch': batch,
-            'product': batch.variant.product.name,
-            'size': batch.variant.size,
-            'color': batch.variant.color,
-            'model': batch.variant.model,
-            'sku': batch.variant.sku,
-            'purchase_date': batch.purchase.date,
-            'supplier': batch.purchase.supplier,
-            'purchased_qty': purchased_qty,
-            'sold_qty': sold_qty,
-            'remaining_qty': remaining_qty,
-            'buying_price': batch.buying_price,
-            'stock_value': stock_value,
+            'product': batch.variant.product.name if batch else '-',
+            'size': batch.variant.size if batch else '-',
+            'color': batch.variant.color if batch else '-',
+            'model': batch.variant.model if batch else '-',
+            'sku': batch.variant.sku if batch else '-',
+            'purchase_date': batch.purchase.date if batch else None,
+            'supplier': batch.purchase.supplier if batch else None,
+            'purchased_qty': summary.purchased_qty,
+            'sold_qty': summary.sold_qty,
+            'remaining_qty': summary.remaining_qty,
+            'buying_price': batch.buying_price if batch else Decimal('0'),
+            'stock_value': summary.stock_value,
         })
 
     context = {
         'batch_rows': batch_rows,
-        'total_purchased': total_purchased,
-        'total_sold': total_sold,
-        'total_remaining': total_remaining,
-        'total_stock_value': total_stock_value,
+        'total_purchased': totals['total_purchased'],
+        'total_sold': totals['total_sold'],
+        'total_remaining': totals['total_remaining'],
+        'total_stock_value': totals['total_stock_value'],
     }
+    context.update(pagination)
 
     return render(request, 'shop/batch_stock_report.html', context)
 
@@ -2042,101 +2230,58 @@ def batch_stock_report(request):
     raise_exception=True
 )
 def batch_profit_report(request):
-    batch_numbers = (
-        PurchaseItem.objects
-        .exclude(batch_number='')
-        .values_list('batch_number', flat=True)
-        .distinct()
-        .order_by('batch_number')
+    summaries = BatchProfitSummary.objects.all().order_by('batch_number')
+    if not summaries.exists() and PurchaseItem.objects.exclude(batch_number='').exists():
+        from shop.services.summaries import rebuild_batch_summaries
+        rebuild_batch_summaries()
+        summaries = BatchProfitSummary.objects.all().order_by('batch_number')
+    totals = summaries.aggregate(
+        total_revenue=Coalesce(Sum('revenue'), Decimal('0'), output_field=DecimalField()),
+        total_cost=Coalesce(Sum('cost'), Decimal('0'), output_field=DecimalField()),
+        total_gross_profit=Coalesce(Sum('gross_profit'), Decimal('0'), output_field=DecimalField()),
+        total_batch_expenses=Coalesce(Sum('batch_expenses'), Decimal('0'), output_field=DecimalField()),
+        total_net_profit=Coalesce(Sum('net_profit'), Decimal('0'), output_field=DecimalField()),
     )
+    summaries, pagination = paginate_items(summaries, request)
+    summaries = list(summaries)
+    batch_numbers = [summary.batch_number for summary in summaries]
+    first_items = {}
+    for item in PurchaseItem.objects.filter(batch_number__in=batch_numbers).select_related(
+        'purchase',
+        'purchase__supplier',
+        'variant',
+        'variant__product',
+    ).order_by('batch_number', 'purchase__date', 'id'):
+        first_items.setdefault(item.batch_number, item)
 
     batch_rows = []
-
-    total_revenue = 0
-    total_cost = 0
-    total_gross_profit = 0
-    total_batch_expenses = 0
-    total_net_profit = 0
-
-    for batch_number in batch_numbers:
-        batch_items = PurchaseItem.objects.filter(
-            batch_number=batch_number
-        ).select_related(
-            'purchase',
-            'purchase__supplier',
-            'variant',
-            'variant__product',
-        ).order_by('purchase__date', 'id')
-
-        first_item = batch_items.first()
-
-        if not first_item:
-            continue
-
-        allocations = SaleItemAllocation.objects.filter(
-            purchase_item__in=batch_items,
-            sale_item__sale__is_canceled=False,
-        )
-
-        purchased_qty = sum(item.quantity for item in batch_items)
-        remaining_qty = sum(item.remaining_qty for item in batch_items)
-
-        sold_qty = sum(
-            allocation.net_quantity()
-            for allocation in allocations
-        )
-
-        revenue = sum(
-            allocation.net_quantity() * allocation.sale_item.selling_price
-            for allocation in allocations
-        )
-
-        cost = sum(
-            allocation.net_total_cost()
-            for allocation in allocations
-        )
-
-        gross_profit = revenue - cost
-
-        batch_expenses = sum(
-            expense.amount
-            for expense in BatchExpense.objects.filter(
-                batch_number=batch_number
-            )
-        )
-
-        net_profit = gross_profit - batch_expenses if revenue > 0 else Decimal('0')
-
-        total_revenue += revenue
-        total_cost += cost
-        total_gross_profit += gross_profit
-        total_batch_expenses += batch_expenses
-        total_net_profit += net_profit
-
+    for summary in summaries:
+        first_item = first_items.get(summary.batch_number)
         batch_rows.append({
             'batch': first_item,
-            'batch_number': batch_number,
-            'product': first_item.variant.product.name,
-            'purchase_date': first_item.purchase.date,
-            'supplier': first_item.purchase.supplier,
-            'purchased_qty': purchased_qty,
-            'sold_qty': sold_qty,
-            'remaining_qty': remaining_qty,
-            'revenue': revenue,
-            'cost': cost,
-            'gross_profit': gross_profit,
-            'batch_expenses': batch_expenses,
-            'net_profit': net_profit,
+            'batch_number': summary.batch_number,
+            'product': first_item.variant.product.name if first_item else '-',
+            'purchase_date': first_item.purchase.date if first_item else None,
+            'supplier': first_item.purchase.supplier if first_item else None,
+            'purchased_qty': summary.purchased_qty,
+            'sold_qty': summary.sold_qty,
+            'remaining_qty': summary.remaining_qty,
+            'revenue': summary.revenue,
+            'cost': summary.cost,
+            'gross_profit': summary.gross_profit,
+            'batch_expenses': summary.batch_expenses,
+            'net_profit': summary.net_profit,
         })
 
     context = {
         'batch_rows': batch_rows,
-        'total_revenue': total_revenue,
-        'total_cost': total_cost,
-        'total_gross_profit': total_gross_profit,
-        'total_batch_expenses': total_batch_expenses,
-        'total_net_profit': total_net_profit,
+        'total_revenue': totals['total_revenue'],
+        'total_cost': totals['total_cost'],
+        'total_gross_profit': totals['total_gross_profit'],
+        'total_batch_expenses': totals['total_batch_expenses'],
+        'total_net_profit': totals['total_net_profit'],
     }
+    context.update(pagination)
 
     return render(
         request,
@@ -2147,12 +2292,18 @@ def batch_profit_report(request):
 @permission_required('shop.view_batchexpense', raise_exception=True)
 def batch_expense_list(request):
     expenses = BatchExpense.objects.all().order_by('-date', '-id')
-    total_batch_expenses = sum(expense.amount for expense in expenses)
+    expenses = apply_date_filter(expenses, request, 'date')
+    total_batch_expenses = expenses.aggregate(
+        total=Coalesce(Sum('amount'), Decimal('0'))
+    )['total']
+    expenses, pagination = paginate_items(expenses, request)
 
-    return render(request, 'shop/batch_expense_list.html', {
+    context = {
         'expenses': expenses,
         'total_batch_expenses': total_batch_expenses,
-    })
+    }
+    context.update(pagination)
+    return render(request, 'shop/batch_expense_list.html', context)
 
 
 @login_required
@@ -2352,6 +2503,25 @@ def batch_detail(request, batch_number):
             ],
         })
 
+    variant_rows, variants_pagination = paginate_items(
+        variant_rows,
+        request,
+        page_param='variants_page',
+        page_size_param='variants_page_size',
+    )
+    allocations, allocations_pagination = paginate_items(
+        allocations,
+        request,
+        page_param='allocations_page',
+        page_size_param='allocations_page_size',
+    )
+    expenses, expenses_pagination = paginate_items(
+        expenses,
+        request,
+        page_param='expenses_page',
+        page_size_param='expenses_page_size',
+    )
+
     context = {
         'batch_number': batch_number,
         'first_item': first_item,
@@ -2371,6 +2541,9 @@ def batch_detail(request, batch_number):
         'gross_profit': gross_profit,
         'total_expenses': total_expenses,
         'net_profit': net_profit,
+        'variants_pagination': variants_pagination,
+        'allocations_pagination': allocations_pagination,
+        'expenses_pagination': expenses_pagination,
     }
 
     return render(request, 'shop/batch_detail.html', context)
@@ -2492,6 +2665,8 @@ def stock_location_report(request):
             'stock_value': stock_value,
         })
 
+    rows, pagination = paginate_items(rows, request)
+
     context = {
         'locations': locations,
         'selected_location_id': selected_location_id,
@@ -2501,6 +2676,7 @@ def stock_location_report(request):
         'total_remaining': total_remaining,
         'total_value': total_value,
     }
+    context.update(pagination)
 
     return render(request, 'shop/stock_location_report.html', context)
 
@@ -2508,14 +2684,16 @@ def stock_location_report(request):
 @login_required
 @permission_required('shop.view_stock_report', raise_exception=True)
 def low_stock_alerts(request):
-    variants = [
-        variant for variant in ProductVariant.objects.all()
-        if variant.current_stock() <= variant.low_stock_alert
-    ]
+    variants = ProductVariant.objects.select_related('product').annotate(
+        current_stock_qty=Coalesce(Sum('purchase_items__remaining_qty'), 0)
+    ).filter(
+        current_stock_qty__lte=F('low_stock_alert')
+    ).order_by('current_stock_qty', 'product__name', 'variant_name')
+    variants, pagination = paginate_items(variants, request)
 
-    return render(request, 'shop/low_stock_alerts.html', {
-        'variants': variants
-    })
+    context = {'variants': variants}
+    context.update(pagination)
+    return render(request, 'shop/low_stock_alerts.html', context)
 
 
 @login_required
@@ -2528,7 +2706,9 @@ def customer_payment_list(request):
         'created_by',
     ).order_by('-date', '-id')
     payments = apply_date_filter(payments, request, 'date')
-    total_payments = sum(payment.amount for payment in payments)
+    total_payments = payments.aggregate(
+        total=Coalesce(Sum('amount'), Decimal('0'))
+    )['total']
     payments, pagination = paginate_items(payments, request)
 
     context = {
@@ -2633,7 +2813,9 @@ def customer_payment_add(request):
 def supplier_payment_list(request):
     payments = SupplierPayment.objects.select_related('supplier', 'created_by').order_by('-date', '-id')
     payments = apply_date_filter(payments, request, 'date')
-    total_payments = sum(payment.amount for payment in payments)
+    total_payments = payments.aggregate(
+        total=Coalesce(Sum('amount'), Decimal('0'))
+    )['total']
     payments, pagination = paginate_items(payments, request)
 
     context = {

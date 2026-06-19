@@ -29,9 +29,9 @@ Sales
 
 <div class="total-strip">
     <div class="total-pill"><span>Sales</span><strong>{{ sales_count }}</strong></div>
-    <div class="total-pill"><span>Final Total</span><strong>{{ total_final|floatformat:2 }} {{ store_currency }}</strong></div>
-    <div class="total-pill"><span>Paid</span><strong>{{ total_paid|floatformat:2 }} {{ store_currency }}</strong></div>
-    <div class="total-pill"><span>Amount Due</span><strong>{{ total_balance|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Final Total</span><strong>{{ total_final|floatformat:"2g" }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Paid</span><strong>{{ total_paid|floatformat:"2g" }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Amount Due</span><strong>{{ total_balance|floatformat:"2g" }} {{ store_currency }}</strong></div>
 </div>
 
 <div class="card card-box p-4">
@@ -62,13 +62,13 @@ Sales
                     <td>{{ sale.customer }}</td>
                     <td>{{ sale.created_by|default:"-" }}</td>
                     <td>{{ sale.items.count }}</td>
-                    <td class="money">{{ sale.total_amount|floatformat:2 }}</td>
-                    <td class="money">{{ sale.discount|floatformat:2 }}</td>
-                    <td class="money">{{ sale.final_amount|floatformat:2 }}</td>
-                    <td class="money">{{ sale.paid_total|floatformat:2 }}</td>
+                    <td class="money">{{ sale.total_amount|floatformat:"2g" }}</td>
+                    <td class="money">{{ sale.discount|floatformat:"2g" }}</td>
+                    <td class="money">{{ sale.final_amount|floatformat:"2g" }}</td>
+                    <td class="money">{{ sale.paid_total|floatformat:"2g" }}</td>
                     <td class="money">
                         {% if sale.amount_due > 0 %}
-                            <span class="badge bg-danger">{{ sale.amount_due|floatformat:2 }}</span>
+                            <span class="badge bg-danger">{{ sale.amount_due|floatformat:"2g" }}</span>
                         {% else %}
                             <span class="badge bg-success">0.00</span>
                         {% endif %}

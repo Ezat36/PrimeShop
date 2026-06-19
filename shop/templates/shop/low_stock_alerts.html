@@ -38,10 +38,10 @@ Low Stock Alerts
                     <td><strong>{{ variant.product.name }}</strong></td>
                     <td>{{ variant.variant_name|default:variant }}</td>
                     <td>{{ variant.sku|default:"-" }}</td>
-                    <td class="number">{{ variant.current_stock }}</td>
+                    <td class="number">{{ variant.current_stock_qty }}</td>
                     <td class="number">{{ variant.low_stock_alert }}</td>
                     <td>
-                        {% if variant.current_stock == 0 %}
+                        {% if variant.current_stock_qty == 0 %}
                             <span class="badge bg-danger">Out of Stock</span>
                         {% else %}
                             <span class="badge bg-warning text-dark">Low Stock</span>
@@ -54,6 +54,7 @@ Low Stock Alerts
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 </div>
 
 {% endblock %}

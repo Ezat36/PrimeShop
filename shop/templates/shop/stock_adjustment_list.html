@@ -25,7 +25,7 @@
                         <td>{{ adjustment.target_batch.batch_number|default:"Auto" }}</td>
                         <td>{{ adjustment.location|default:"No location" }}</td>
                         <td>{{ adjustment.quantity }}</td>
-                        <td class="money">{{ adjustment.unit_cost|floatformat:2 }}</td>
+                        <td class="money">{{ adjustment.unit_cost|floatformat:"2g" }}</td>
                         <td>{{ adjustment.reason }}</td>
                         <td>{{ adjustment.created_by|default:"-" }}</td>
                     </tr>

@@ -30,7 +30,7 @@ Business Dashboard
                     <span class="metric-label">Net Profit</span>
                     <span class="metric-icon"><i class="bi bi-graph-up-arrow"></i></span>
                 </div>
-                <h2 class="metric-value {% if net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit|floatformat:2 }}</h2>
+                <h2 class="metric-value {% if net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ net_profit|floatformat:"2g" }}</h2>
                 <div class="small text-muted">After expenses for selected period</div>
             </div>
         </div>
@@ -42,7 +42,7 @@ Business Dashboard
                 <span class="metric-label">Sales Value</span>
                 <span class="metric-icon"><i class="bi bi-currency-dollar"></i></span>
             </div>
-            <h2 class="metric-value">{{ total_sales_value|floatformat:2 }}</h2>
+            <h2 class="metric-value">{{ total_sales_value|floatformat:"2g" }}</h2>
         </div>
     </div>
 
@@ -73,7 +73,7 @@ Business Dashboard
                     <span class="metric-label">Gross Profit</span>
                     <span class="metric-icon"><i class="bi bi-arrow-up-right-circle"></i></span>
                 </div>
-                <h2 class="metric-value {% if total_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_profit|floatformat:2 }}</h2>
+                <h2 class="metric-value {% if total_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_profit|floatformat:"2g" }}</h2>
             </div>
         </div>
 
@@ -83,7 +83,7 @@ Business Dashboard
                     <span class="metric-label">Stock Value</span>
                     <span class="metric-icon"><i class="bi bi-boxes"></i></span>
                 </div>
-                <h2 class="metric-value">{{ current_stock_value|floatformat:2 }}</h2>
+                <h2 class="metric-value">{{ current_stock_value|floatformat:"2g" }}</h2>
             </div>
         </div>
 
@@ -93,7 +93,7 @@ Business Dashboard
                     <span class="metric-label">Customer Amount Due</span>
                     <span class="metric-icon"><i class="bi bi-wallet2"></i></span>
                 </div>
-                <h2 class="metric-value text-danger">{{ outstanding_balance|floatformat:2 }}</h2>
+                <h2 class="metric-value text-danger">{{ outstanding_balance|floatformat:"2g" }}</h2>
             </div>
         </div>
 
@@ -103,9 +103,9 @@ Business Dashboard
                     <span class="metric-label">Total Expenses</span>
                     <span class="metric-icon"><i class="bi bi-cash-stack"></i></span>
                 </div>
-                <h2 class="metric-value text-danger">{{ total_all_expenses|floatformat:2 }}</h2>
+                <h2 class="metric-value text-danger">{{ total_all_expenses|floatformat:"2g" }}</h2>
                 <div class="small text-muted">
-                    General {{ total_expenses|floatformat:2 }} + Batch {{ total_batch_expenses|floatformat:2 }}
+                    General {{ total_expenses|floatformat:"2g" }} + Batch {{ total_batch_expenses|floatformat:"2g" }}
                 </div>
             </div>
         </div>
@@ -160,7 +160,7 @@ Business Dashboard
                     <small>
                         Size: {{ variant.size }} |
                         Color: {{ variant.color }}<br>
-                        Remaining: {{ variant.current_stock }}
+                        Remaining: {{ variant.current_stock_qty }}
                     </small>
                 </div>
             {% empty %}
@@ -205,16 +205,16 @@ Business Dashboard
                         <td>{{ item.variant }}</td>
                         <td>{{ item.quantity }}</td>
                         {% if can_view_dashboard_profit %}
-                        <td>{{ item.buying_price|floatformat:2 }}</td>
+                        <td>{{ item.buying_price|floatformat:"2g" }}</td>
                         {% endif %}
-                        <td>{{ item.selling_price|floatformat:2 }}</td>
-                        <td>{{ item.total_sales|floatformat:2 }}</td>
+                        <td>{{ item.selling_price|floatformat:"2g" }}</td>
+                        <td>{{ item.total_sales|floatformat:"2g" }}</td>
                         {% if can_view_dashboard_profit %}
                         <td class="{% if item.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                            {{ item.gross_profit|floatformat:2 }}
+                            {{ item.gross_profit|floatformat:"2g" }}
                         </td>
                         <td class="{% if item.net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                            {{ item.net_profit|floatformat:2 }}
+                            {{ item.net_profit|floatformat:"2g" }}
                         </td>
                         {% endif %}
                     </tr>

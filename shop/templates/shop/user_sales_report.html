@@ -26,17 +26,17 @@ User Sales Report
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Revenue</span><h2 class="metric-value">{{ total_revenue|floatformat:2 }}</h2></div></div>
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">COGS</span><h2 class="metric-value text-warning">{{ total_cogs|floatformat:2 }}</h2></div></div>
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Gross Profit</span><h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:2 }}</h2></div></div>
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Net Profit</span><h2 class="metric-value {% if total_net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_net_profit|floatformat:2 }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Revenue</span><h2 class="metric-value">{{ total_revenue|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">COGS</span><h2 class="metric-value text-warning">{{ total_cogs|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Gross Profit</span><h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Net Profit</span><h2 class="metric-value {% if total_net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_net_profit|floatformat:"2g" }}</h2></div></div>
 </div>
 
 <div class="total-strip">
-    <div class="total-pill"><span>Rows</span><strong>{{ rows|length }}</strong></div>
+    <div class="total-pill"><span>Rows</span><strong>{{ total_rows }}</strong></div>
     <div class="total-pill"><span>Quantity</span><strong>{{ total_qty }}</strong></div>
-    <div class="total-pill"><span>Discounts</span><strong>{{ total_discount|floatformat:2 }} {{ store_currency }}</strong></div>
-    <div class="total-pill"><span>Expenses Allocated</span><strong>{{ total_expenses|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Discounts</span><strong>{{ total_discount|floatformat:"2g" }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Expenses Allocated</span><strong>{{ total_expenses|floatformat:"2g" }} {{ store_currency }}</strong></div>
 </div>
 
 <div class="card card-box p-4">
@@ -93,13 +93,13 @@ User Sales Report
                     {% endfor %}
                     <td>{{ row.batch_number|default:"-" }}</td>
                     <td>{{ row.stock_location|default:"-" }}</td>
-                    <td class="money">{{ row.buying_price|floatformat:2 }}</td>
-                    <td class="money">{{ row.selling_price|floatformat:2 }}</td>
+                    <td class="money">{{ row.buying_price|floatformat:"2g" }}</td>
+                    <td class="money">{{ row.selling_price|floatformat:"2g" }}</td>
                     <td class="number">{{ row.qty }}</td>
-                    <td class="money">{{ row.revenue|floatformat:2 }}</td>
-                    <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ row.gross_profit|floatformat:2 }}</td>
-                    <td class="money text-danger">{{ row.expense_share|floatformat:2 }}</td>
-                    <td class="money {% if row.net_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.net_profit|floatformat:2 }}</strong></td>
+                    <td class="money">{{ row.revenue|floatformat:"2g" }}</td>
+                    <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ row.gross_profit|floatformat:"2g" }}</td>
+                    <td class="money text-danger">{{ row.expense_share|floatformat:"2g" }}</td>
+                    <td class="money {% if row.net_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.net_profit|floatformat:"2g" }}</strong></td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -109,6 +109,7 @@ User Sales Report
             </tbody>
         </table>
     </div>
+    {% include 'shop/partials/pagination.html' %}
 </div>
 
 {% endblock %}

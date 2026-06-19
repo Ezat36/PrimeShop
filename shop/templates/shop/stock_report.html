@@ -100,13 +100,13 @@ Stock Report
                     <td><strong>{{ variant.product.name }}</strong></td>
                     <td>{{ variant.variant_name|default:variant }}</td>
                     <td>{{ variant.sku|default:"-" }}</td>
-                    <td class="number">{{ variant.total_purchased }}</td>
-                    <td class="number">{{ variant.total_sold }}</td>
-                    <td class="number">{{ variant.current_stock }}</td>
+                    <td class="number">{{ variant.purchased_qty }}</td>
+                    <td class="number">{{ variant.sold_qty }}</td>
+                    <td class="number">{{ variant.remaining_qty }}</td>
                     <td>
-                        {% if variant.current_stock == 0 %}
+                        {% if variant.remaining_qty == 0 %}
                             <span class="badge bg-danger">Out of Stock</span>
-                        {% elif variant.current_stock <= variant.low_stock_alert %}
+                        {% elif variant.remaining_qty <= variant.low_stock_alert %}
                             <span class="badge bg-warning text-dark">Low Stock</span>
                         {% else %}
                             <span class="badge bg-success">Available</span>

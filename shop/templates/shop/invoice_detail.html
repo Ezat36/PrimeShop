@@ -82,15 +82,16 @@ Invoice {{ invoice.invoice_number }}
                 <td>{{ item.variant.color }}</td>
                 <td class="text-center">{{ item.net_quantity }}</td>
                 <td class="text-end">
-                    {{ item.selling_price|floatformat:2 }} {{ setting.currency }}
+                    {{ item.selling_price|floatformat:"2g" }} {{ setting.currency }}
                 </td>
                 <td class="text-end">
-                    {{ item.net_total_price|floatformat:2 }} {{ setting.currency }}
+                    {{ item.net_total_price|floatformat:"2g" }} {{ setting.currency }}
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    {% include 'shop/partials/pagination.html' %}
 
     <div class="d-flex justify-content-end mt-3">
 
@@ -99,35 +100,35 @@ Invoice {{ invoice.invoice_number }}
             <div class="summary-row">
                 <span>Total</span>
                 <strong>
-                    {{ sale.total_amount|floatformat:2 }} {{ setting.currency }}
+                    {{ sale.total_amount|floatformat:"2g" }} {{ setting.currency }}
                 </strong>
             </div>
 
             <div class="summary-row">
                 <span>Discount</span>
                 <strong>
-                    {{ sale.discount|floatformat:2 }} {{ setting.currency }}
+                    {{ sale.discount|floatformat:"2g" }} {{ setting.currency }}
                 </strong>
             </div>
 
             <div class="summary-row">
                 <span>Grand Total</span>
                 <strong>
-                    {{ sale.final_amount|floatformat:2 }} {{ setting.currency }}
+                    {{ sale.final_amount|floatformat:"2g" }} {{ setting.currency }}
                 </strong>
             </div>
 
             <div class="summary-row">
                 <span>Paid</span>
                 <strong class="text-success">
-                    {{ paid_total|floatformat:2 }} {{ setting.currency }}
+                    {{ paid_total|floatformat:"2g" }} {{ setting.currency }}
                 </strong>
             </div>
 
             <div class="summary-row balance-row">
                 <span>Balance Due</span>
                 <strong class="text-danger">
-                    {{ amount_due|floatformat:2 }} {{ setting.currency }}
+                    {{ amount_due|floatformat:"2g" }} {{ setting.currency }}
                 </strong>
             </div>
 

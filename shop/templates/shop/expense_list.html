@@ -24,7 +24,7 @@ General Expenses
 
 <div class="total-strip">
     <div class="total-pill"><span>General Expenses</span><strong>{{ expenses|length }}</strong></div>
-    <div class="total-pill"><span>Total General Expenses</span><strong>{{ total_expenses|floatformat:2 }} {{ store_currency }}</strong></div>
+    <div class="total-pill"><span>Total General Expenses</span><strong>{{ total_expenses|floatformat:"2g" }} {{ store_currency }}</strong></div>
 </div>
 
 <div class="card card-box p-4">
@@ -48,7 +48,7 @@ General Expenses
                     <td>{{ expense.date }}</td>
                     <td>{{ expense.title }}</td>
                     <td><span class="badge bg-secondary">{{ expense.category }}</span></td>
-                    <td class="money">{{ expense.amount|floatformat:2 }} {{ store_currency }}</td>
+                    <td class="money">{{ expense.amount|floatformat:"2g" }} {{ store_currency }}</td>
                     <td>{{ expense.note }}</td>
                 </tr>
                 {% empty %}

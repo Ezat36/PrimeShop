@@ -57,11 +57,11 @@ Suppliers
                     <td>{{ row.supplier.phone }}</td>
                     <td>{{ row.supplier.address }}</td>
                     <td class="number">{{ row.purchase_count }}</td>
-                    <td class="money">{{ row.total_purchases|floatformat:2 }} {{ store_currency }}</td>
-                    <td class="money">{{ row.payments|floatformat:2 }} {{ store_currency }}</td>
+                    <td class="money">{{ row.total_purchases|floatformat:"2g" }} {{ store_currency }}</td>
+                    <td class="money">{{ row.payments|floatformat:"2g" }} {{ store_currency }}</td>
                     <td class="money">
                         {% if row.balance > 0 %}
-                            <span class="badge bg-danger">{{ row.balance|floatformat:2 }}</span>
+                            <span class="badge bg-danger">{{ row.balance|floatformat:"2g" }}</span>
                         {% else %}
                             <span class="badge bg-success">0.00</span>
                         {% endif %}
