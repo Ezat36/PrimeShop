@@ -718,7 +718,7 @@ def profit_loss_report(request):
 
     total_sales_revenue = summary_totals['total_sales_revenue']
     total_cogs = summary_totals['total_cogs']
-    total_gross_profit = summary_totals['total_gross_profit']
+    total_gross_profit = total_sales_revenue - total_cogs
     total_inventory_value = Decimal('0')
     total_sold_qty = summary_totals['total_sold_qty']
     total_remaining_qty = 0
@@ -756,7 +756,7 @@ def profit_loss_report(request):
     total_paid = summary_totals['total_paid']
     outstanding_balance = summary_totals['outstanding_balance']
 
-    net_profit = total_gross_profit - total_discount
+    net_profit = total_gross_profit
 
     total_expenses = summary_totals['total_expenses']
     total_batch_expenses = summary_totals['total_batch_expenses']
@@ -869,7 +869,7 @@ def user_sales_report(request):
     rows = []
     total_revenue = summary_totals['total_revenue']
     total_cogs = summary_totals['total_cogs']
-    total_gross_profit = summary_totals['total_gross_profit']
+    total_gross_profit = total_revenue - total_cogs
     total_discount = summary_totals['total_discount']
 
     sale_totals = {
@@ -894,7 +894,7 @@ def user_sales_report(request):
             if sale_total > 0 else Decimal('0')
         )
         revenue = revenue_before_discount - discount_share
-        gross_profit = revenue_before_discount - cogs
+        gross_profit = revenue - cogs
 
         detail_values = {
             detail.name: detail.value
@@ -950,7 +950,7 @@ def user_sales_report(request):
             if total_revenue > 0 else Decimal('0')
         )
         row['expense_share'] = expense_share
-        row['net_profit'] = row['gross_profit'] - row['discount_share'] - expense_share
+        row['net_profit'] = row['gross_profit'] - expense_share
 
     context = {
         'rows': rows,
@@ -1112,6 +1112,91 @@ def product_variant_add(request, product_id):
             'product': product
         }
     )
+
+
+@login_required
+@permission_required('shop.change_productvariant', raise_exception=True)
+def product_variant_edit(request, variant_id):
+    variant = get_object_or_404(
+        ProductVariant.objects.select_related('product').prefetch_related('details'),
+        id=variant_id,
+    )
+    product = variant.product
+
+    if request.method == 'POST':
+        try:
+            selling_price = parse_money(request.POST.get('selling_price'), 'Selling price')
+            low_stock_alert = parse_nonnegative_int(
+                request.POST.get('low_stock_alert') or 5,
+                'Low stock alert',
+            )
+        except ValueError as exc:
+            return render(
+                request,
+                'shop/product_variant_add.html',
+                {'product': product, 'variant': variant, 'is_edit': True, 'error': str(exc)}
+            )
+
+        variant.variant_name = request.POST.get('variant_name')
+        variant.sku = request.POST.get('sku')
+        variant.selling_price = selling_price
+        variant.low_stock_alert = low_stock_alert
+        variant.save(update_fields=['variant_name', 'sku', 'selling_price', 'low_stock_alert'])
+
+        variant.details.all().delete()
+        detail_names = request.POST.getlist('detail_name')
+        detail_values = request.POST.getlist('detail_value')
+
+        for name, value in zip(detail_names, detail_values):
+            if name.strip() and value.strip():
+                VariantDetail.objects.create(
+                    variant=variant,
+                    name=name.strip(),
+                    value=value.strip()
+                )
+
+        log_activity(request, 'Updated product variant', variant)
+        messages.success(request, 'Variant updated successfully.')
+        return redirect('product_manage', product_id=product.id)
+
+    return render(
+        request,
+        'shop/product_variant_add.html',
+        {
+            'product': product,
+            'variant': variant,
+            'is_edit': True,
+        }
+    )
+
+
+@login_required
+@permission_required('shop.delete_productvariant', raise_exception=True)
+def product_variant_delete(request, variant_id):
+    variant = get_object_or_404(ProductVariant.objects.select_related('product'), id=variant_id)
+    product = variant.product
+    is_used = (
+        variant.purchase_items.exists() or
+        variant.sale_items.exists() or
+        variant.transfers.exists() or
+        variant.adjustments.exists()
+    )
+
+    if request.method == 'POST':
+        if is_used:
+            messages.error(request, 'This variant has stock or sale history and cannot be deleted.')
+            return redirect('product_manage', product_id=product.id)
+
+        log_activity(request, 'Deleted product variant', variant)
+        variant.delete()
+        messages.success(request, 'Variant deleted successfully.')
+        return redirect('product_manage', product_id=product.id)
+
+    return render(request, 'shop/product_variant_delete.html', {
+        'product': product,
+        'variant': variant,
+        'is_used': is_used,
+    })
 
 @login_required
 @permission_required('shop.view_purchase', raise_exception=True)
@@ -1833,6 +1918,52 @@ def supplier_add(request):
         return redirect('supplier_list')
 
     return render(request, 'shop/supplier_add.html')
+
+
+@login_required
+@permission_required('shop.change_supplier', raise_exception=True)
+def supplier_edit(request, supplier_id):
+    supplier = get_object_or_404(Supplier, id=supplier_id)
+
+    if request.method == 'POST':
+        supplier.name = request.POST.get('name')
+        supplier.phone = request.POST.get('phone')
+        supplier.address = request.POST.get('address')
+        supplier.save(update_fields=['name', 'phone', 'address'])
+
+        log_activity(request, 'Updated supplier', supplier)
+        messages.success(request, 'Supplier updated successfully.')
+        return redirect('supplier_list')
+
+    return render(request, 'shop/supplier_add.html', {
+        'supplier': supplier,
+        'is_edit': True,
+    })
+
+
+@login_required
+@permission_required('shop.delete_supplier', raise_exception=True)
+def supplier_delete(request, supplier_id):
+    supplier = get_object_or_404(Supplier, id=supplier_id)
+    is_used = (
+        Purchase.objects.filter(supplier=supplier).exists() or
+        SupplierPayment.objects.filter(supplier=supplier).exists()
+    )
+
+    if request.method == 'POST':
+        if is_used:
+            messages.error(request, 'This supplier has purchases or payments and cannot be deleted.')
+            return redirect('supplier_list')
+
+        log_activity(request, 'Deleted supplier', supplier)
+        supplier.delete()
+        messages.success(request, 'Supplier deleted successfully.')
+        return redirect('supplier_list')
+
+    return render(request, 'shop/supplier_delete.html', {
+        'supplier': supplier,
+        'is_used': is_used,
+    })
 
 @login_required
 @permission_required('auth.view_user', raise_exception=True)

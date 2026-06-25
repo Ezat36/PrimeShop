@@ -117,7 +117,7 @@ Business Dashboard
 
     <div class="col-md-6">
         <div class="card card-box chart-card p-4">
-            <h5 class="mb-3">Sold Quantity by Product</h5>
+            <h5 class="mb-3">Sold Quantity by Date</h5>
             {% if chart_labels %}
                 <canvas id="salesChart" height="300"></canvas>
             {% else %}
@@ -128,7 +128,7 @@ Business Dashboard
 
     <div class="col-md-6">
         <div class="card card-box chart-card p-4">
-            <h5 class="mb-3">Sales Value by Product</h5>
+            <h5 class="mb-3">Sales Value by Date</h5>
             {% if chart_labels %}
                 <canvas id="salesValueChart" height="300"></canvas>
             {% else %}
@@ -140,7 +140,7 @@ Business Dashboard
     {% if can_view_dashboard_profit %}
     <div class="col-md-8">
         <div class="card card-box chart-card p-4">
-            <h5 class="mb-3">Net Profit by Product</h5>
+            <h5 class="mb-3">Net Profit by Date</h5>
             {% if chart_labels %}
                 <canvas id="profitChart" height="220"></canvas>
             {% else %}

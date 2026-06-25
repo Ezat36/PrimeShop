@@ -1,9 +1,9 @@
 {% extends 'shop/base.html' %}
 
-{% block title %}Add Supplier{% endblock %}
+{% block title %}{% if is_edit %}Edit Supplier{% else %}Add Supplier{% endif %}{% endblock %}
 
 {% block page_title %}
-Add Supplier
+{% if is_edit %}Edit Supplier{% else %}Add Supplier{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -12,7 +12,7 @@ Add Supplier
     <div class="section-title">
         <div>
             <h5>Supplier Information</h5>
-            <p>Supplier records help purchases and reports stay organized.</p>
+            <p>{% if is_edit %}Update supplier contact details.{% else %}Supplier records help purchases and reports stay organized.{% endif %}</p>
         </div>
     </div>
 
@@ -28,6 +28,7 @@ Add Supplier
                 class="form-control"
                 required
                 placeholder="Example: Kabul Wholesale Market"
+                value="{{ supplier.name|default:'' }}"
             >
         </div>
 
@@ -38,6 +39,7 @@ Add Supplier
                 name="phone"
                 class="form-control"
                 placeholder="Example: 0790000000"
+                value="{{ supplier.phone|default:'' }}"
             >
         </div>
 
@@ -48,12 +50,12 @@ Add Supplier
                 class="form-control"
                 rows="3"
                 placeholder="Supplier address..."
-            ></textarea>
+            >{{ supplier.address|default:'' }}</textarea>
         </div>
         </div>
 
         <div class="form-actions">
-            <button class="btn btn-success"><i class="bi bi-check2"></i> Save Supplier</button>
+            <button class="btn btn-success"><i class="bi bi-check2"></i> {% if is_edit %}Update Supplier{% else %}Save Supplier{% endif %}</button>
             <a href="/suppliers/" class="btn btn-outline-secondary">Cancel</a>
         </div>
 

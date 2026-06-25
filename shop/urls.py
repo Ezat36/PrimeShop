@@ -8,6 +8,8 @@ urlpatterns = [
     path('products/<int:product_id>/manage/', views.product_manage, name='product_manage'),
     path('products/<int:product_id>/details/add/', views.product_detail_add, name='product_detail_add'),
     path('products/<int:product_id>/variants/add/', views.product_variant_add, name='product_variant_add'),
+    path('variants/<int:variant_id>/edit/', views.product_variant_edit, name='product_variant_edit'),
+    path('variants/<int:variant_id>/delete/', views.product_variant_delete, name='product_variant_delete'),
     path('products/', views.product_list, name='product_list'),
 
     path('stock-report/', views.stock_report, name='stock_report'),
@@ -31,6 +33,8 @@ urlpatterns = [
     path('invoices/<int:invoice_id>/', views.invoice_detail, name='invoice_detail'),
     path('suppliers/', views.supplier_list, name='supplier_list'),
     path('suppliers/add/', views.supplier_add, name='supplier_add'),
+    path('suppliers/<int:supplier_id>/edit/', views.supplier_edit, name='supplier_edit'),
+    path('suppliers/<int:supplier_id>/delete/', views.supplier_delete, name='supplier_delete'),
     path('suppliers/<int:supplier_id>/', views.supplier_detail, name='supplier_detail'),
     path('suppliers/payments/', views.supplier_payment_list, name='supplier_payment_list'),
     path('suppliers/payments/add/', views.supplier_payment_add, name='supplier_payment_add'),

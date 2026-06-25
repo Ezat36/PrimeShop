@@ -67,7 +67,11 @@ Suppliers
                         {% endif %}
                     </td>
                     <td>
-                        <a href="{% url 'supplier_detail' row.supplier.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Supplier actions">
+                            <a href="{% url 'supplier_detail' row.supplier.id %}" class="btn btn-outline-primary">Details</a>
+                            <a href="{% url 'supplier_edit' row.supplier.id %}" class="btn btn-outline-secondary">Edit</a>
+                            <a href="{% url 'supplier_delete' row.supplier.id %}" class="btn btn-outline-danger">Remove</a>
+                        </div>
                     </td>
                 </tr>
                 {% empty %}

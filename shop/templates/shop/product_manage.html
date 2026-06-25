@@ -254,6 +254,7 @@ Manage Product
                                 <th>SKU</th>
                                 <th class="number">Stock</th>
                                 <th>Attributes</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
 
@@ -293,10 +294,16 @@ Manage Product
                                         {% endfor %}
                                     </div>
                                 </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Variant actions">
+                                        <a href="{% url 'product_variant_edit' variant.id %}" class="btn btn-outline-secondary">Edit</a>
+                                        <a href="{% url 'product_variant_delete' variant.id %}" class="btn btn-outline-danger">Remove</a>
+                                    </div>
+                                </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5">
+                                <td colspan="6">
                                     <div class="empty-state">No variants added for this product yet.</div>
                                 </td>
                             </tr>

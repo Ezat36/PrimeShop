@@ -1,0 +1,45 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Remove Supplier{% endblock %}
+
+{% block page_title %}
+Remove Supplier
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width:650px;">
+
+    <h4 class="text-danger">Are you sure?</h4>
+
+    <p>
+        You are about to remove this supplier:
+    </p>
+
+    <div class="alert alert-warning">
+        <strong>{{ supplier.name }}</strong><br>
+        Phone: {{ supplier.phone|default:"-" }}<br>
+        Address: {{ supplier.address|default:"-" }}
+    </div>
+
+    {% if is_used %}
+        <div class="alert alert-danger">
+            This supplier has purchases or payments. Keep it for accurate supplier balances and reports.
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        {% if not is_used %}
+            <button class="btn btn-danger" data-confirm="Remove this supplier? This action cannot be undone.">
+                Yes, Remove
+            </button>
+        {% endif %}
+        <a href="{% url 'supplier_list' %}" class="btn btn-outline-secondary">
+            Cancel
+        </a>
+    </form>
+
+</div>
+
+{% endblock %}

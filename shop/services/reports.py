@@ -299,12 +299,13 @@ def build_dashboard_context(filter_type, user):
         summary_totals = summaries.aggregate(
             total_items_sold=Coalesce(Sum('total_items_sold'), 0),
             total_sales_value=Coalesce(Sum('sales_value'), Decimal('0'), output_field=DecimalField()),
+            total_cogs=Coalesce(Sum('cogs'), Decimal('0'), output_field=DecimalField()),
             total_profit=Coalesce(Sum('gross_profit'), Decimal('0'), output_field=DecimalField()),
             total_paid_profit=Coalesce(Sum('paid_profit'), Decimal('0'), output_field=DecimalField()),
             outstanding_balance=Coalesce(Sum('outstanding_balance'), Decimal('0'), output_field=DecimalField()),
             total_expenses=Coalesce(Sum('general_expenses'), Decimal('0'), output_field=DecimalField()),
             total_batch_expenses=Coalesce(Sum('batch_expenses'), Decimal('0'), output_field=DecimalField()),
-            net_profit=Coalesce(Sum('paid_profit'), Decimal('0'), output_field=DecimalField()),
+            net_profit=Coalesce(Sum('net_profit'), Decimal('0'), output_field=DecimalField()),
         )
     else:
         summaries = filter_by_period(DailyUserSalesSummary.objects.filter(user=user), filter_type, 'date')
@@ -319,10 +320,11 @@ def build_dashboard_context(filter_type, user):
         summary_totals = summaries.aggregate(
             total_items_sold=Coalesce(Sum('total_items_sold'), 0),
             total_sales_value=Coalesce(Sum('sales_value'), Decimal('0'), output_field=DecimalField()),
+            total_cogs=Coalesce(Sum('cogs'), Decimal('0'), output_field=DecimalField()),
             total_profit=Coalesce(Sum('gross_profit'), Decimal('0'), output_field=DecimalField()),
             total_paid_profit=Coalesce(Sum('paid_profit'), Decimal('0'), output_field=DecimalField()),
             outstanding_balance=Coalesce(Sum('outstanding_balance'), Decimal('0'), output_field=DecimalField()),
-            net_profit=Coalesce(Sum('paid_profit'), Decimal('0'), output_field=DecimalField()),
+            net_profit=Coalesce(Sum('net_profit'), Decimal('0'), output_field=DecimalField()),
         )
         summary_totals.update({
             'total_expenses': Decimal('0'),
@@ -433,12 +435,9 @@ def build_dashboard_context(filter_type, user):
         total_batch_expenses = Decimal('0')
     total_all_expenses = total_expenses + total_batch_expenses
 
-    total_profit = summary_totals['total_profit']
+    total_profit = summary_totals['total_sales_value'] - summary_totals['total_cogs']
     total_paid_profit = summary_totals['total_paid_profit']
-    net_profit = (
-        total_paid_profit - total_all_expenses
-        if total_paid_profit > 0 else Decimal('0')
-    )
+    net_profit = summary_totals['net_profit']
 
     low_stock_items = list(
         ProductVariant.objects.select_related('product')

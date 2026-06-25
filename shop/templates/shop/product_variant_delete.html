@@ -1,0 +1,46 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Remove Variant{% endblock %}
+
+{% block page_title %}
+Remove Variant
+{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4" style="max-width:650px;">
+
+    <h4 class="text-danger">Are you sure?</h4>
+
+    <p>
+        You are about to remove this variant:
+    </p>
+
+    <div class="alert alert-warning">
+        <strong>{{ variant.variant_name|default:variant }}</strong><br>
+        Product: {{ product.name }}<br>
+        SKU: {{ variant.sku|default:"-" }}<br>
+        Price: {{ variant.selling_price|floatformat:"2g" }} {{ store_currency }}
+    </div>
+
+    {% if is_used %}
+        <div class="alert alert-danger">
+            This variant has stock, sale, transfer, or adjustment history. Keep it for accurate inventory and reports.
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        {% if not is_used %}
+            <button class="btn btn-danger" data-confirm="Remove this variant? This action cannot be undone.">
+                Yes, Remove
+            </button>
+        {% endif %}
+        <a href="{% url 'product_manage' product.id %}" class="btn btn-outline-secondary">
+            Cancel
+        </a>
+    </form>
+
+</div>
+
+{% endblock %}

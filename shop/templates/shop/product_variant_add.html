@@ -1,9 +1,9 @@
 {% extends 'shop/base.html' %}
 
-{% block title %}Add Variant{% endblock %}
+{% block title %}{% if is_edit %}Edit Variant{% else %}Add Variant{% endif %}{% endblock %}
 
 {% block page_title %}
-Add Variant
+{% if is_edit %}Edit Variant{% else %}Add Variant{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -109,7 +109,7 @@ Add Variant
         <div class="section-title">
             <div>
                 <h5>Variant Information</h5>
-                <p>Add the selling details and optional attributes for this product variant.</p>
+                <p>{% if is_edit %}Update selling details and optional attributes for this product variant.{% else %}Add the selling details and optional attributes for this product variant.{% endif %}</p>
             </div>
         </div>
 
@@ -130,6 +130,7 @@ Add Variant
                             class="form-control"
                             placeholder="Example: Small Green Tent"
                             required
+                            value="{{ variant.variant_name|default:'' }}"
                         >
                     </div>
 
@@ -140,6 +141,7 @@ Add Variant
                             name="sku"
                             class="form-control"
                             placeholder="Example: TENT-SM-GRN"
+                            value="{{ variant.sku|default:'' }}"
                         >
                     </div>
 
@@ -152,6 +154,7 @@ Add Variant
                             class="form-control"
                             placeholder="0.00"
                             required
+                            value="{{ variant.selling_price|default:'' }}"
                         >
                     </div>
 
@@ -161,7 +164,7 @@ Add Variant
                             type="number"
                             name="low_stock_alert"
                             class="form-control"
-                            value="5"
+                            value="{{ variant.low_stock_alert|default:5 }}"
                             min="0"
                         >
                     </div>
@@ -180,6 +183,35 @@ Add Variant
                 </div>
 
                 <div class="attribute-list" id="details-list">
+                    {% if is_edit and variant.details.all %}
+                    {% for detail in variant.details.all %}
+                    <div class="attribute-row">
+                        <input
+                            type="text"
+                            name="detail_name"
+                            class="form-control"
+                            placeholder="Attribute, e.g. Size"
+                            value="{{ detail.name }}"
+                        >
+                        <input
+                            type="text"
+                            name="detail_value"
+                            class="form-control"
+                            placeholder="Value, e.g. Small"
+                            value="{{ detail.value }}"
+                        >
+                        <button
+                            type="button"
+                            class="btn btn-outline-danger attribute-remove"
+                            onclick="removeDetailRow(this)"
+                            aria-label="Remove attribute"
+                            title="Remove attribute"
+                        >
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                    {% else %}
                     <div class="attribute-row">
                         <input
                             type="text"
@@ -203,6 +235,7 @@ Add Variant
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
+                    {% endif %}
                 </div>
 
                 <div class="quick-examples" aria-label="Attribute examples">
@@ -217,7 +250,7 @@ Add Variant
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-success">
-                    <i class="bi bi-check2"></i> Save Variant
+                    <i class="bi bi-check2"></i> {% if is_edit %}Update Variant{% else %}Save Variant{% endif %}
                 </button>
                 <a href="{% url 'product_manage' product.id %}" class="btn btn-outline-secondary">
                     Cancel

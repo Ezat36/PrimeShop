@@ -403,7 +403,7 @@ def refresh_summaries_for_sale(sale):
     if not sale:
         return
 
-    rebuild_daily_summaries(sale.date, sale.date, sale.customer_id)
+    rebuild_daily_summaries(sale.date, sale.date)
     rebuild_customer_account_summaries({sale.customer_id} if sale.customer_id else set())
     batch_numbers = set(
         SaleItemAllocation.objects.filter(sale_item__sale=sale)
@@ -423,7 +423,7 @@ def refresh_summaries_for_customer(customer_id):
         .values_list("date", flat=True)
     )
     for date in dates:
-        rebuild_daily_summaries(date, date, customer_id)
+        rebuild_daily_summaries(date, date)
 
 
 def refresh_summaries_for_date(date):
