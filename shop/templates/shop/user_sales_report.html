@@ -26,10 +26,11 @@ User Sales Report
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Revenue</span><h2 class="metric-value">{{ total_revenue|floatformat:"2g" }}</h2></div></div>
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">COGS</span><h2 class="metric-value text-warning">{{ total_cogs|floatformat:"2g" }}</h2></div></div>
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Gross Profit</span><h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:"2g" }}</h2></div></div>
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Net Profit</span><h2 class="metric-value {% if total_net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_net_profit|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Revenue After Due</span><h2 class="metric-value">{{ total_revenue|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Due</span><h2 class="metric-value text-danger">{{ total_amount_due|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">COGS</span><h2 class="metric-value text-warning">{{ total_cogs|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Gross Profit</span><h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Net Profit</span><h2 class="metric-value {% if total_net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_net_profit|floatformat:"2g" }}</h2></div></div>
 </div>
 
 <div class="total-strip">
@@ -69,7 +70,8 @@ User Sales Report
                     <th class="money">Buying Price</th>
                     <th class="money">Selling Price</th>
                     <th class="number">Qty</th>
-                    <th class="money">Revenue</th>
+                    <th class="money">Revenue After Due</th>
+                    <th class="money">Due</th>
                     <th class="money">Gross Profit</th>
                     <th class="money">Expenses</th>
                     <th class="money">Net Profit</th>
@@ -97,13 +99,14 @@ User Sales Report
                     <td class="money">{{ row.selling_price|floatformat:"2g" }}</td>
                     <td class="number">{{ row.qty }}</td>
                     <td class="money">{{ row.revenue|floatformat:"2g" }}</td>
+                    <td class="money text-danger">{{ row.amount_due|floatformat:"2g" }}</td>
                     <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ row.gross_profit|floatformat:"2g" }}</td>
                     <td class="money text-danger">{{ row.expense_share|floatformat:"2g" }}</td>
                     <td class="money {% if row.net_profit < 0 %}text-danger{% else %}text-success{% endif %}"><strong>{{ row.net_profit|floatformat:"2g" }}</strong></td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="24"><div class="empty-state">No user sales found.</div></td>
+                    <td colspan="25"><div class="empty-state">No user sales found.</div></td>
                 </tr>
                 {% endfor %}
             </tbody>

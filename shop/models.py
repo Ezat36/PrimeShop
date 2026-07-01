@@ -777,6 +777,7 @@ class BatchProfitSummary(models.Model):
     sold_qty = models.PositiveIntegerField(default=0)
     remaining_qty = models.PositiveIntegerField(default=0)
     revenue = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    amount_due = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     cost = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     gross_profit = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     batch_expenses = models.DecimalField(max_digits=14, decimal_places=2, default=0)

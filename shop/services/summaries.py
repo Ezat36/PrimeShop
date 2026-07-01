@@ -63,6 +63,18 @@ def _add_sales_values(row, sale_id, qty, revenue, cogs, gross_profit, discount):
     row["sale_profit"][sale_id] += gross_profit - discount
 
 
+def _paid_revenue_values(revenue_before_due, sale_id, sale_totals, payment_statuses):
+    sale_total = sale_totals.get(sale_id, Decimal("0"))
+    status = payment_statuses.get(sale_id, {"amount_due": Decimal("0")})
+    amount_due = status["amount_due"]
+    due_share = (
+        amount_due * revenue_before_due / sale_total
+        if sale_total > 0 else Decimal("0")
+    )
+    due_share = min(due_share, revenue_before_due)
+    return revenue_before_due - due_share, due_share
+
+
 @transaction.atomic
 def rebuild_daily_summaries(date_from=None, date_to=None, customer_id=None):
     sales = Sale.objects.filter(is_canceled=False)
@@ -86,6 +98,11 @@ def rebuild_daily_summaries(date_from=None, date_to=None, customer_id=None):
         sale.id: sum(_sale_item_net_total_price(item) for item in _related_list(sale, "items"))
         for sale in sales
     }
+    sale_final_totals = {
+        sale.id: max(sale_totals[sale.id] - sale.discount, Decimal("0"))
+        for sale in sales
+    }
+    payment_statuses = get_sale_payment_statuses(sales)
 
     daily = defaultdict(_summary_row)
     daily_user = defaultdict(_summary_row)
@@ -126,8 +143,14 @@ def rebuild_daily_summaries(date_from=None, date_to=None, customer_id=None):
             min(sale.discount, sale_total) * revenue_before_discount / sale_total
             if sale_total > 0 else Decimal("0")
         )
-        revenue = revenue_before_discount - discount_share
-        gross_profit = revenue_before_discount - cogs
+        revenue_after_discount = revenue_before_discount - discount_share
+        revenue, due_share = _paid_revenue_values(
+            revenue_after_discount,
+            sale.id,
+            sale_final_totals,
+            payment_statuses,
+        )
+        gross_profit = revenue - cogs
 
         _add_sales_values(daily[sale.date], sale.id, qty, revenue, cogs, gross_profit, discount_share)
         variant_row = daily_variant[(sale.date, sale_item.variant_id)]
@@ -140,24 +163,17 @@ def rebuild_daily_summaries(date_from=None, date_to=None, customer_id=None):
             _add_sales_values(daily_user[key], sale.id, qty, revenue, cogs, gross_profit, discount_share)
             user_sale_ids[key].add(sale.id)
 
-    payment_statuses = get_sale_payment_statuses(sales)
     for sale in sales:
         row = daily[sale.date]
         status = payment_statuses.get(sale.id, {"paid_total": Decimal("0"), "amount_due": Decimal("0")})
-        sale_total = sale_totals.get(sale.id, Decimal("0"))
-        sale_final_total = max(sale_total - sale.discount, Decimal("0"))
-        paid_ratio = (
-            min(status["paid_total"], sale_final_total) / sale_final_total
-            if sale_final_total > 0 else Decimal("0")
-        )
         row["total_paid"] += status["paid_total"]
         row["outstanding_balance"] += status["amount_due"]
-        row["paid_profit"] += row["sale_profit"].get(sale.id, Decimal("0")) * paid_ratio
+        row["paid_profit"] += row["sale_profit"].get(sale.id, Decimal("0"))
         if sale.created_by_id:
             user_row = daily_user[(sale.date, sale.created_by_id)]
             user_row["total_paid"] += status["paid_total"]
             user_row["outstanding_balance"] += status["amount_due"]
-            user_row["paid_profit"] += user_row["sale_profit"].get(sale.id, Decimal("0")) * paid_ratio
+            user_row["paid_profit"] += user_row["sale_profit"].get(sale.id, Decimal("0"))
 
     for row in Expense.objects.values("date").annotate(total=Coalesce(Sum("amount"), Decimal("0"))):
         if _date_in_range(row["date"], date_from, date_to):
@@ -198,7 +214,7 @@ def rebuild_daily_summaries(date_from=None, date_to=None, customer_id=None):
                 general_expenses=row["general_expenses"],
                 batch_expenses=row["batch_expenses"],
                 paid_profit=row["paid_profit"],
-                net_profit=row["gross_profit"] - row["discount"] - row["general_expenses"] - row["batch_expenses"],
+                net_profit=row["gross_profit"] - row["general_expenses"] - row["batch_expenses"],
             calculated_at=now,
         )
         for date, row in daily.items()
@@ -216,7 +232,7 @@ def rebuild_daily_summaries(date_from=None, date_to=None, customer_id=None):
                 total_paid=row["total_paid"],
                 outstanding_balance=row["outstanding_balance"],
                 paid_profit=row["paid_profit"],
-                net_profit=row["gross_profit"] - row["discount"],
+                net_profit=row["gross_profit"],
                 calculated_at=now,
             )
         for (date, user_id), row in daily_user.items()
@@ -339,7 +355,7 @@ def rebuild_batch_summaries(batch_numbers=None):
         return 0
 
     allocations_by_batch = defaultdict(list)
-    allocations = SaleItemAllocation.objects.filter(
+    allocations = list(SaleItemAllocation.objects.filter(
         purchase_item__batch_number__in=items_by_batch.keys(),
         sale_item__sale__is_canceled=False,
     ).select_related(
@@ -349,9 +365,71 @@ def rebuild_batch_summaries(batch_numbers=None):
     ).prefetch_related(
         "sale_item__returns",
         "sale_item__allocations",
-    )
+    ))
     for allocation in allocations:
         allocations_by_batch[allocation.purchase_item.batch_number].append(allocation)
+
+    sale_ids = {allocation.sale_item.sale_id for allocation in allocations}
+    sales = list({allocation.sale_item.sale for allocation in allocations})
+    payment_statuses = get_sale_payment_statuses(sales)
+    sale_totals = defaultdict(lambda: Decimal("0"))
+    sale_final_totals = defaultdict(lambda: Decimal("0"))
+    allocation_revenue_before_due = {}
+    allocation_due = {}
+    allocation_revenue = {}
+    allocation_cost = {}
+    allocation_qty = {}
+    sale_allocations = list(SaleItemAllocation.objects.filter(
+        sale_item__sale_id__in=sale_ids,
+        sale_item__sale__is_canceled=False,
+    ).select_related(
+        "sale_item",
+        "sale_item__sale",
+        "purchase_item",
+    ).prefetch_related(
+        "sale_item__returns",
+        "sale_item__allocations",
+    ))
+    for allocation in sale_allocations:
+        qty = _allocation_net_quantities(
+            allocation.sale_item,
+            _related_list(allocation.sale_item, "allocations"),
+        )[allocation.id]
+        if qty <= 0:
+            continue
+        sale_totals[allocation.sale_item.sale_id] += qty * allocation.sale_item.selling_price
+
+    for sale in sales:
+        sale_final_totals[sale.id] = max(sale_totals[sale.id] - sale.discount, Decimal("0"))
+
+    for allocation in allocations:
+        qty = _allocation_net_quantities(
+            allocation.sale_item,
+            _related_list(allocation.sale_item, "allocations"),
+        )[allocation.id]
+        allocation_qty[allocation.id] = qty
+        if qty <= 0:
+            continue
+        sale_total = sale_totals.get(allocation.sale_item.sale_id, Decimal("0"))
+        revenue_before_discount = qty * allocation.sale_item.selling_price
+        discount_share = (
+            min(allocation.sale_item.sale.discount, sale_total) * revenue_before_discount / sale_total
+            if sale_total > 0 else Decimal("0")
+        )
+        revenue_before_due = revenue_before_discount - discount_share
+        allocation_revenue_before_due[allocation.id] = revenue_before_due
+        allocation_cost[allocation.id] = qty * allocation.unit_cost
+
+    for allocation in allocations:
+        revenue_before_due = allocation_revenue_before_due.get(allocation.id, Decimal("0"))
+        paid_revenue, due_share = _paid_revenue_values(
+            revenue_before_due,
+            allocation.sale_item.sale_id,
+            sale_final_totals,
+            payment_statuses,
+        )
+        allocation_revenue[allocation.id] = paid_revenue
+        allocation_due[allocation.id] = due_share
 
     expenses_by_batch = {
         row["batch_number"]: row["total"] or Decimal("0")
@@ -368,16 +446,17 @@ def rebuild_batch_summaries(batch_numbers=None):
         stock_value = sum(item.remaining_qty * item.buying_price for item in items)
         sold_qty = 0
         revenue = Decimal("0")
+        amount_due = Decimal("0")
         cost = Decimal("0")
 
         for allocation in allocations_by_batch[batch_number]:
-            qty = _allocation_net_quantities(
-                allocation.sale_item,
-                _related_list(allocation.sale_item, "allocations"),
-            )[allocation.id]
+            qty = allocation_qty.get(allocation.id, 0)
+            if qty <= 0:
+                continue
             sold_qty += qty
-            revenue += qty * allocation.sale_item.selling_price
-            cost += qty * allocation.unit_cost
+            revenue += allocation_revenue.get(allocation.id, Decimal("0"))
+            amount_due += allocation_due.get(allocation.id, Decimal("0"))
+            cost += allocation_cost.get(allocation.id, Decimal("0"))
 
         gross_profit = revenue - cost
         batch_expenses = expenses_by_batch.get(batch_number, Decimal("0"))
@@ -387,6 +466,7 @@ def rebuild_batch_summaries(batch_numbers=None):
             sold_qty=sold_qty,
             remaining_qty=remaining_qty,
             revenue=revenue,
+            amount_due=amount_due,
             cost=cost,
             gross_profit=gross_profit,
             batch_expenses=batch_expenses,

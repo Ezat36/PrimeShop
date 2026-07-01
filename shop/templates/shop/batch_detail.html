@@ -52,28 +52,35 @@ Batch Detail
 
 <div class="row g-4 mb-4">
 
-    <div class="col-md-3">
+    <div class="col-md-6 col-xl">
         <div class="card card-box p-4 text-center">
-            <p class="text-muted mb-1">Revenue</p>
+            <p class="text-muted mb-1">Revenue After Due</p>
             <h2>{{ revenue|floatformat:"2g" }}</h2>
         </div>
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-6 col-xl">
+        <div class="card card-box p-4 text-center">
+            <p class="text-muted mb-1">Due</p>
+            <h2 class="text-danger">{{ amount_due|floatformat:"2g" }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-xl">
         <div class="card card-box p-4 text-center">
             <p class="text-muted mb-1">COGS</p>
             <h2>{{ cogs|floatformat:"2g" }}</h2>
         </div>
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-6 col-xl">
         <div class="card card-box p-4 text-center">
             <p class="text-muted mb-1">Gross Profit</p>
             <h2 class="text-success">{{ gross_profit|floatformat:"2g" }}</h2>
         </div>
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-6 col-xl">
         <div class="card card-box p-4 text-center">
             <p class="text-muted mb-1">Net Profit</p>
             <h2 class="{% if net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
@@ -145,7 +152,8 @@ Batch Detail
                     <th>Sold</th>
                     <th>Remaining</th>
                     <th>Buying Price</th>
-                    <th>Revenue</th>
+                    <th>Revenue After Due</th>
+                    <th>Due</th>
                     <th>COGS</th>
                     <th>Gross Profit</th>
                     <th>Stock Value</th>
@@ -166,6 +174,7 @@ Batch Detail
                     <td>{{ row.remaining_qty }}</td>
                     <td>{{ row.buying_price|floatformat:"2g" }}</td>
                     <td>{{ row.revenue|floatformat:"2g" }}</td>
+                    <td class="text-danger">{{ row.amount_due|floatformat:"2g" }}</td>
                     <td>{{ row.cogs|floatformat:"2g" }}</td>
                     <td class="text-success">{{ row.gross_profit|floatformat:"2g" }}</td>
                     <td>{{ row.stock_value|floatformat:"2g" }}</td>
@@ -190,7 +199,8 @@ Batch Detail
                     <th>Variant</th>
                     <th>Qty</th>
                     <th>Selling Price</th>
-                    <th>Revenue</th>
+                    <th>Revenue After Due</th>
+                    <th>Due</th>
                     <th>Cost</th>
                     <th>Profit</th>
                 </tr>
@@ -205,19 +215,16 @@ Batch Detail
                     <td>{{ allocation.purchase_item.variant }}</td>
                     <td>{{ allocation.net_quantity }}</td>
                     <td>{{ allocation.sale_item.selling_price|floatformat:"2g" }}</td>
-                    <td>
-                        {{ allocation.net_quantity|floatformat:"0g" }}
-                        x
-                        {{ allocation.sale_item.selling_price|floatformat:"2g" }}
-                    </td>
+                    <td>{{ allocation.paid_revenue|floatformat:"2g" }}</td>
+                    <td class="text-danger">{{ allocation.amount_due|floatformat:"2g" }}</td>
                     <td>{{ allocation.net_total_cost|floatformat:"2g" }}</td>
-                    <td class="{% if allocation.net_profit < 0 %}text-danger{% else %}text-success{% endif %}">
-                        {{ allocation.net_profit|floatformat:"2g" }}
+                    <td class="{% if allocation.net_profit_after_due < 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ allocation.net_profit_after_due|floatformat:"2g" }}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="text-center text-muted">
+                    <td colspan="10" class="text-center text-muted">
                         No sales from this batch yet.
                     </td>
                 </tr>

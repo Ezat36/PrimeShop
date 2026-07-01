@@ -404,7 +404,9 @@ def build_dashboard_context(filter_type, user):
             min(paid_total, sale_final_total) / sale_final_total
             if sale_final_total > 0 else Decimal('0')
         )
-        paid_net_profit = net_profit_before_expenses * paid_ratio
+        paid_sales = total_sales * paid_ratio
+        paid_gross_profit = paid_sales - item_cogs
+        paid_net_profit = paid_gross_profit
 
         product_name = variant.product.name
         product_sales_qty.setdefault(product_name, 0)
@@ -412,7 +414,7 @@ def build_dashboard_context(filter_type, user):
         product_profit.setdefault(product_name, Decimal('0'))
 
         product_sales_qty[product_name] += net_quantity
-        product_sales_value[product_name] += total_sales
+        product_sales_value[product_name] += paid_sales
         product_profit[product_name] += paid_net_profit
 
         sold_items.append({
@@ -422,8 +424,8 @@ def build_dashboard_context(filter_type, user):
             'quantity': net_quantity,
             'buying_price': buying_price,
             'selling_price': item.selling_price,
-            'total_sales': total_sales,
-            'gross_profit': gross_profit,
+            'total_sales': paid_sales,
+            'gross_profit': paid_gross_profit,
             'net_profit': paid_net_profit,
         })
 

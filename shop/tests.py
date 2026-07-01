@@ -8,6 +8,7 @@ from django.utils import timezone
 from .models import (
     ActivityLog,
     BatchExpense,
+    BatchProfitSummary,
     Customer,
     CustomerPayment,
     Expense,
@@ -23,6 +24,7 @@ from .models import (
     SupplierPayment,
 )
 from .services.reports import build_dashboard_context, get_sale_payment_status
+from .services.summaries import rebuild_batch_summaries
 
 
 class SalesWorkflowTests(TestCase):
@@ -99,6 +101,34 @@ class SalesWorkflowTests(TestCase):
         self.assertEqual(allocation.quantity, 1)
         self.assertEqual(allocation.unit_cost, Decimal('4000.00'))
         self.assertEqual(sale.invoice.invoice_number, f'INV-{sale.id:05d}')
+
+    def test_batch_revenue_excludes_amount_due(self):
+        self.post_sale(
+            self.salesperson,
+            paid_amount='3500.00',
+            selling_price='5000.00',
+        )
+
+        rebuild_batch_summaries()
+
+        summary = BatchProfitSummary.objects.get(batch_number='TENT-0001')
+        self.assertEqual(summary.revenue, Decimal('3500.00'))
+        self.assertEqual(summary.amount_due, Decimal('1500.00'))
+
+    def test_batch_revenue_excludes_discount_and_amount_due(self):
+        self.post_sale(
+            self.salesperson,
+            paid_amount='3000.00',
+            selling_price='5000.00',
+            discount='1000.00',
+        )
+
+        rebuild_batch_summaries()
+
+        summary = BatchProfitSummary.objects.get(batch_number='TENT-0001')
+        self.assertEqual(summary.revenue, Decimal('3000.00'))
+        self.assertEqual(summary.amount_due, Decimal('1000.00'))
+        self.assertEqual(summary.gross_profit, Decimal('-1000.00'))
 
     def test_sale_cannot_exceed_available_stock_and_does_not_mutate_stock(self):
         response = self.post_sale(self.salesperson, quantity='3', paid_amount='15000.00')
@@ -184,8 +214,8 @@ class SalesWorkflowTests(TestCase):
         )
 
         context = build_dashboard_context('all', self.salesperson)
-        self.assertEqual(context['total_profit'], Decimal('1000.00'))
-        self.assertEqual(context['net_profit'], Decimal('0.00'))
+        self.assertEqual(context['total_profit'], Decimal('-4000.00'))
+        self.assertEqual(context['net_profit'], Decimal('-4000.00'))
         self.assertEqual(context['outstanding_balance'], Decimal('5000.00'))
 
         unpaid_sale.paid_amount = Decimal('5000.00')
@@ -711,4 +741,4 @@ class SalesWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'Net Profit')
         self.assertNotContains(response, 'Gross Profit')
-        self.assertContains(response, 'Sales Value')
+        self.assertContains(response, 'Revenue After Due')

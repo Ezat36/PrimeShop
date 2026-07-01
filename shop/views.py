@@ -50,6 +50,74 @@ from .services.reports import (
 )
 
 
+def _batch_allocation_revenue_values(allocations):
+    allocations = list(allocations)
+    if not allocations:
+        return {}, {}, {}
+
+    sale_ids = {allocation.sale_item.sale_id for allocation in allocations}
+    sales = list({allocation.sale_item.sale for allocation in allocations})
+    payment_statuses = get_sale_payment_statuses(sales)
+    sale_totals = defaultdict(lambda: Decimal('0'))
+    sale_final_totals = defaultdict(lambda: Decimal('0'))
+    sale_allocations = SaleItemAllocation.objects.filter(
+        sale_item__sale_id__in=sale_ids,
+        sale_item__sale__is_canceled=False,
+    ).select_related(
+        'sale_item',
+        'sale_item__sale',
+        'purchase_item',
+    ).prefetch_related(
+        'sale_item__returns',
+        'sale_item__allocations',
+    )
+    for allocation in sale_allocations:
+        qty = _allocation_net_quantities(
+            allocation.sale_item,
+            _related_list(allocation.sale_item, 'allocations'),
+        )[allocation.id]
+        if qty <= 0:
+            continue
+        sale_totals[allocation.sale_item.sale_id] += qty * allocation.sale_item.selling_price
+
+    for sale in sales:
+        sale_final_totals[sale.id] = max(sale_totals[sale.id] - sale.discount, Decimal('0'))
+
+    paid_revenue = {}
+    amount_due = {}
+    quantities = {}
+    for allocation in allocations:
+        qty = _allocation_net_quantities(
+            allocation.sale_item,
+            _related_list(allocation.sale_item, 'allocations'),
+        )[allocation.id]
+        quantities[allocation.id] = qty
+        if qty <= 0:
+            paid_revenue[allocation.id] = Decimal('0')
+            amount_due[allocation.id] = Decimal('0')
+            continue
+        revenue_before_discount = qty * allocation.sale_item.selling_price
+        sale_total = sale_totals.get(allocation.sale_item.sale_id, Decimal('0'))
+        discount_share = (
+            min(allocation.sale_item.sale.discount, sale_total) * revenue_before_discount / sale_total
+            if sale_total > 0 else Decimal('0')
+        )
+        revenue_before_due = revenue_before_discount - discount_share
+        status = payment_statuses.get(
+            allocation.sale_item.sale_id,
+            {'amount_due': Decimal('0')},
+        )
+        due_share = (
+            status['amount_due'] * revenue_before_due / sale_final_totals[allocation.sale_item.sale_id]
+            if sale_final_totals[allocation.sale_item.sale_id] > 0 else Decimal('0')
+        )
+        due_share = min(due_share, revenue_before_due)
+        paid_revenue[allocation.id] = revenue_before_due - due_share
+        amount_due[allocation.id] = due_share
+
+    return paid_revenue, amount_due, quantities
+
+
 def log_activity(request, action, instance=None, description=''):
     ActivityLog.objects.create(
         user=request.user if request.user.is_authenticated else None,
@@ -718,7 +786,7 @@ def profit_loss_report(request):
 
     total_sales_revenue = summary_totals['total_sales_revenue']
     total_cogs = summary_totals['total_cogs']
-    total_gross_profit = total_sales_revenue - total_cogs
+    total_gross_profit = summary_totals['total_gross_profit']
     total_inventory_value = Decimal('0')
     total_sold_qty = summary_totals['total_sold_qty']
     total_remaining_qty = 0
@@ -812,6 +880,7 @@ def user_sales_report(request):
         total_cogs=Coalesce(Sum('cogs'), Decimal('0'), output_field=DecimalField()),
         total_gross_profit=Coalesce(Sum('gross_profit'), Decimal('0'), output_field=DecimalField()),
         total_discount=Coalesce(Sum('discount'), Decimal('0'), output_field=DecimalField()),
+        total_amount_due=Coalesce(Sum('outstanding_balance'), Decimal('0'), output_field=DecimalField()),
         total_net_profit=Coalesce(Sum('net_profit'), Decimal('0'), output_field=DecimalField()),
     )
     allocations = SaleItemAllocation.objects.select_related(
@@ -869,7 +938,7 @@ def user_sales_report(request):
     rows = []
     total_revenue = summary_totals['total_revenue']
     total_cogs = summary_totals['total_cogs']
-    total_gross_profit = total_revenue - total_cogs
+    total_gross_profit = summary_totals['total_gross_profit']
     total_discount = summary_totals['total_discount']
 
     sale_totals = {
@@ -879,6 +948,7 @@ def user_sales_report(request):
             for allocation in allocations
         }.values()
     }
+    allocation_revenue, allocation_due, _ = _batch_allocation_revenue_values(allocations)
 
     for allocation in allocations:
         sale_item = allocation.sale_item
@@ -893,7 +963,8 @@ def user_sales_report(request):
             effective_discount * revenue_before_discount / sale_total
             if sale_total > 0 else Decimal('0')
         )
-        revenue = revenue_before_discount - discount_share
+        revenue = allocation_revenue.get(allocation.id, Decimal('0'))
+        amount_due = allocation_due.get(allocation.id, Decimal('0'))
         gross_profit = revenue - cogs
 
         detail_values = {
@@ -926,6 +997,7 @@ def user_sales_report(request):
             'selling_price': sale_item.selling_price,
             'qty': qty,
             'revenue': revenue,
+            'amount_due': amount_due,
             'cogs': cogs,
             'gross_profit': gross_profit,
             'discount_share': discount_share,
@@ -963,6 +1035,7 @@ def user_sales_report(request):
         'total_cogs': total_cogs,
         'total_gross_profit': total_gross_profit,
         'total_discount': total_discount,
+        'total_amount_due': summary_totals['total_amount_due'],
         'total_expenses': total_all_expenses,
         'total_net_profit': total_net_profit,
     }
@@ -2368,6 +2441,7 @@ def batch_profit_report(request):
         summaries = BatchProfitSummary.objects.all().order_by('batch_number')
     totals = summaries.aggregate(
         total_revenue=Coalesce(Sum('revenue'), Decimal('0'), output_field=DecimalField()),
+        total_amount_due=Coalesce(Sum('amount_due'), Decimal('0'), output_field=DecimalField()),
         total_cost=Coalesce(Sum('cost'), Decimal('0'), output_field=DecimalField()),
         total_gross_profit=Coalesce(Sum('gross_profit'), Decimal('0'), output_field=DecimalField()),
         total_batch_expenses=Coalesce(Sum('batch_expenses'), Decimal('0'), output_field=DecimalField()),
@@ -2398,6 +2472,7 @@ def batch_profit_report(request):
             'sold_qty': summary.sold_qty,
             'remaining_qty': summary.remaining_qty,
             'revenue': summary.revenue,
+            'amount_due': summary.amount_due,
             'cost': summary.cost,
             'gross_profit': summary.gross_profit,
             'batch_expenses': summary.batch_expenses,
@@ -2407,6 +2482,7 @@ def batch_profit_report(request):
     context = {
         'batch_rows': batch_rows,
         'total_revenue': totals['total_revenue'],
+        'total_amount_due': totals['total_amount_due'],
         'total_cost': totals['total_cost'],
         'total_gross_profit': totals['total_gross_profit'],
         'total_batch_expenses': totals['total_batch_expenses'],
@@ -2559,10 +2635,15 @@ def batch_detail(request, batch_number):
         for item in batch_items
     )
 
-    revenue = sum(
-        allocation.net_quantity() * allocation.sale_item.selling_price
-        for allocation in allocations
-    )
+    allocations = list(allocations)
+    allocation_revenue, allocation_due, allocation_qty = _batch_allocation_revenue_values(allocations)
+
+    revenue = sum(allocation_revenue.values())
+    amount_due = sum(allocation_due.values())
+    for allocation in allocations:
+        allocation.paid_revenue = allocation_revenue.get(allocation.id, Decimal('0'))
+        allocation.amount_due = allocation_due.get(allocation.id, Decimal('0'))
+        allocation.net_profit_after_due = allocation.paid_revenue - allocation.net_total_cost()
 
     cogs = sum(
         allocation.net_total_cost()
@@ -2603,10 +2684,15 @@ def batch_detail(request, batch_number):
             for detail in item.variant.details.all()
         }
 
-        item_sold_qty = sum(a.net_quantity() for a in item_allocations)
+        item_sold_qty = sum(allocation_qty.get(a.id, a.net_quantity()) for a in item_allocations)
 
         item_revenue = sum(
-            a.net_quantity() * a.sale_item.selling_price
+            allocation_revenue.get(a.id, Decimal('0'))
+            for a in item_allocations
+        )
+
+        item_amount_due = sum(
+            allocation_due.get(a.id, Decimal('0'))
             for a in item_allocations
         )
 
@@ -2626,6 +2712,7 @@ def batch_detail(request, batch_number):
             'buying_price': item.buying_price,
             'stock_value': item.remaining_qty * item.buying_price,
             'revenue': item_revenue,
+            'amount_due': item_amount_due,
             'cogs': item_cogs,
             'gross_profit': item_gross_profit,
             'flexible_values': [
@@ -2668,6 +2755,7 @@ def batch_detail(request, batch_number):
         'stock_value': stock_value,
 
         'revenue': revenue,
+        'amount_due': amount_due,
         'cogs': cogs,
         'gross_profit': gross_profit,
         'total_expenses': total_expenses,

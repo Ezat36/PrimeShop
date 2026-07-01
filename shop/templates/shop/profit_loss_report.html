@@ -33,7 +33,7 @@ Profit & Loss Report
     <div class="col-md-6 col-xl-3">
         <div class="card card-box metric-card p-4">
             <div class="d-flex justify-content-between">
-                <span class="metric-label">Sales Revenue</span>
+                <span class="metric-label">Revenue After Due</span>
                 <span class="metric-icon"><i class="bi bi-cash-coin"></i></span>
             </div>
             <h2 class="metric-value">{{ total_sales_revenue|floatformat:"2g" }}</h2>
@@ -82,7 +82,7 @@ Profit & Loss Report
     <div class="col-lg-6">
         <div class="card card-box p-4 h-100">
             <h5 class="mb-3">Financial Statement</h5>
-            <div class="d-flex justify-content-between border-bottom py-2"><span>Sales Revenue</span><strong>{{ total_sales_revenue|floatformat:"2g" }}</strong></div>
+            <div class="d-flex justify-content-between border-bottom py-2"><span>Revenue After Due</span><strong>{{ total_sales_revenue|floatformat:"2g" }}</strong></div>
             <div class="d-flex justify-content-between border-bottom py-2"><span>Cost of Goods Sold</span><strong class="text-warning">{{ total_cogs|floatformat:"2g" }}</strong></div>
             <div class="d-flex justify-content-between border-bottom py-2"><span>Gross Profit</span><strong class="{% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:"2g" }}</strong></div>
             <div class="d-flex justify-content-between border-bottom py-2"><span>Discounts</span><strong>{{ total_discount|floatformat:"2g" }}</strong></div>
@@ -119,7 +119,7 @@ Profit & Loss Report
                     <th>Product</th>
                     <th class="number">Sold</th>
                     <th class="number">Remaining</th>
-                    <th class="money">Revenue</th>
+                    <th class="money">Revenue After Due</th>
                     <th class="money">Gross Profit</th>
                     <th class="money">Stock Value</th>
                     <th>Status</th>
@@ -170,7 +170,7 @@ Profit & Loss Report
                     <th class="number">Sold</th>
                     <th class="number">Remaining</th>
                     <th class="money">Avg Cost</th>
-                    <th class="money">Revenue</th>
+                    <th class="money">Revenue After Due</th>
                     <th class="money">COGS</th>
                     <th class="money">Gross Profit</th>
                     <th class="money">Stock Value</th>

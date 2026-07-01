@@ -20,17 +20,18 @@ Batch Profit Report
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Revenue</span><h2 class="metric-value">{{ total_revenue|floatformat:"2g" }}</h2></div></div>
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">COGS</span><h2 class="metric-value text-warning">{{ total_cost|floatformat:"2g" }}</h2></div></div>
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Gross Profit</span><h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:"2g" }}</h2></div></div>
-    <div class="col-md-6 col-xl-3"><div class="card card-box metric-card p-4"><span class="metric-label">Net Profit</span><h2 class="metric-value {% if total_net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_net_profit|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Revenue After Due</span><h2 class="metric-value">{{ total_revenue|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Due</span><h2 class="metric-value text-danger">{{ total_amount_due|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">COGS</span><h2 class="metric-value text-warning">{{ total_cost|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Gross Profit</span><h2 class="metric-value {% if total_gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_gross_profit|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Net Profit</span><h2 class="metric-value {% if total_net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ total_net_profit|floatformat:"2g" }}</h2></div></div>
 </div>
 
 <div class="card card-box p-4">
     <div class="section-title">
         <div>
             <h5>Batch Profit</h5>
-            <p>Revenue and cost are net of returned quantities.</p>
+            <p>Revenue is net of returned quantities and unpaid due amounts.</p>
         </div>
     </div>
 
@@ -45,7 +46,8 @@ Batch Profit Report
                     <th class="number">Purchased</th>
                     <th class="number">Sold</th>
                     <th class="number">Remaining</th>
-                    <th class="money">Revenue</th>
+                    <th class="money">Revenue After Due</th>
+                    <th class="money">Due</th>
                     <th class="money">COGS</th>
                     <th class="money">Gross Profit</th>
                     <th class="money">Batch Expenses</th>
@@ -64,6 +66,7 @@ Batch Profit Report
                     <td class="number">{{ row.sold_qty }}</td>
                     <td class="number">{{ row.remaining_qty }}</td>
                     <td class="money">{{ row.revenue|floatformat:"2g" }}</td>
+                    <td class="money text-danger">{{ row.amount_due|floatformat:"2g" }}</td>
                     <td class="money">{{ row.cost|floatformat:"2g" }}</td>
                     <td class="money {% if row.gross_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ row.gross_profit|floatformat:"2g" }}</td>
                     <td class="money text-danger">{{ row.batch_expenses|floatformat:"2g" }}</td>
@@ -79,7 +82,7 @@ Batch Profit Report
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="13"><div class="empty-state">No batch profit data found.</div></td></tr>
+                <tr><td colspan="14"><div class="empty-state">No batch profit data found.</div></td></tr>
                 {% endfor %}
             </tbody>
         </table>

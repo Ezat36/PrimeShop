@@ -39,7 +39,7 @@ Business Dashboard
     <div class="col-md-6 col-xl-3">
         <div class="card card-box metric-card p-4">
             <div class="d-flex justify-content-between">
-                <span class="metric-label">Sales Value</span>
+                    <span class="metric-label">Revenue After Due</span>
                 <span class="metric-icon"><i class="bi bi-currency-dollar"></i></span>
             </div>
             <h2 class="metric-value">{{ total_sales_value|floatformat:"2g" }}</h2>
@@ -128,7 +128,7 @@ Business Dashboard
 
     <div class="col-md-6">
         <div class="card card-box chart-card p-4">
-            <h5 class="mb-3">Sales Value by Date</h5>
+            <h5 class="mb-3">Revenue After Due by Date</h5>
             {% if chart_labels %}
                 <canvas id="salesValueChart" height="300"></canvas>
             {% else %}
@@ -273,7 +273,7 @@ Business Dashboard
         data: {
             labels: labels,
             datasets: [{
-                label: 'Sales Value',
+                label: 'Revenue After Due',
                 backgroundColor: ['#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed', '#0891b2'],
                 data: salesValue
             }]
