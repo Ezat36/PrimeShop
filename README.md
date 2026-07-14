@@ -357,6 +357,60 @@ python manage.py rebuild_summaries
 gunicorn p_shop.wsgi:application
 ```
 
+## Docker Deployment On Ubuntu 24.04
+
+Copy the example environment file and edit the values:
+
+```bash
+cp .env.docker.example .env.docker
+nano .env.docker
+```
+
+Set at least:
+
+- `DJANGO_SECRET_KEY`
+- `DJANGO_ALLOWED_HOSTS`
+- `DJANGO_CSRF_TRUSTED_ORIGINS`
+- `POSTGRES_PASSWORD`
+- `DJANGO_SUPERUSER_USERNAME`
+- `DJANGO_SUPERUSER_PASSWORD`
+
+Build and start the app:
+
+```bash
+docker compose up -d --build
+```
+
+Check logs:
+
+```bash
+docker compose logs -f web
+```
+
+Open:
+
+```text
+http://your-server-ip:8000/
+```
+
+Useful Docker commands:
+
+```bash
+docker compose ps
+docker compose restart web
+docker compose exec web python manage.py rebuild_summaries
+docker compose exec web python manage.py createsuperuser
+docker compose down
+```
+
+The Docker setup uses PostgreSQL and keeps data in Docker volumes:
+
+- `postgres_data` for database data
+- `media_data` for uploaded files
+- `static_data` for collected static files
+
+For direct HTTP testing on port `8000`, keep `DJANGO_SECURE_SSL_REDIRECT=False`. If you later place Nginx/Caddy with HTTPS in front of Docker, update `DJANGO_CSRF_TRUSTED_ORIGINS` and then enable the secure settings.
+
 ## Troubleshooting
 
 If demo data does not appear:

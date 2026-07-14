@@ -1,0 +1,16 @@
+.git
+.agents
+.codex
+myvenv
+.venv
+__pycache__
+*.pyc
+db.sqlite3
+media
+staticfiles
+restore-points
+.env
+.env.*
+!.env.docker.example
+token.txt
+*.log
