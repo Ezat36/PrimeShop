@@ -21,6 +21,11 @@ from .models import (
     StockTransfer,
     SaleReturn,
     ActivityLog,
+    Investor,
+    InvestmentRound,
+    RoundInvestment,
+    InvestorWithdrawal,
+    RoundBatch,
 )
 
 class ProductDetailInline(admin.TabularInline):
@@ -82,3 +87,8 @@ admin.site.register(SupplierPayment)
 admin.site.register(StockTransfer)
 admin.site.register(SaleReturn)
 admin.site.register(ActivityLog)
+admin.site.register(Investor)
+admin.site.register(InvestmentRound)
+admin.site.register(RoundInvestment)
+admin.site.register(InvestorWithdrawal)
+admin.site.register(RoundBatch)

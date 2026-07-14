@@ -1,0 +1,234 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}{{ round.name }}{% endblock %}
+{% block page_title %}Investment Round{% endblock %}
+
+{% block content %}
+
+<div class="toolbar">
+    <div>
+        <span class="eyebrow">Partnership Round</span>
+        <h5 class="mb-0">{{ round.name }}</h5>
+    </div>
+    <div class="toolbar-actions">
+        <a href="{% url 'investment_round_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Rounds</a>
+        <button type="button" onclick="window.print()" class="btn btn-primary" data-no-loading="true"><i class="bi bi-printer"></i> Print</button>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Investment</span><h2 class="metric-value">{{ report.totals.investment|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Revenue After Due</span><h2 class="metric-value">{{ report.totals.revenue|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Net Profit</span><h2 class="metric-value {% if report.totals.net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ report.totals.net_profit|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Stock Value</span><h2 class="metric-value">{{ report.totals.stock_value|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Current Equity</span><h2 class="metric-value">{{ report.totals.current_equity|floatformat:"2g" }}</h2></div></div>
+</div>
+
+<div class="card card-box p-4 mb-4">
+    <div class="section-title">
+        <div>
+            <h5>Investor Shares</h5>
+            <p>Ownership is calculated from capital invested in this round.</p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Investor</th>
+                    <th class="money">Investment</th>
+                    <th class="number">Ownership</th>
+                    <th class="money">Profit Share</th>
+                    <th class="money">Due Share</th>
+                    <th class="money">Stock Share</th>
+                    <th class="money">Withdrawn</th>
+                    <th class="money">Current Equity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in report.investor_rows %}
+                <tr>
+                    <td><strong>{{ row.investor.name }}</strong></td>
+                    <td class="money">{{ row.investment|floatformat:"2g" }}</td>
+                    <td class="number">{{ row.ownership_percent|floatformat:"2" }}%</td>
+                    <td class="money text-success">{{ row.profit_share|floatformat:"2g" }}</td>
+                    <td class="money text-danger">{{ row.due_share|floatformat:"2g" }}</td>
+                    <td class="money">{{ row.stock_share|floatformat:"2g" }}</td>
+                    <td class="money text-danger">{{ row.withdrawn|floatformat:"2g" }}</td>
+                    <td class="money"><strong>{{ row.current_equity|floatformat:"2g" }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8"><div class="empty-state">Add investments to calculate ownership.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if perms.shop.change_investmentround %}
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Add Investment / Top-up</h5>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_investment">
+                <div class="mb-3">
+                    <label class="form-label">Investor</label>
+                    <select name="investor" class="form-select" required>
+                        {% for investor in investors %}
+                            <option value="{{ investor.id }}">{{ investor.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Amount</label>
+                    <input type="number" step="0.01" min="0" name="amount" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Date</label>
+                    <input type="date" name="date" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Note</label>
+                    <textarea name="note" class="form-control" rows="2" placeholder="Example: second payment, bank transfer, cash top-up"></textarea>
+                </div>
+                <button class="btn btn-success w-100"><i class="bi bi-plus-lg"></i> Add Investment</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Link Batch</h5>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_batch">
+                <div class="mb-3">
+                    <label class="form-label">Available Batch</label>
+                    <select name="batch_number" class="form-select" required>
+                        {% for batch_number in available_batches %}
+                            <option value="{{ batch_number }}">{{ batch_number }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Note</label>
+                    <textarea name="note" class="form-control" rows="2"></textarea>
+                </div>
+                <button class="btn btn-primary w-100"><i class="bi bi-link-45deg"></i> Link Batch</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Record Withdrawal</h5>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_withdrawal">
+                <div class="mb-3">
+                    <label class="form-label">Investor</label>
+                    <select name="investor" class="form-select" required>
+                        {% for investor in investors %}
+                            <option value="{{ investor.id }}">{{ investor.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Amount</label>
+                    <input type="number" step="0.01" min="0" name="amount" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Date</label>
+                    <input type="date" name="date" class="form-control">
+                </div>
+                <button class="btn btn-outline-danger w-100"><i class="bi bi-cash"></i> Add Withdrawal</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card card-box p-4 mb-4">
+    <h5 class="mb-3">Linked Batches</h5>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Batch</th>
+                    <th class="number">Purchased</th>
+                    <th class="number">Sold</th>
+                    <th class="number">Remaining</th>
+                    <th class="money">Revenue</th>
+                    <th class="money">Due</th>
+                    <th class="money">Net Profit</th>
+                    <th class="money">Stock Value</th>
+                    {% if perms.shop.change_investmentround %}<th>Action</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in report.batch_rows %}
+                <tr>
+                    <td><a href="{% url 'batch_detail' row.summary.batch_number %}"><strong>{{ row.summary.batch_number }}</strong></a></td>
+                    <td class="number">{{ row.summary.purchased_qty }}</td>
+                    <td class="number">{{ row.summary.sold_qty }}</td>
+                    <td class="number">{{ row.summary.remaining_qty }}</td>
+                    <td class="money">{{ row.summary.revenue|floatformat:"2g" }}</td>
+                    <td class="money text-danger">{{ row.summary.amount_due|floatformat:"2g" }}</td>
+                    <td class="money {% if row.summary.net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ row.summary.net_profit|floatformat:"2g" }}</td>
+                    <td class="money">{{ row.summary.stock_value|floatformat:"2g" }}</td>
+                    {% if perms.shop.change_investmentround %}
+                    <td>
+                        {% for link in report.batch_links %}
+                            {% if link.batch_number == row.summary.batch_number %}
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="remove_batch">
+                                <input type="hidden" name="batch_id" value="{{ link.id }}">
+                                <button class="btn btn-sm btn-outline-danger" data-confirm="Remove this batch from the round?"><i class="bi bi-x-lg"></i></button>
+                            </form>
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state">No batches linked to this round.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Investment History</h5>
+            {% for investment in investments %}
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <div><strong>{{ investment.investor.name }}</strong><br><small class="text-muted">{{ investment.date }}{% if investment.note %} | {{ investment.note }}{% endif %}</small></div>
+                    <strong>{{ investment.amount|floatformat:"2g" }}</strong>
+                </div>
+            {% empty %}
+                <p class="text-muted">No investments recorded.</p>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card card-box p-4">
+            <h5 class="mb-3">Withdrawal History</h5>
+            {% for withdrawal in withdrawals %}
+                <div class="d-flex justify-content-between border-bottom py-2">
+                    <div><strong>{{ withdrawal.investor.name }}</strong><br><small class="text-muted">{{ withdrawal.date }}</small></div>
+                    <strong class="text-danger">{{ withdrawal.amount|floatformat:"2g" }}</strong>
+                </div>
+            {% empty %}
+                <p class="text-muted">No withdrawals recorded.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

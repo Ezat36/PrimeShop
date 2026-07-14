@@ -1,0 +1,59 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Investors{% endblock %}
+{% block page_title %}Investors{% endblock %}
+
+{% block content %}
+
+<div class="toolbar">
+    <div>
+        <span class="eyebrow">Partnerships</span>
+        <h5 class="mb-0">Investors</h5>
+    </div>
+    <div class="toolbar-actions">
+        <a href="{% url 'investor_add' %}" class="btn btn-primary"><i class="bi bi-person-plus"></i> Add Investor</a>
+    </div>
+</div>
+
+<div class="card card-box p-4">
+    <form method="get" class="row g-3 mb-4">
+        <div class="col-md-10">
+            <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Search investors">
+        </div>
+        <div class="col-md-2 d-grid">
+            <button class="btn btn-outline-primary"><i class="bi bi-search"></i> Search</button>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th class="money">Investment</th>
+                    <th class="money">Profit</th>
+                    <th class="money">Current Equity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in investor_rows %}
+                <tr>
+                    <td><strong>{{ row.investor.name }}</strong></td>
+                    <td>{{ row.investor.phone|default:"-" }}</td>
+                    <td>{% if row.investor.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
+                    <td class="money">{{ row.totals.investment|default:0|floatformat:"2g" }}</td>
+                    <td class="money text-success">{{ row.totals.profit_share|default:0|floatformat:"2g" }}</td>
+                    <td class="money"><strong>{{ row.totals.current_equity|default:0|floatformat:"2g" }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6"><div class="empty-state">No investors found.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'shop/partials/pagination.html' %}
+</div>
+
+{% endblock %}

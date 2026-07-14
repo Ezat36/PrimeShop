@@ -12,10 +12,15 @@ from .models import (
     Customer,
     CustomerPayment,
     Expense,
+    InvestmentRound,
+    Investor,
+    InvestorWithdrawal,
     Product,
     ProductVariant,
     Purchase,
     PurchaseItem,
+    RoundBatch,
+    RoundInvestment,
     Sale,
     SaleItem,
     SaleItemAllocation,
@@ -23,8 +28,90 @@ from .models import (
     Supplier,
     SupplierPayment,
 )
+from .services.partnerships import build_round_report
 from .services.reports import build_dashboard_context, get_sale_payment_status
 from .services.summaries import rebuild_batch_summaries
+
+
+class PartnershipReportTests(TestCase):
+    def test_round_report_splits_profit_stock_due_and_equity_by_investment(self):
+        ahmad = Investor.objects.create(name='Ahmad')
+        jan = Investor.objects.create(name='Jan')
+        round_obj = InvestmentRound.objects.create(name='Tent Round 1')
+        RoundInvestment.objects.create(
+            round=round_obj,
+            investor=ahmad,
+            amount=Decimal('2300.00'),
+            date=timezone.now().date(),
+        )
+        RoundInvestment.objects.create(
+            round=round_obj,
+            investor=ahmad,
+            amount=Decimal('700.00'),
+            date=timezone.now().date() + timedelta(days=1),
+        )
+        RoundInvestment.objects.create(
+            round=round_obj,
+            investor=jan,
+            amount=Decimal('2000.00'),
+        )
+        InvestorWithdrawal.objects.create(
+            round=round_obj,
+            investor=jan,
+            amount=Decimal('100.00'),
+        )
+        BatchProfitSummary.objects.create(
+            batch_number='TENT-0001',
+            purchased_qty=61,
+            sold_qty=48,
+            remaining_qty=13,
+            revenue=Decimal('5000.00'),
+            amount_due=Decimal('300.00'),
+            cost=Decimal('3800.00'),
+            gross_profit=Decimal('1200.00'),
+            batch_expenses=Decimal('200.00'),
+            net_profit=Decimal('1000.00'),
+            stock_value=Decimal('900.00'),
+        )
+        RoundBatch.objects.create(round=round_obj, batch_number='TENT-0001')
+
+        report = build_round_report(round_obj)
+        rows = {row['investor'].name: row for row in report['investor_rows']}
+
+        self.assertEqual(report['totals']['investment'], Decimal('5000.00'))
+        self.assertEqual(report['totals']['current_equity'], Decimal('5900.00'))
+        self.assertEqual(rows['Ahmad']['investment'], Decimal('3000.00'))
+        self.assertEqual(rows['Ahmad']['ownership_percent'].quantize(Decimal('0.01')), Decimal('60.00'))
+        self.assertEqual(rows['Jan']['ownership_percent'].quantize(Decimal('0.01')), Decimal('40.00'))
+        self.assertEqual(rows['Ahmad']['profit_share'].quantize(Decimal('0.01')), Decimal('600.00'))
+        self.assertEqual(rows['Jan']['stock_share'].quantize(Decimal('0.01')), Decimal('360.00'))
+        self.assertEqual(rows['Jan']['current_equity'].quantize(Decimal('0.01')), Decimal('2300.00'))
+
+    def test_round_investment_note_appears_in_history_report(self):
+        user = User.objects.create_user(username='partner-admin', password='pass')
+        user.user_permissions.add(
+            Permission.objects.get(codename='change_investmentround'),
+            Permission.objects.get(codename='view_investmentround'),
+            Permission.objects.get(codename='view_roundinvestment'),
+        )
+        investor = Investor.objects.create(name='Ahmad')
+        round_obj = InvestmentRound.objects.create(name='Tent Round 1')
+
+        self.client.force_login(user)
+        response = self.client.post(f'/partnerships/rounds/{round_obj.id}/', {
+            'action': 'add_investment',
+            'investor': str(investor.id),
+            'amount': '500.00',
+            'date': str(timezone.now().date()),
+            'note': 'Second payment by cash',
+        })
+
+        self.assertRedirects(response, f'/partnerships/rounds/{round_obj.id}/')
+        self.assertEqual(RoundInvestment.objects.get().note, 'Second payment by cash')
+
+        response = self.client.get('/partnerships/investment-history/')
+        self.assertContains(response, 'Second payment by cash')
+        self.assertContains(response, 'Tent Round 1')
 
 
 class SalesWorkflowTests(TestCase):

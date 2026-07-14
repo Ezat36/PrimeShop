@@ -68,6 +68,16 @@ urlpatterns = [
     path('batch-expenses/', views.batch_expense_list, name='batch_expense_list'),
     path('batch-expenses/add/', views.batch_expense_add, name='batch_expense_add'),
     path('batches/<str:batch_number>/', views.batch_detail, name='batch_detail'),
+
+    path('partnerships/', views.partnership_dashboard, name='partnership_dashboard'),
+    path('partnerships/investors/', views.investor_list, name='investor_list'),
+    path('partnerships/investors/add/', views.investor_add, name='investor_add'),
+    path('partnerships/rounds/', views.investment_round_list, name='investment_round_list'),
+    path('partnerships/rounds/add/', views.investment_round_add, name='investment_round_add'),
+    path('partnerships/rounds/<int:round_id>/', views.investment_round_detail, name='investment_round_detail'),
+    path('partnerships/equity-report/', views.investor_equity_report, name='investor_equity_report'),
+    path('partnerships/investment-history/', views.investment_history_report, name='investment_history_report'),
+
     path('users/<int:user_id>/edit/', views.user_edit, name='user_edit'),
     
     path('stock-locations/', views.stock_location_list, name='stock_location_list'),

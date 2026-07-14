@@ -1,0 +1,43 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Add Investor{% endblock %}
+{% block page_title %}Add Investor{% endblock %}
+
+{% block content %}
+
+<div class="card card-box p-4 form-shell">
+    <div class="section-title">
+        <div>
+            <h5>Investor Information</h5>
+            <p>Create a partner record for investment rounds.</p>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-section">
+            <div class="mb-3">
+                <label class="form-label">Investor Name</label>
+                <input type="text" name="name" class="form-control" required placeholder="Example: Ahmad">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Phone</label>
+                <input type="text" name="phone" class="form-control" placeholder="Example: 0790000000">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Note</label>
+                <textarea name="note" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_active" id="is_active" checked>
+                <label class="form-check-label" for="is_active">Active investor</label>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-success"><i class="bi bi-check2"></i> Save Investor</button>
+            <a href="{% url 'investor_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

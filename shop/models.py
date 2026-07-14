@@ -794,3 +794,119 @@ class BatchProfitSummary(models.Model):
     def __str__(self):
         return f"Batch summary {self.batch_number}"
 
+
+class Investor(models.Model):
+    name = models.CharField(max_length=150)
+    phone = models.CharField(max_length=50, blank=True)
+    note = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["is_active"]),
+        ]
+
+
+class InvestmentRound(models.Model):
+    STATUS_CHOICES = [
+        ("ACTIVE", "Active"),
+        ("CLOSED", "Closed"),
+    ]
+
+    name = models.CharField(max_length=150)
+    date = models.DateField(default=timezone.now)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="ACTIVE")
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["status", "date"]),
+        ]
+
+
+class RoundInvestment(models.Model):
+    round = models.ForeignKey(
+        InvestmentRound,
+        on_delete=models.CASCADE,
+        related_name="investments",
+    )
+    investor = models.ForeignKey(
+        Investor,
+        on_delete=models.CASCADE,
+        related_name="investments",
+    )
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    date = models.DateField(default=timezone.now)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.investor} invested {self.amount} in {self.round}"
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        indexes = [
+            models.Index(fields=["round", "date"]),
+            models.Index(fields=["investor", "date"]),
+        ]
+
+
+class InvestorWithdrawal(models.Model):
+    round = models.ForeignKey(
+        InvestmentRound,
+        on_delete=models.CASCADE,
+        related_name="withdrawals",
+    )
+    investor = models.ForeignKey(
+        Investor,
+        on_delete=models.CASCADE,
+        related_name="withdrawals",
+    )
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    date = models.DateField(default=timezone.now)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.investor} withdrew {self.amount} from {self.round}"
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        indexes = [
+            models.Index(fields=["round", "date"]),
+            models.Index(fields=["investor", "date"]),
+        ]
+
+
+class RoundBatch(models.Model):
+    round = models.ForeignKey(
+        InvestmentRound,
+        on_delete=models.CASCADE,
+        related_name="batches",
+    )
+    batch_number = models.CharField(max_length=50, unique=True)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.batch_number} in {self.round}"
+
+    class Meta:
+        ordering = ["batch_number"]
+        indexes = [
+            models.Index(fields=["batch_number"]),
+            models.Index(fields=["round", "batch_number"]),
+        ]
+

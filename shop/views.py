@@ -29,10 +29,15 @@ from .models import (
     DailyBusinessSummary,
     DailyUserSalesSummary,
     DailyVariantSummary,
+    InvestmentRound,
+    Investor,
+    InvestorWithdrawal,
+    RoundBatch,
+    RoundInvestment,
     SaleFinancialSummary,
 )
 from django.contrib.auth.decorators import permission_required
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Prefetch, Q, Sum
 from django.db.models.functions import Coalesce
 from .services.reports import (
@@ -47,6 +52,11 @@ from .services.reports import (
     scope_invoices_queryset,
     scope_sale_items_queryset,
     scope_sales_queryset,
+)
+from .services.partnerships import (
+    available_batch_numbers,
+    build_investor_equity_report,
+    build_round_report,
 )
 
 
@@ -2547,6 +2557,284 @@ def batch_expense_add(request):
     return render(request, 'shop/batch_expense_add.html', {
         'batch_numbers': batch_numbers
     })
+
+
+@login_required
+@permission_required('shop.view_investor', raise_exception=True)
+def partnership_dashboard(request):
+    report = build_investor_equity_report()
+    rounds = InvestmentRound.objects.prefetch_related('investments', 'batches').order_by('-date', '-id')[:8]
+    return render(request, 'shop/partnership_dashboard.html', {
+        'report': report,
+        'rounds': rounds,
+    })
+
+
+@login_required
+@permission_required('shop.view_investor', raise_exception=True)
+def investor_list(request):
+    search = request.GET.get('search', '')
+    investors = Investor.objects.all()
+    if search:
+        investors = investors.filter(
+            Q(name__icontains=search) |
+            Q(phone__icontains=search) |
+            Q(note__icontains=search)
+        )
+
+    investor_totals = {
+        row['investor'].id: row
+        for row in build_investor_equity_report()['investor_rows']
+    }
+    investors, pagination = paginate_items(investors, request)
+    investor_rows = [
+        {
+            'investor': investor,
+            'totals': investor_totals.get(investor.id),
+        }
+        for investor in investors
+    ]
+    context = {
+        'investor_rows': investor_rows,
+        'search': search,
+    }
+    context.update(pagination)
+    return render(request, 'shop/investor_list.html', context)
+
+
+@login_required
+@permission_required('shop.add_investor', raise_exception=True)
+def investor_add(request):
+    if request.method == 'POST':
+        investor = Investor.objects.create(
+            name=request.POST.get('name', '').strip(),
+            phone=request.POST.get('phone', '').strip(),
+            note=request.POST.get('note', '').strip(),
+            is_active=bool(request.POST.get('is_active')),
+        )
+        log_activity(request, 'Created investor', investor)
+        messages.success(request, 'Investor saved successfully.')
+        return redirect('investor_list')
+
+    return render(request, 'shop/investor_add.html', {'is_active_default': True})
+
+
+@login_required
+@permission_required('shop.view_investmentround', raise_exception=True)
+def investment_round_list(request):
+    rounds = InvestmentRound.objects.prefetch_related('investments', 'batches').order_by('-date', '-id')
+    rounds, pagination = paginate_items(rounds, request)
+    round_rows = []
+    for round_obj in rounds:
+        report = build_round_report(round_obj)
+        round_rows.append({
+            'round': round_obj,
+            'total_investment': report['totals']['investment'],
+            'net_profit': report['totals']['net_profit'],
+            'stock_value': report['totals']['stock_value'],
+            'current_equity': report['totals']['current_equity'],
+            'investor_count': len(report['investor_rows']),
+            'batch_count': len(report['batch_links']),
+        })
+
+    context = {'round_rows': round_rows}
+    context.update(pagination)
+    return render(request, 'shop/investment_round_list.html', context)
+
+
+@login_required
+@permission_required('shop.add_investmentround', raise_exception=True)
+def investment_round_add(request):
+    if request.method == 'POST':
+        round_date = parse_date(request.POST.get('date')) if request.POST.get('date') else timezone.now().date()
+        if not round_date:
+            messages.error(request, 'Round date must be valid.')
+            return redirect('investment_round_add')
+
+        round_obj = InvestmentRound.objects.create(
+            name=request.POST.get('name', '').strip(),
+            date=round_date,
+            status=request.POST.get('status') or 'ACTIVE',
+            note=request.POST.get('note', '').strip(),
+        )
+        log_activity(request, 'Created investment round', round_obj)
+        messages.success(request, 'Investment round saved successfully.')
+        return redirect('investment_round_detail', round_id=round_obj.id)
+
+    return render(request, 'shop/investment_round_add.html')
+
+
+@login_required
+@permission_required('shop.view_investmentround', raise_exception=True)
+def investment_round_detail(request, round_id):
+    round_obj = get_object_or_404(InvestmentRound, id=round_id)
+
+    if request.method == 'POST':
+        if not request.user.has_perm('shop.change_investmentround'):
+            return permission_denied_view(request, PermissionError('Permission denied'))
+
+        action = request.POST.get('action')
+        if action == 'add_investment':
+            return _handle_round_investment_add(request, round_obj)
+        if action == 'add_withdrawal':
+            return _handle_round_withdrawal_add(request, round_obj)
+        if action == 'add_batch':
+            return _handle_round_batch_add(request, round_obj)
+        if action == 'remove_batch':
+            return _handle_round_batch_remove(request, round_obj)
+
+        messages.error(request, 'Choose a valid partnership action.')
+        return redirect('investment_round_detail', round_id=round_obj.id)
+
+    report = build_round_report(round_obj)
+    investors = Investor.objects.filter(is_active=True).order_by('name')
+    investments = RoundInvestment.objects.filter(round=round_obj).select_related('investor')
+    withdrawals = InvestorWithdrawal.objects.filter(round=round_obj).select_related('investor')
+    available_batches = list(available_batch_numbers())
+
+    return render(request, 'shop/investment_round_detail.html', {
+        'round': round_obj,
+        'report': report,
+        'investors': investors,
+        'investments': investments,
+        'withdrawals': withdrawals,
+        'available_batches': available_batches,
+    })
+
+
+def _handle_round_investment_add(request, round_obj):
+    investor = get_object_or_404(Investor, id=request.POST.get('investor'))
+    try:
+        amount = parse_money(request.POST.get('amount'), 'Investment amount')
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect('investment_round_detail', round_id=round_obj.id)
+
+    investment_date = parse_date(request.POST.get('date')) if request.POST.get('date') else timezone.now().date()
+    if not investment_date:
+        messages.error(request, 'Investment date must be valid.')
+        return redirect('investment_round_detail', round_id=round_obj.id)
+
+    investment = RoundInvestment.objects.create(
+        round=round_obj,
+        investor=investor,
+        amount=amount,
+        date=investment_date,
+        note=request.POST.get('note', '').strip(),
+    )
+    log_activity(request, 'Recorded round investment', investment)
+    messages.success(request, 'Investment added successfully.')
+    return redirect('investment_round_detail', round_id=round_obj.id)
+
+
+def _handle_round_withdrawal_add(request, round_obj):
+    investor = get_object_or_404(Investor, id=request.POST.get('investor'))
+    try:
+        amount = parse_money(request.POST.get('amount'), 'Withdrawal amount')
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect('investment_round_detail', round_id=round_obj.id)
+
+    withdrawal_date = parse_date(request.POST.get('date')) if request.POST.get('date') else timezone.now().date()
+    if not withdrawal_date:
+        messages.error(request, 'Withdrawal date must be valid.')
+        return redirect('investment_round_detail', round_id=round_obj.id)
+
+    withdrawal = InvestorWithdrawal.objects.create(
+        round=round_obj,
+        investor=investor,
+        amount=amount,
+        date=withdrawal_date,
+        note=request.POST.get('note', '').strip(),
+    )
+    log_activity(request, 'Recorded investor withdrawal', withdrawal)
+    messages.success(request, 'Withdrawal added successfully.')
+    return redirect('investment_round_detail', round_id=round_obj.id)
+
+
+def _handle_round_batch_add(request, round_obj):
+    batch_number = request.POST.get('batch_number', '').strip()
+    if not batch_number:
+        messages.error(request, 'Choose a batch to link.')
+        return redirect('investment_round_detail', round_id=round_obj.id)
+
+    if not BatchProfitSummary.objects.filter(batch_number=batch_number).exists():
+        messages.error(request, 'Batch summary was not found. Rebuild batch summaries first.')
+        return redirect('investment_round_detail', round_id=round_obj.id)
+
+    try:
+        batch = RoundBatch.objects.create(
+            round=round_obj,
+            batch_number=batch_number,
+            note=request.POST.get('note', '').strip(),
+        )
+    except IntegrityError:
+        messages.error(request, 'This batch is already linked to an investment round.')
+        return redirect('investment_round_detail', round_id=round_obj.id)
+
+    log_activity(request, 'Linked batch to investment round', batch)
+    messages.success(request, 'Batch linked successfully.')
+    return redirect('investment_round_detail', round_id=round_obj.id)
+
+
+def _handle_round_batch_remove(request, round_obj):
+    batch = get_object_or_404(RoundBatch, id=request.POST.get('batch_id'), round=round_obj)
+    description = str(batch)
+    batch.delete()
+    log_activity(request, 'Removed batch from investment round', description=description)
+    messages.success(request, 'Batch removed from this round.')
+    return redirect('investment_round_detail', round_id=round_obj.id)
+
+
+@login_required
+@permission_required('shop.view_investmentround', raise_exception=True)
+def investor_equity_report(request):
+    report = build_investor_equity_report()
+    return render(request, 'shop/investor_equity_report.html', {'report': report})
+
+
+@login_required
+@permission_required('shop.view_roundinvestment', raise_exception=True)
+def investment_history_report(request):
+    selected_investor = request.GET.get('investor')
+    selected_round = request.GET.get('round')
+
+    investments = RoundInvestment.objects.select_related(
+        'investor',
+        'round',
+    ).order_by('investor__name', '-date', '-id')
+
+    if selected_investor:
+        investments = investments.filter(investor_id=selected_investor)
+    if selected_round:
+        investments = investments.filter(round_id=selected_round)
+
+    totals = investments.aggregate(
+        total_amount=Coalesce(Sum('amount'), Decimal('0'), output_field=DecimalField()),
+        entry_count=Count('id'),
+    )
+    investor_totals = (
+        investments.values('investor_id', 'investor__name')
+        .annotate(
+            total_amount=Coalesce(Sum('amount'), Decimal('0'), output_field=DecimalField()),
+            entry_count=Count('id'),
+        )
+        .order_by('investor__name')
+    )
+
+    investments, pagination = paginate_items(investments, request)
+    context = {
+        'investments': investments,
+        'investors': Investor.objects.all().order_by('name'),
+        'rounds': InvestmentRound.objects.all().order_by('-date', '-id'),
+        'selected_investor': selected_investor,
+        'selected_round': selected_round,
+        'total_amount': totals['total_amount'],
+        'entry_count': totals['entry_count'],
+        'investor_totals': investor_totals,
+    }
+    context.update(pagination)
+    return render(request, 'shop/investment_history_report.html', context)
 
 
 def permission_denied_view(request, exception=None):

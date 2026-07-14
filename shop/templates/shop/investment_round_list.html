@@ -1,0 +1,56 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Investment Rounds{% endblock %}
+{% block page_title %}Investment Rounds{% endblock %}
+
+{% block content %}
+
+<div class="toolbar">
+    <div>
+        <span class="eyebrow">Partnerships</span>
+        <h5 class="mb-0">Investment Rounds</h5>
+    </div>
+    <div class="toolbar-actions">
+        <a href="{% url 'investment_round_add' %}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> New Round</a>
+    </div>
+</div>
+
+<div class="card card-box p-4">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Round</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th class="number">Investors</th>
+                    <th class="number">Batches</th>
+                    <th class="money">Investment</th>
+                    <th class="money">Net Profit</th>
+                    <th class="money">Stock Value</th>
+                    <th class="money">Current Equity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in round_rows %}
+                <tr>
+                    <td><a href="{% url 'investment_round_detail' row.round.id %}"><strong>{{ row.round.name }}</strong></a></td>
+                    <td>{{ row.round.date }}</td>
+                    <td>{% if row.round.status == 'ACTIVE' %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Closed</span>{% endif %}</td>
+                    <td class="number">{{ row.investor_count }}</td>
+                    <td class="number">{{ row.batch_count }}</td>
+                    <td class="money">{{ row.total_investment|floatformat:"2g" }}</td>
+                    <td class="money {% if row.net_profit < 0 %}text-danger{% else %}text-success{% endif %}">{{ row.net_profit|floatformat:"2g" }}</td>
+                    <td class="money">{{ row.stock_value|floatformat:"2g" }}</td>
+                    <td class="money"><strong>{{ row.current_equity|floatformat:"2g" }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9"><div class="empty-state">No investment rounds found.</div></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'shop/partials/pagination.html' %}
+</div>
+
+{% endblock %}
