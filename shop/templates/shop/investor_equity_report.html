@@ -18,6 +18,7 @@
 <div class="row g-4 mb-4">
     <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Investment</span><h2 class="metric-value">{{ report.totals.investment|floatformat:"2g" }}</h2></div></div>
     <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Profit</span><h2 class="metric-value text-success">{{ report.totals.profit_share|floatformat:"2g" }}</h2></div></div>
+    <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Cash Share</span><h2 class="metric-value">{{ report.totals.cash_share|floatformat:"2g" }}</h2></div></div>
     <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Due Share</span><h2 class="metric-value text-danger">{{ report.totals.due_share|floatformat:"2g" }}</h2></div></div>
     <div class="col-md-6 col-xl"><div class="card card-box metric-card p-4"><span class="metric-label">Equity</span><h2 class="metric-value">{{ report.totals.current_equity|floatformat:"2g" }}</h2></div></div>
 </div>
@@ -31,6 +32,7 @@
                     <th class="money">Investment</th>
                     <th class="money">Withdrawn</th>
                     <th class="money">Profit</th>
+                    <th class="money">Cash</th>
                     <th class="money">Due</th>
                     <th class="money">Stock</th>
                     <th class="money">Current Equity</th>
@@ -43,12 +45,13 @@
                     <td class="money">{{ row.investment|floatformat:"2g" }}</td>
                     <td class="money text-danger">{{ row.withdrawn|floatformat:"2g" }}</td>
                     <td class="money text-success">{{ row.profit_share|floatformat:"2g" }}</td>
+                    <td class="money">{{ row.cash_share|floatformat:"2g" }}</td>
                     <td class="money text-danger">{{ row.due_share|floatformat:"2g" }}</td>
                     <td class="money">{{ row.stock_share|floatformat:"2g" }}</td>
                     <td class="money"><strong>{{ row.current_equity|floatformat:"2g" }}</strong></td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="7"><div class="empty-state">No investor equity found.</div></td></tr>
+                <tr><td colspan="8"><div class="empty-state">No investor equity found.</div></td></tr>
                 {% endfor %}
             </tbody>
         </table>

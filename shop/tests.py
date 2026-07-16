@@ -79,13 +79,55 @@ class PartnershipReportTests(TestCase):
         rows = {row['investor'].name: row for row in report['investor_rows']}
 
         self.assertEqual(report['totals']['investment'], Decimal('5000.00'))
-        self.assertEqual(report['totals']['current_equity'], Decimal('5900.00'))
+        self.assertEqual(report['totals']['purchase_cost'], Decimal('4700.00'))
+        self.assertEqual(report['totals']['cash_balance'], Decimal('5100.00'))
+        self.assertEqual(report['totals']['current_equity'], Decimal('6200.00'))
         self.assertEqual(rows['Ahmad']['investment'], Decimal('3000.00'))
         self.assertEqual(rows['Ahmad']['ownership_percent'].quantize(Decimal('0.01')), Decimal('60.00'))
         self.assertEqual(rows['Jan']['ownership_percent'].quantize(Decimal('0.01')), Decimal('40.00'))
         self.assertEqual(rows['Ahmad']['profit_share'].quantize(Decimal('0.01')), Decimal('600.00'))
+        self.assertEqual(rows['Ahmad']['cash_share'].quantize(Decimal('0.01')), Decimal('3060.00'))
         self.assertEqual(rows['Jan']['stock_share'].quantize(Decimal('0.01')), Decimal('360.00'))
-        self.assertEqual(rows['Jan']['current_equity'].quantize(Decimal('0.01')), Decimal('2300.00'))
+        self.assertEqual(rows['Jan']['current_equity'].quantize(Decimal('0.01')), Decimal('2420.00'))
+
+    def test_round_report_keeps_unspent_investment_cash_in_equity(self):
+        ahmad = Investor.objects.create(name='Ahmad')
+        jan = Investor.objects.create(name='Jan')
+        round_obj = InvestmentRound.objects.create(name='No Sales Round')
+        RoundInvestment.objects.create(
+            round=round_obj,
+            investor=ahmad,
+            amount=Decimal('172066.00'),
+        )
+        RoundInvestment.objects.create(
+            round=round_obj,
+            investor=jan,
+            amount=Decimal('127440.00'),
+        )
+        BatchProfitSummary.objects.create(
+            batch_number='TENT-0002',
+            purchased_qty=100,
+            sold_qty=0,
+            remaining_qty=100,
+            revenue=Decimal('0.00'),
+            amount_due=Decimal('0.00'),
+            cost=Decimal('0.00'),
+            gross_profit=Decimal('0.00'),
+            batch_expenses=Decimal('21120.00'),
+            net_profit=Decimal('0.00'),
+            stock_value=Decimal('294900.00'),
+        )
+        RoundBatch.objects.create(round=round_obj, batch_number='TENT-0002')
+
+        report = build_round_report(round_obj)
+        rows = {row['investor'].name: row for row in report['investor_rows']}
+
+        self.assertEqual(report['totals']['investment'], Decimal('299506.00'))
+        self.assertEqual(report['totals']['stock_value'], Decimal('294900.00'))
+        self.assertEqual(report['totals']['cash_balance'], Decimal('-16514.00'))
+        self.assertEqual(report['totals']['current_equity'], Decimal('278386.00'))
+        self.assertEqual(rows['Ahmad']['current_equity'].quantize(Decimal('0.01')), Decimal('159932.57'))
+        self.assertEqual(rows['Jan']['current_equity'].quantize(Decimal('0.01')), Decimal('118453.43'))
 
     def test_round_investment_note_appears_in_history_report(self):
         user = User.objects.create_user(username='partner-admin', password='pass')

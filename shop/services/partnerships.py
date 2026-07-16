@@ -52,11 +52,17 @@ def build_round_report(round_obj):
         "sold_qty": sum((summary.sold_qty for summary in summaries), 0),
         "remaining_qty": sum((summary.remaining_qty for summary in summaries), 0),
     }
+    totals["purchase_cost"] = totals["cost"] + totals["stock_value"]
+    totals["cash_balance"] = (
+        totals["investment"] -
+        totals["purchase_cost"] -
+        totals["batch_expenses"] +
+        totals["revenue"]
+    )
     totals["business_value"] = (
-        totals["revenue"] +
+        totals["cash_balance"] +
         totals["amount_due"] +
-        totals["stock_value"] -
-        totals["batch_expenses"]
+        totals["stock_value"]
     )
     totals["current_equity"] = totals["business_value"] - totals["withdrawals"]
 
@@ -77,6 +83,7 @@ def build_round_report(round_obj):
             "revenue_share": _share(totals["revenue"], ownership_percent),
             "due_share": _share(totals["amount_due"], ownership_percent),
             "cost_share": _share(totals["cost"], ownership_percent),
+            "cash_share": _share(totals["cash_balance"], ownership_percent),
             "profit_share": _share(totals["net_profit"], ownership_percent),
             "stock_share": _share(totals["stock_value"], ownership_percent),
             "equity_before_withdrawal": equity_before_withdrawal,
@@ -116,6 +123,7 @@ def build_investor_equity_report():
         "withdrawals": ZERO,
         "profit_share": ZERO,
         "stock_share": ZERO,
+        "cash_share": ZERO,
         "due_share": ZERO,
         "current_equity": ZERO,
     }
@@ -128,6 +136,7 @@ def build_investor_equity_report():
             "withdrawn": ZERO,
             "profit_share": ZERO,
             "stock_share": ZERO,
+            "cash_share": ZERO,
             "due_share": ZERO,
             "current_equity": ZERO,
         }
@@ -142,6 +151,7 @@ def build_investor_equity_report():
                 "withdrawn": ZERO,
                 "profit_share": ZERO,
                 "stock_share": ZERO,
+                "cash_share": ZERO,
                 "due_share": ZERO,
                 "current_equity": ZERO,
             })
@@ -149,6 +159,7 @@ def build_investor_equity_report():
             investor_total["withdrawn"] += row["withdrawn"]
             investor_total["profit_share"] += row["profit_share"]
             investor_total["stock_share"] += row["stock_share"]
+            investor_total["cash_share"] += row["cash_share"]
             investor_total["due_share"] += row["due_share"]
             investor_total["current_equity"] += row["current_equity"]
 
@@ -157,6 +168,7 @@ def build_investor_equity_report():
         totals["withdrawals"] += row["withdrawn"]
         totals["profit_share"] += row["profit_share"]
         totals["stock_share"] += row["stock_share"]
+        totals["cash_share"] += row["cash_share"]
         totals["due_share"] += row["due_share"]
         totals["current_equity"] += row["current_equity"]
 
